@@ -1,18 +1,30 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import './bootstrap';
+import '../css/app.css';
 
-function App() {
-    return (
-        <div className="p-10">
-            <h1 className="text-3xl font-bold text-blue-600">
-                Gerona Stall System 🚀
-            </h1>
-        </div>
-    )
-}
+import { createRoot } from 'react-dom/client';
+import { createInertiaApp } from '@inertiajs/react';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
-ReactDOM.createRoot(document.getElementById('app')!).render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-)
+const appName = import.meta.env.VITE_APP_NAME || 'Gerona Stall System';
+
+// 1. Create a variable to hold our React Root so Vite HMR remembers it
+let root: any = null;
+
+createInertiaApp({
+    title: (title) => `${title} - ${appName}`,
+    resolve: (name) => resolvePageComponent(`./Pages/${name}.tsx`, import.meta.glob('./Pages/**/*.tsx')),
+    setup({ el, App, props }) {
+
+        // 2. Check if the root already exists. If not, create it.
+        if (!root) {
+            root = createRoot(el);
+        }
+
+        // 3. Render the app
+        root.render(<App {...props} />);
+    },
+    progress: {
+        // Changed to Government Blue to match your theme!
+        color: '#1D4ED8',
+    },
+});

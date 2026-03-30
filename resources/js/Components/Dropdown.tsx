@@ -1,10 +1,22 @@
 import { Transition } from '@headlessui/react';
-import { Link } from '@inertiajs/react';
-import { createContext, useContext, useState } from 'react';
+import { Link, InertiaLinkProps } from '@inertiajs/react';
+import { createContext, useContext, useState, PropsWithChildren, Dispatch, SetStateAction } from 'react';
 
-const DropDownContext = createContext();
+// 1. Define what the Context holds
+interface DropDownContextType {
+    open: boolean;
+    setOpen: Dispatch<SetStateAction<boolean>>;
+    toggleOpen: () => void;
+}
 
-const Dropdown = ({ children }) => {
+// 2. Initialize context with safe default values
+const DropDownContext = createContext<DropDownContextType>({
+    open: false,
+    setOpen: () => { },
+    toggleOpen: () => { },
+});
+
+const Dropdown = ({ children }: PropsWithChildren) => {
     const [open, setOpen] = useState(false);
 
     const toggleOpen = () => {
@@ -18,7 +30,7 @@ const Dropdown = ({ children }) => {
     );
 };
 
-const Trigger = ({ children }) => {
+const Trigger = ({ children }: PropsWithChildren) => {
     const { open, setOpen, toggleOpen } = useContext(DropDownContext);
 
     return (
@@ -35,12 +47,19 @@ const Trigger = ({ children }) => {
     );
 };
 
+// 3. Define the custom props for the Content component
+interface ContentProps extends PropsWithChildren {
+    align?: 'left' | 'right';
+    width?: '48';
+    contentClasses?: string;
+}
+
 const Content = ({
     align = 'right',
     width = '48',
     contentClasses = 'py-1 bg-white',
     children,
-}) => {
+}: ContentProps) => {
     const { open, setOpen } = useContext(DropDownContext);
 
     let alignmentClasses = 'origin-top';
@@ -86,7 +105,8 @@ const Content = ({
     );
 };
 
-const DropdownLink = ({ className = '', children, ...props }) => {
+// 4. Connect Inertia's Link Props
+const DropdownLink = ({ className = '', children, ...props }: InertiaLinkProps) => {
     return (
         <Link
             {...props}

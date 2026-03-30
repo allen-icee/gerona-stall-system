@@ -3,13 +3,26 @@ import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, PropsWithChildren, ReactNode } from 'react';
 
-export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+// 1. Define what your user object looks like
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    username?: string; // Added from our earlier backend update
+}
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+// 2. Define the props for this layout component
+interface AuthenticatedLayoutProps extends PropsWithChildren {
+    header?: ReactNode;
+}
+
+export default function AuthenticatedLayout({ header, children }: AuthenticatedLayoutProps) {
+    // 3. Safely tell TypeScript what the user prop contains
+    const user = (usePage().props as any).auth.user as User;
+
+    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
     return (
         <div className="min-h-screen bg-gray-100">

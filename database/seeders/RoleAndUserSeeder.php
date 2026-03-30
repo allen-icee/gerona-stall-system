@@ -14,7 +14,7 @@ class RoleAndUserSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $staffRole = Role::firstOrCreate(['name' => 'staff']);
         $treasuryRole = Role::firstOrCreate(['name' => 'treasury']);
-
+        $this->call(RoleAndUserSeeder::class);
         // 2. Create the Master Admin
         $admin = User::create([
             'name' => 'System Admin',

@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import axios from '../services/axios';
 
 // 1. Define the shape of your User and the Auth State
-interface User {
+export interface User {
     id: number;
     name: string;
+    username: string; // <-- Added this
     email: string;
     roles?: { name: string }[];
 }
@@ -13,7 +14,7 @@ interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (username: string, password: string) => Promise<boolean>;// ADDED TYPES HERE
+    login: (username: string, password: string) => Promise<boolean>;
     logout: () => Promise<void>;
 }
 
@@ -27,7 +28,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: true });
         try {
             await axios.get('/sanctum/csrf-cookie');
-            // Send username to the backend
+
+            // Send username and password to the backend
             const response = await axios.post('/api/login', { username, password });
 
             set({
@@ -42,7 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             return true;
         } catch (error) {
             set({ isLoading: false });
-            throw error;
+            throw error; // Let the Login component catch and display the error
         }
     },
 
@@ -53,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             console.error(e);
         }
         localStorage.removeItem('auth_token');
+        delete axios.defaults.headers.common['Authorization'];
         set({ user: null, isAuthenticated: false });
     }
 }));

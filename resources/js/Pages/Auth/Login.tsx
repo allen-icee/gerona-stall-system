@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
-import { useAuthStore } from "../store/useAuthStore";
+import { useAuthStore } from "../../store/useAuthStore";
 
 export default function Login() {
     const [username, setUsername] = useState("");
@@ -29,7 +29,7 @@ export default function Login() {
             <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-stone-200">
 
                 <div className="mb-8 text-center">
-                    {/* Changed to Government Blue & Stall Icon */}
+                    {/* Government Blue & Stall Icon */}
                     <div className="w-16 h-16 bg-blue-50 text-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-blue-100">
                         <Icon icon="solar:shop-bold-duotone" className="w-9 h-9" />
                     </div>
