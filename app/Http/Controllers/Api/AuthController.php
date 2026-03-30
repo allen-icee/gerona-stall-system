@@ -10,16 +10,16 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'username' => 'required', // CHANGED FROM EMAIL
             'password' => 'required'
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid login credentials'], 401);
+        // Attempt login with username
+        if (!Auth::attempt($request->only('username', 'password'))) {
+            return response()->json(['message' => 'Invalid username or password'], 401);
         }
 
         $user = Auth::user();
-        // Load the Spatie roles so React knows what UI to show
         $user->load('roles');
 
         $token = $user->createToken('auth_token')->plainTextToken;

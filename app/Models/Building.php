@@ -1,8 +1,9 @@
 <?php
 
+namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Floor;
-use App\Models\Stall;
+
 class Building extends Model
 {
     protected $fillable = ['name', 'description'];
