@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '@/Components/Modal';
+import CustomSelect from '@/Components/CustomSelect';
 
 interface Role { id: number; name: string; }
 interface User { id: number; name: string; username: string; email: string; roles: Role[]; }
@@ -86,84 +87,95 @@ export default function EditUserModal({ show, onClose, roles, user }: Props) {
 
     return (
         <Modal show={show} onClose={closeAndReset} maxWidth="2xl">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                    <Icon icon="solar:pen-new-square-bold-duotone" className="w-6 h-6 text-blue-600" />
-                    Edit User: <span className="text-blue-600 ml-1">{user.name}</span>
+            <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
+                    <Icon icon="solar:pen-new-square-bold-duotone" className="w-7 h-7 text-blue-700" />
+                    Edit User: <span className="text-blue-700 ml-1">{user.name}</span>
                 </h2>
-                <button onClick={closeAndReset} className="text-slate-400 hover:text-rose-500 transition-colors p-1 bg-white border border-slate-200 hover:bg-rose-50 rounded-lg">
+                <button onClick={closeAndReset} className="text-slate-500 hover:text-rose-600 transition-colors p-1 bg-white border-2 border-slate-300 hover:bg-rose-50 hover:border-rose-300 rounded-lg">
                     <Icon icon="solar:close-square-bold" className="w-5 h-5" />
                 </button>
             </div>
 
-            <form onSubmit={submit} className="p-6 space-y-5">
+            <form onSubmit={submit} className="p-6 space-y-5 bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* Full Name */}
                     <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Full Name</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Full Name</label>
                         <div className="relative">
-                            <Icon icon="solar:user-id-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="pl-10 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500" required />
+                            <Icon icon="solar:user-id-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                            <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="pl-10 w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none" required />
                         </div>
-                        {(errors.name || nameError) && <p className="text-rose-500 text-xs font-bold mt-1">{errors.name || nameError}</p>}
+                        {(errors.name || nameError) && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.name || nameError}</p>}
                     </div>
                     {/* Username */}
                     <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Username</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Username</label>
                         <div className="relative">
-                            <Icon icon="solar:user-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <input type="text" value={data.username} onChange={e => setData('username', e.target.value)} className="pl-10 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500" required />
+                            <Icon icon="solar:user-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                            <input type="text" value={data.username} onChange={e => setData('username', e.target.value)} className="pl-10 w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none" required />
                         </div>
-                        {(errors.username || usernameError) && <p className="text-rose-500 text-xs font-bold mt-1">{errors.username || usernameError}</p>}
+                        {(errors.username || usernameError) && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.username || usernameError}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* Email */}
                     <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Email Address (Optional)</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Email Address <span className="text-[10px] text-slate-500 ml-1">(Optional)</span></label>
                         <div className="relative">
-                            <Icon icon="solar:letter-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="pl-10 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500" />
+                            <Icon icon="solar:letter-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                            <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="pl-10 w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none placeholder-slate-400" />
                         </div>
-                        {(errors.email || emailError) && <p className="text-rose-500 text-xs font-bold mt-1">{errors.email || emailError}</p>}
+                        {(errors.email || emailError) && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.email || emailError}</p>}
                     </div>
                     {/* Role */}
                     <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">System Role</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                            System Role
+                        </label>
                         <div className="relative">
-                            <Icon icon="solar:shield-user-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400 z-10" />
-                            <select value={data.role} onChange={e => setData('role', e.target.value)} className="pl-10 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500 appearance-none" required>
-                                {roles.map(role => <option key={role.id} value={role.name}>{role.name.toUpperCase()}</option>)}
-                            </select>
+                            {/* Left Icon */}
+                            <Icon
+                                icon="solar:shield-user-bold-duotone"
+                                className="absolute left-3 top-3.5 w-5 h-5 text-slate-500 z-10 pointer-events-none"
+                            />
+
+                            <CustomSelect
+                                id="role"
+                                value={data.role}
+                                onChange={(val) => setData('role', val)}
+                                options={roles.map(role => role.name)}
+                                theme="blue"
+                                error={errors.role}
+                            />
                         </div>
-                        {errors.role && <p className="text-rose-500 text-xs font-bold mt-1">{errors.role}</p>}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="col-span-1 md:col-span-2 flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-slate-600 uppercase flex items-center gap-1">
-                            <Icon icon="solar:lock-password-bold" className="w-4 h-4" /> Change Password
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-100 p-5 rounded-xl border-2 border-slate-300">
+                    <div className="col-span-1 md:col-span-2 flex items-center justify-between border-b-2 border-slate-200 pb-2">
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                            <Icon icon="solar:lock-password-bold" className="w-5 h-5 text-slate-500" /> Change Password
                         </h4>
-                        <span className="text-[10px] bg-slate-200 text-slate-500 font-bold px-2 py-0.5 rounded uppercase tracking-widest">Optional</span>
+                        <span className="text-[10px] bg-slate-300 text-slate-700 font-black px-2 py-0.5 rounded border border-slate-400 uppercase tracking-widest">Optional</span>
                     </div>
 
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">New Password</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">New Password</label>
                         <div className="relative">
-                            <Icon icon="solar:key-minimalistic-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <input type={showPassword ? "text" : "password"} value={data.password} onChange={e => setData('password', e.target.value)} className="pl-10 pr-10 w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500" placeholder="••••••••" />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <Icon icon="solar:key-minimalistic-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                            <input type={showPassword ? "text" : "password"} value={data.password} onChange={e => setData('password', e.target.value)} className="pl-10 pr-10 w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none placeholder-slate-400" placeholder="••••••••" />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-blue-700 focus:outline-none">
                                 <Icon icon={showPassword ? "solar:eye-bold" : "solar:eye-closed-bold"} className="w-5 h-5" />
                             </button>
                         </div>
-                        {errors.password && <p className="text-rose-500 text-xs font-bold mt-1">{errors.password}</p>}
+                        {errors.password && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.password}</p>}
 
                         {/* Password Requirements */}
                         {data.password.length > 0 && (
-                            <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm text-xs">
-                                <p className="font-bold text-slate-500 mb-2">Password must contain:</p>
+                            <div className="mt-3 p-3 bg-white rounded-lg border-2 border-slate-200 shadow-sm text-xs">
+                                <p className="font-black text-slate-700 mb-2 uppercase tracking-wide">Must contain:</p>
                                 <ul className="space-y-1.5">
                                     <RequirementItem met={requirements.length} label="At least 8 characters" />
                                     <RequirementItem met={requirements.uppercase} label="One uppercase letter (A-Z)" />
@@ -175,23 +187,25 @@ export default function EditUserModal({ show, onClose, roles, user }: Props) {
                     </div>
 
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Confirm New Password</label>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Confirm New Password</label>
                         <div className="relative">
-                            <Icon icon="solar:shield-check-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <input type={showPassword ? "text" : "password"} value={data.password_confirmation} onChange={e => setData('password_confirmation', e.target.value)} className="pl-10 pr-10 w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-100 focus:border-blue-500" placeholder="••••••••" />
+                            <Icon icon="solar:shield-check-bold-duotone" className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                            <input type={showPassword ? "text" : "password"} value={data.password_confirmation} onChange={e => setData('password_confirmation', e.target.value)} className="pl-10 pr-10 w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none placeholder-slate-400" placeholder="••••••••" />
                         </div>
                         {data.password_confirmation.length > 0 && (
-                            <div className={`mt-2 text-xs font-bold flex items-center gap-1.5 ${passwordsMatch ? "text-emerald-600" : "text-rose-500"}`}>
+                            <div className={`mt-2 text-xs font-black tracking-wide flex items-center gap-1.5 ${passwordsMatch ? "text-emerald-600" : "text-rose-600"}`}>
                                 <Icon icon={passwordsMatch ? "solar:check-circle-bold" : "solar:close-circle-bold"} width="16" />
-                                {passwordsMatch ? "Passwords match!" : "Passwords do not match."}
+                                {passwordsMatch ? "PASSWORDS MATCH" : "PASSWORDS DO NOT MATCH"}
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onClick={closeAndReset} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors text-sm">Cancel</button>
-                    <button type="submit" disabled={!isFormValid || processing} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                <div className="flex justify-end gap-3 pt-5 border-t-2 border-slate-200 mt-6">
+                    <button type="button" onClick={closeAndReset} className="px-5 py-2.5 rounded-lg font-black uppercase text-xs tracking-wide text-slate-700 bg-white border-2 border-slate-300 hover:bg-slate-100 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" disabled={!isFormValid || processing} className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black uppercase text-xs tracking-wide px-6 py-2.5 rounded-lg border-2 border-blue-900 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                         {processing ? <Icon icon="solar:spinner-bold-duotone" className="w-5 h-5 animate-spin" /> : <Icon icon="solar:diskette-bold" className="w-5 h-5" />}
                         Save Changes
                     </button>
@@ -203,7 +217,7 @@ export default function EditUserModal({ show, onClose, roles, user }: Props) {
 
 function RequirementItem({ met, label }: { met: boolean; label: string }) {
     return (
-        <li className={`flex items-center gap-2 ${met ? "text-emerald-600 font-bold" : "text-slate-400"}`}>
+        <li className={`flex items-center gap-2 font-bold ${met ? "text-emerald-600" : "text-slate-400"}`}>
             <Icon icon={met ? "solar:check-circle-bold" : "solar:close-circle-bold"} width="14" />
             <span>{label}</span>
         </li>
