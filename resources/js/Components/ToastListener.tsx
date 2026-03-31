@@ -26,7 +26,7 @@ export default function ToastListener() {
 
     return (
         <Toaster
-            position="bottom-right"
+            position="bottom-center"
             gutter={8}
             containerStyle={{ zIndex: 99999 }}
             toastOptions={{

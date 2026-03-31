@@ -4,6 +4,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BuildingController;
+use App\Http\Controllers\FloorController;
+use App\Http\Controllers\StallController;
+use App\Http\Controllers\LayoutController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -27,6 +31,13 @@ Route::middleware('auth')->group(function () {
 
     // User Management (Make sure only admins can access this later, but for now we group it in auth)
     Route::resource('users', UserController::class)->except(['show']);
+    Route::resource('buildings', BuildingController::class)->except(['create', 'show', 'edit']);
+    Route::resource('floors', FloorController::class)->except(['create', 'show', 'edit']);
+    Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
+    // Inside your auth middleware group:
+    Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
+    Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
+    Route::post('/mapper/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');
 });
 
 require __DIR__ . '/auth.php';

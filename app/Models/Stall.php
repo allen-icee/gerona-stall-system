@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Stall extends Model
 {
+    use HasFactory;
+
+    // These must match your migration exactly
     protected $fillable = [
         'stall_code',
         'building_id',
@@ -13,6 +17,10 @@ class Stall extends Model
         'status_id',
         'version'
     ];
+
+    // ==========================================
+    // Core Location & Status Relationships
+    // ==========================================
 
     public function building()
     {
@@ -26,13 +34,23 @@ class Stall extends Model
 
     public function status()
     {
-        return $this->belongsTo(Status::class); // Connects to the Color Legend
+        // Connects to the Color Legend
+        return $this->belongsTo(Status::class);
     }
+
+    // ==========================================
+    // Layout & Mapping Relationships
+    // ==========================================
 
     public function cell()
     {
         return $this->hasOne(LayoutCell::class);
     }
+
+    // ==========================================
+    // Tenant & Financial Relationships
+    // ==========================================
+
     // The history of tenants who have rented this stall
     public function tenantHistories()
     {

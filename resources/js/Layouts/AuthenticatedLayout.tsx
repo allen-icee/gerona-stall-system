@@ -14,9 +14,14 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
     const user = (usePage().props as any).auth.user as User;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
+    // Smart state: Automatically open the dropdown if we are on any of its child routes
+    const isFacilityRoute = route().current('buildings.*') || route().current('floors.*') || route().current('stalls.*');
+    const [facilityMenuOpen, setFacilityMenuOpen] = useState(isFacilityRoute);
+
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
             <ToastListener />
+
             {/* Mobile Sidebar Overlay */}
             {sidebarOpen && (
                 <div
@@ -47,6 +52,7 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
 
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+                    {/* Dashboard */}
                     <Link
                         href={route('dashboard')}
                         className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 ${route().current('dashboard')
@@ -58,9 +64,65 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         Dashboard
                     </Link>
 
-                    {/* Future Routes Placed Here */}
-                    <Link href="#" className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 border-transparent hover:bg-slate-800 hover:border-slate-700 hover:text-white">
-                        <Icon icon="solar:map-bold-duotone" className="w-6 h-6" />
+                    {/* Collapsible Facility Setup Menu */}
+                    <div className="flex flex-col space-y-1">
+                        <button
+                            onClick={() => setFacilityMenuOpen(!facilityMenuOpen)}
+                            className={`flex items-center justify-between w-full px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 ${isFacilityRoute
+                                ? 'bg-slate-800 text-white border-slate-700'
+                                : 'hover:bg-slate-800 hover:text-white border-transparent hover:border-slate-700'
+                                }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Icon icon="solar:city-bold-duotone" className="w-6 h-6" />
+                                Facility Setup
+                            </div>
+                            <Icon
+                                icon="solar:alt-arrow-down-bold"
+                                className={`w-4 h-4 transition-transform duration-200 ${facilityMenuOpen ? 'rotate-180 text-white' : 'text-slate-500'}`}
+                            />
+                        </button>
+
+                        {/* Dropdown Children */}
+                        {facilityMenuOpen && (
+                            <div className="pl-4 pr-2 py-1 space-y-1 relative">
+                                {/* Visual left border line to show hierarchy */}
+                                <div className="absolute left-[31px] top-2 bottom-2 w-0.5 bg-slate-700 rounded-full"></div>
+
+                                <Link
+                                    href={route('buildings.index')}
+                                    className={`flex items-center gap-3 px-10 py-2.5 rounded-lg transition-all font-bold text-xs uppercase tracking-wide ${route().current('buildings.*')
+                                        ? 'bg-blue-700 text-white shadow-sm'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    Facility Buildings
+                                </Link>
+                                <Link
+                                    href={route('floors.index')}
+                                    className={`flex items-center gap-3 px-10 py-2.5 rounded-lg transition-all font-bold text-xs uppercase tracking-wide ${route().current('floors.*')
+                                        ? 'bg-blue-700 text-white shadow-sm'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    Floors & Sections
+                                </Link>
+                                <Link
+                                    href={route('stalls.index')}
+                                    className={`flex items-center gap-3 px-10 py-2.5 rounded-lg transition-all font-bold text-xs uppercase tracking-wide ${route().current('stalls.*')
+                                        ? 'bg-blue-700 text-white shadow-sm'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    Manage Stalls
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Map & Other Routes */}
+                    <Link href={route('layouts.mapper')} className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 border-transparent hover:bg-slate-800 hover:border-slate-700 hover:text-white">
+                        <Icon icon="solar:map-bold-duotone" className="w-6 h-6 text-amber-500" />
                         Stall Layout Map
                     </Link>
 
@@ -70,9 +132,10 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                     </Link>
 
                     <Link href="#" className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 border-transparent hover:bg-slate-800 hover:border-slate-700 hover:text-white">
-                        <Icon icon="solar:wallet-bold-duotone" className="w-6 h-6" />
+                        <Icon icon="solar:wallet-bold-duotone" className="w-6 h-6 text-emerald-500" />
                         Treasury & Payments
                     </Link>
+
                     <Link
                         href={route('users.index')}
                         className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-black text-sm uppercase tracking-wide border-2 ${route().current('users.*')
@@ -80,7 +143,7 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                             : 'hover:bg-slate-800 hover:text-white border-transparent hover:border-slate-700'
                             }`}
                     >
-                        <Icon icon="solar:users-group-rounded-bold-duotone" className="w-6 h-6" />
+                        <Icon icon="solar:shield-user-bold-duotone" className="w-6 h-6" />
                         Manage Personnel
                     </Link>
                 </nav>
