@@ -1,25 +1,18 @@
-import {
-    Dialog,
-    DialogPanel,
-    Transition,
-    TransitionChild,
-} from '@headlessui/react';
-import { PropsWithChildren } from 'react';
-
-interface ModalProps extends PropsWithChildren {
-    show?: boolean;
-    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-    closeable?: boolean;
-    onClose?: () => void;
-}
+import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
+import { PropsWithChildren } from "react";
 
 export default function Modal({
     children,
     show = false,
-    maxWidth = '2xl',
+    maxWidth = "2xl",
     closeable = true,
     onClose = () => { },
-}: ModalProps) {
+}: PropsWithChildren<{
+    show: boolean;
+    maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl";
+    closeable?: boolean;
+    onClose: CallableFunction;
+}>) {
     const close = () => {
         if (closeable) {
             onClose();
@@ -27,11 +20,16 @@ export default function Modal({
     };
 
     const maxWidthClass = {
-        sm: 'sm:max-w-sm',
-        md: 'sm:max-w-md',
-        lg: 'sm:max-w-lg',
-        xl: 'sm:max-w-xl',
-        '2xl': 'sm:max-w-2xl',
+        sm: "sm:max-w-sm",
+        md: "sm:max-w-md",
+        lg: "sm:max-w-lg",
+        xl: "sm:max-w-xl",
+        "2xl": "sm:max-w-2xl",
+        "3xl": "sm:max-w-3xl",
+        "4xl": "sm:max-w-4xl",
+        "5xl": "sm:max-w-5xl",
+        "6xl": "sm:max-w-6xl",
+        "7xl": "sm:max-w-7xl",
     }[maxWidth];
 
     return (
@@ -39,7 +37,8 @@ export default function Modal({
             <Dialog
                 as="div"
                 id="modal"
-                className="fixed inset-0 z-50 flex transform items-center overflow-y-auto px-4 py-6 transition-all sm:px-0"
+                // FIX: Used z-[9999] so it goes above the sidebar and headers
+                className="fixed inset-0 z-[9999] flex transform items-center justify-center overflow-y-auto p-0 transition-all sm:px-4 sm:py-6"
                 onClose={close}
             >
                 <TransitionChild
@@ -50,7 +49,8 @@ export default function Modal({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-gray-500/75" />
+                    {/* The gray background overlay */}
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
                 </TransitionChild>
 
                 <TransitionChild
@@ -62,7 +62,10 @@ export default function Modal({
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
                     <DialogPanel
-                        className={`mb-6 transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:mx-auto sm:w-full ${maxWidthClass}`}
+                        className={`relative transform overflow-visible bg-white shadow-2xl transition-all
+                        h-full w-full rounded-none
+                        sm:h-auto sm:mx-auto sm:w-full sm:rounded-2xl sm:mb-6
+                        ${maxWidthClass}`}
                     >
                         {children}
                     </DialogPanel>

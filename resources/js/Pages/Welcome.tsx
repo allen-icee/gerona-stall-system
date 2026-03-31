@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 
-// 1. Define the props passed from Laravel's web.php
 interface WelcomeProps {
     auth: {
         user: {
@@ -8,72 +8,91 @@ interface WelcomeProps {
             name: string;
             email: string;
             username?: string;
-        } | null; // User might be null if not logged in
+        } | null;
     };
-    laravelVersion: string;
-    phpVersion: string;
 }
 
-export default function Welcome({ auth, laravelVersion, phpVersion }: WelcomeProps) {
+export default function Welcome({ auth }: WelcomeProps) {
     return (
         <>
-            <Head title="Gerona Stall System" />
-            <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50 min-h-screen">
-                <div className="relative flex min-h-screen flex-col items-center justify-center selection:bg-blue-600 selection:text-white">
-                    <div className="relative w-full max-w-2xl px-6 lg:max-w-7xl">
+            <Head title="Municipal Stall Management System" />
 
-                        <header className="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3">
-                            <div className="flex lg:col-start-2 lg:justify-center">
-                                {/* Simplified Municipal-Style Logo/Text instead of Laravel Logo */}
-                                <h1 className="text-3xl font-black text-blue-700 dark:text-blue-500 tracking-tight">
-                                    GERONA STALL SYSTEM
-                                </h1>
+            <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white relative overflow-hidden">
+
+                {/* subtle texture */}
+                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+
+                {/* MAIN */}
+                <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-12">
+
+                    {/* LOGOS */}
+                    <div className="flex items-center justify-center gap-6 mb-6">
+                        <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full shadow-lg border-4 border-yellow-400 p-2">
+                            <img src="/images/PesoLogo.png" className="w-full h-full object-contain" />
+                        </div>
+
+                        <div className="w-28 h-28 md:w-36 md:h-36 bg-white rounded-full shadow-xl border-4 border-yellow-500 p-2 -translate-y-3">
+                            <img src="/images/TSULogo.png" className="w-full h-full object-contain" />
+                        </div>
+
+                        <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full shadow-lg border-4 border-yellow-400 p-2">
+                            <img src="/images/TreasuryLogo.png" className="w-full h-full object-contain" />
+                        </div>
+                    </div>
+
+                    {/* HEADER */}
+                    <div className="text-center mb-10">
+                        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
+                            Gerona Stall Management System
+                        </h1>
+                    </div>
+
+                    {/* CARD */}
+                    <div className="w-full max-w-md bg-white text-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200">
+
+                        <div className="text-center">
+                            <div className="bg-yellow-100 w-16 h-16 flex items-center justify-center rounded-full mx-auto mb-4">
+                                <Icon icon="solar:shield-keyhole-bold-duotone" className="w-8 h-8 text-yellow-600" />
                             </div>
 
-                            <nav className="-mx-3 flex flex-1 justify-end">
-                                {auth.user ? (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-blue-600 dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                    >
-                                        Go to Dashboard
-                                    </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={route('login')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-blue-600 dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white font-semibold"
-                                        >
-                                            Staff Login
-                                        </Link>
-                                    </>
-                                )}
-                            </nav>
-                        </header>
-
-                        <main className="mt-6 flex flex-col items-center justify-center text-center py-20">
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                                Municipal Internal Portal
+                            <h2 className="text-xl font-bold mb-2">
+                                Welcome to the Gerona Stall Management System!
                             </h2>
-                            <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl">
-                                Welcome to the centralized stall management system for the Gerona Food Bazaar and Public Market. This system is for authorized municipal personnel only.
+
+                            <p className="text-sm text-slate-500 mb-6">
+                                For authorized personnel of the Municipal Government of Gerona only.
                             </p>
+                        </div>
 
-                            {!auth.user && (
-                                <Link
-                                    href={route('login')}
-                                    className="mt-8 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-150 ease-in-out"
-                                >
-                                    Proceed to Secure Login
-                                </Link>
-                            )}
-                        </main>
-
-                        <footer className="py-16 text-center text-sm text-black dark:text-white/70">
-                            Powered by Laravel v{laravelVersion} (PHP v{phpVersion}) | Gerona Municipal IT
-                        </footer>
+                        {/* BUTTON */}
+                        {auth.user ? (
+                            <Link
+                                href={route('dashboard')}
+                                className="w-full flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                            >
+                                Go to Dashboard
+                                <Icon icon="solar:alt-arrow-right-bold-duotone" className="w-5 h-5" />
+                            </Link>
+                        ) : (
+                            <Link
+                                href={route('login')}
+                                className="w-full flex text-amber-50 font-bold items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600  py-3 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                            >
+                                Access the System
+                            </Link>
+                        )}
                     </div>
                 </div>
+
+                {/* FOOTER */}
+                <footer className="relative z-10 text-center py-6 text-xs text-slate-300 tracking-wide">
+                    <div>
+                        © {new Date().getFullYear()} Municipal Government of Gerona
+                    </div>
+                    <div className="opacity-70 mt-1">
+                        All rights reserved
+                    </div>
+                </footer>
             </div>
         </>
     );

@@ -14,13 +14,13 @@ class RoleAndUserSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $staffRole = Role::firstOrCreate(['name' => 'staff']);
         $treasuryRole = Role::firstOrCreate(['name' => 'treasury']);
-        $this->call(RoleAndUserSeeder::class);
+
         // 2. Create the Master Admin
         $admin = User::create([
             'name' => 'System Admin',
             'username' => 'admin', // <-- NEW
             'email' => 'admin@gerona.gov.ph',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('Admin_123'),
         ]);
         $admin->assignRole($adminRole);
 
@@ -29,7 +29,7 @@ class RoleAndUserSeeder extends Seeder
             'name' => 'Market Staff',
             'username' => 'staff01', // <-- NEW
             'email' => 'staff@gerona.gov.ph',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('Staff_123'),
         ]);
         $staff->assignRole($staffRole);
 
@@ -38,7 +38,7 @@ class RoleAndUserSeeder extends Seeder
             'name' => 'Treasury Officer',
             'username' => 'treasury01', // <-- NEW
             'email' => 'treasury@gerona.gov.ph',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('Treasury_123'),
         ]);
         $treasury->assignRole($treasuryRole);
     }
