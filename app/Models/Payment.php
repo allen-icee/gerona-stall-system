@@ -17,6 +17,7 @@ class Payment extends Model
         'encoded_by'
     ];
 
+
     protected $casts = [
         'payment_date' => 'date',
         'amount' => 'decimal:2',

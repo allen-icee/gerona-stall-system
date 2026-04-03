@@ -9,6 +9,8 @@ use App\Http\Controllers\FloorController;
 use App\Http\Controllers\StallController;
 use App\Http\Controllers\LayoutController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\ContractController;
+use App\Http\Controllers\PaymentController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -40,6 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
     Route::post('/mapper/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');
     Route::resource('tenants', TenantController::class)->except(['create', 'show', 'edit']);
+    Route::resource('contracts', ContractController::class)->only(['index', 'store']);
+    Route::resource('payments', PaymentController::class)->only(['index', 'store']);
 });
 
 require __DIR__ . '/auth.php';

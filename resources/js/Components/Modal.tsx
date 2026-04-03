@@ -1,22 +1,32 @@
-import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
-import { PropsWithChildren } from "react";
+import { Fragment, PropsWithChildren } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+
+interface ModalProps {
+    show: boolean;
+    onClose: () => void;
+    maxWidth?:
+        | "sm"
+        | "md"
+        | "lg"
+        | "xl"
+        | "2xl"
+        | "3xl"
+        | "4xl"
+        | "5xl"
+        | "6xl"
+        | "7xl";
+    closeable?: boolean;
+}
 
 export default function Modal({
     children,
-    show = false,
+    show,
+    onClose,
     maxWidth = "2xl",
     closeable = true,
-    onClose = () => { },
-}: PropsWithChildren<{
-    show: boolean;
-    maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl";
-    closeable?: boolean;
-    onClose: CallableFunction;
-}>) {
+}: PropsWithChildren<ModalProps>) {
     const close = () => {
-        if (closeable) {
-            onClose();
-        }
+        if (closeable) onClose();
     };
 
     const maxWidthClass = {
@@ -33,15 +43,11 @@ export default function Modal({
     }[maxWidth];
 
     return (
-        <Transition show={show} leave="duration-200">
-            <Dialog
-                as="div"
-                id="modal"
-                // FIX: Used z-[9999] so it goes above the sidebar and headers
-                className="fixed inset-0 z-[9999] flex transform items-center justify-center overflow-y-auto p-0 transition-all sm:px-4 sm:py-6"
-                onClose={close}
-            >
-                <TransitionChild
+        <Transition appear show={show} as={Fragment}>
+            <Dialog as="div" className="relative z-[9999]" onClose={close}>
+                {/* BACKDROP */}
+                <Transition.Child
+                    as={Fragment}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
@@ -49,27 +55,29 @@ export default function Modal({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    {/* The gray background overlay */}
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-                </TransitionChild>
+                </Transition.Child>
 
-                <TransitionChild
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                >
-                    <DialogPanel
-                        className={`relative transform overflow-visible bg-white border-2 border-slate-300 shadow-xl transition-all
-                        h-full w-full rounded-none
-                        sm:h-auto sm:mx-auto sm:w-full sm:rounded-xl sm:mb-6
-                        ${maxWidthClass}`}
-                    >
-                        {children}
-                    </DialogPanel>
-                </TransitionChild>
+                {/* MODAL CONTAINER */}
+                <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 scale-95 translate-y-4"
+                            enterTo="opacity-100 scale-100 translate-y-0"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 scale-100 translate-y-0"
+                            leaveTo="opacity-0 scale-95 translate-y-4"
+                        >
+                            <Dialog.Panel
+                                className={`w-full transform overflow-hidden rounded-2xl bg-white shadow-xl border-2 border-slate-300 transition-all ${maxWidthClass}`}
+                            >
+                                {children}
+                            </Dialog.Panel>
+                        </Transition.Child>
+                    </div>
+                </div>
             </Dialog>
         </Transition>
     );
