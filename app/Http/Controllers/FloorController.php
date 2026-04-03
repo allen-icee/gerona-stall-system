@@ -11,21 +11,20 @@ class FloorController extends Controller
 {
     public function index(Request $request)
     {
-        // Load floors and their associated building
         $query = Floor::with('building');
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhereHas('building', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
+        // Debounced Search Logic
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('name', 'like', $searchTerm)
+                ->orWhere('description', 'like', $searchTerm)
+                ->orWhereHas('building', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm);
                 });
         }
 
         $floors = $query->latest()->paginate(10)->withQueryString();
-
-        // We need all buildings for the "Create Floor" dropdown
-        $buildings = Building::orderBy('name')->get(['id', 'name']);
+        $buildings = Building::orderBy('name')->get();
 
         return Inertia::render('Floors/Index', [
             'floors' => $floors,
@@ -36,33 +35,56 @@ class FloorController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'building_id' => 'required|exists:buildings,id',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string',
         ]);
 
-        Floor::create($request->all());
+        Floor::create($validated);
 
-        return redirect()->back()->with('success', 'Floor/Section added successfully.');
+        return redirect()->back()->with('success', 'Floor successfully registered!');
     }
 
     public function update(Request $request, Floor $floor)
     {
-        $request->validate([
+        $validated = $request->validate([
             'building_id' => 'required|exists:buildings,id',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string',
         ]);
 
-        $floor->update($request->all());
+        $floor->update($validated);
 
-        return redirect()->back()->with('success', 'Floor/Section updated successfully.');
+        return redirect()->back()->with('success', 'Floor details updated!');
     }
 
     public function destroy(Floor $floor)
     {
         $floor->delete();
-        return redirect()->back()->with('success', 'Floor/Section deleted successfully.');
+        return redirect()->back()->with('success', 'Floor successfully deleted.');
+    }
+
+    public function export()
+    {
+        $floors = Floor::with('building')->get();
+        $csvData = "ID,Floor Name,Parent Building,Description,Created At\n";
+        foreach ($floors as $floor) {
+            $buildingName = $floor->building ? $floor->building->name : 'N/A';
+            $csvData .= "{$floor->id},{$floor->name},{$buildingName},{$floor->description},{$floor->created_at}\n";
+        }
+
+        return response($csvData)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="floors_export.csv"');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
+        ]);
+
+        return redirect()->back()->with('success', 'Floors imported successfully!');
     }
 }

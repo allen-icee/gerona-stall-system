@@ -1,181 +1,313 @@
-import { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
-import { Icon } from '@iconify/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import Modal from '@/Components/Modal';
+import { useState, useEffect, useRef } from "react";
+import { Head, router, useForm } from "@inertiajs/react";
+import { Icon } from "@iconify/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import CreateStallModal from "./Partials/CreateStallModal";
+import EditStallModal from "./Partials/EditStallModal";
+import Modal from "@/Components/Modal";
+import ToastListener from "@/Components/ToastListener";
 
-export default function StallsIndex({ stalls, floors, statuses, filters }: any) {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+export default function StallsIndex({
+    stalls,
+    floors,
+    statuses,
+    filters,
+}: any) {
+    const [search, setSearch] = useState(filters?.search || "");
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingStall, setEditingStall] = useState<any>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-        floor_id: '',
-        stall_code: '',
-        status_id: '', // Added status
-    });
+    // Delete Confirmation State
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    const closeCreateModal = () => {
-        setIsCreateModalOpen(false);
-        reset();
-        clearErrors();
+    // Debounced Search Logic
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            router.get(
+                route("stalls.index"),
+                { search },
+                { preserveState: true, replace: true },
+            );
+        }, 300);
+        return () => clearTimeout(delay);
+    }, [search]);
+
+    const confirmDelete = (id: number) => {
+        setDeletingId(id);
     };
 
-    const submitCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(route('stalls.store'), {
-            onSuccess: () => closeCreateModal(),
-        });
-    };
-
-    const deleteStall = (id: number) => {
-        if (confirm('Are you sure you want to delete this stall?')) {
-            router.delete(route('stalls.destroy', id));
+    const handleDelete = () => {
+        if (deletingId) {
+            router.delete(route("stalls.destroy", deletingId), {
+                preserveScroll: true,
+                onFinish: () => setDeletingId(null),
+            });
         }
     };
+
+    // Import Handling
+    const { post: postImport, processing: importing } = useForm({
+        file: null as File | null,
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            postImport(route("stalls.import"), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                },
+            });
+        }
+    };
+
+    const totalStalls = stalls.total || stalls.data.length;
 
     return (
         <AuthenticatedLayout>
             <Head title="Manage Stalls" />
+            <ToastListener />
 
-            <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8">
-                {/* Header & Actions */}
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Manage Stalls</h3>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg transition-colors"
-                    >
-                        <Icon icon="solar:shop-bold-duotone" className="w-5 h-5" />
-                        Register New Stall
-                    </button>
+            {/* Delete Confirmation Modal */}
+            <Modal
+                show={deletingId !== null}
+                onClose={() => setDeletingId(null)}
+                maxWidth="sm"
+            >
+                <div className="p-6 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-100 mb-4 border-2 border-rose-300">
+                        <Icon
+                            icon="solar:danger-triangle-bold"
+                            className="h-8 w-8 text-rose-600"
+                        />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">
+                        Delete Stall?
+                    </h3>
+                    <p className="text-sm text-slate-700 font-medium mb-6">
+                        Are you sure you want to completely remove this stall?
+                        Any active contracts linked to it might be affected.
+                    </p>
+                    <div className="flex justify-center gap-3">
+                        <button
+                            onClick={() => setDeletingId(null)}
+                            className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-800 font-bold rounded-lg hover:bg-slate-100 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
+                        >
+                            Yes, Delete Stall
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+                {/* Header & Tools Area */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    {/* Title & Count Tracker */}
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                                <Icon
+                                    icon="solar:shop-bold-duotone"
+                                    className="w-7 h-7 text-blue-700"
+                                />
+                                Manage Stalls
+                            </h3>
+                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
+                                {totalStalls}{" "}
+                                {totalStalls === 1 ? "Record" : "Records"}
+                            </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-500">
+                            Manage stall inventory, codes, and physical
+                            locations.
+                        </p>
+                    </div>
+
+                    {/* Search & Actions */}
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Icon
+                                    icon="solar:magnifer-bold"
+                                    className="h-5 w-5 text-slate-400"
+                                />
+                            </div>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
+                                placeholder="Search stalls..."
+                            />
+                        </div>
+
+                        <a
+                            href={route("stalls.export")}
+                            className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0"
+                            title="Export to Excel"
+                        >
+                            <Icon
+                                icon="solar:export-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                        </a>
+
+                        <input
+                            type="file"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors disabled:opacity-50 shrink-0"
+                            title="Import from Excel"
+                        >
+                            <Icon
+                                icon="solar:import-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                        </button>
+
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 border-2 border-blue-900 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg shadow-sm transition-colors shrink-0 whitespace-nowrap"
+                        >
+                            <Icon
+                                icon="solar:shop-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                            <span className="hidden sm:inline">Add Stall</span>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Stalls Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase font-black text-slate-800 tracking-wide">
-                            <tr>
-                                <th className="px-6 py-4">Stall Code</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Location</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {stalls.data.length > 0 ? (
-                                stalls.data.map((stall: any) => (
-                                    <tr key={stall.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 font-black text-slate-900 flex items-center gap-3 text-lg">
-                                            <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700">
-                                                <Icon icon="solar:tag-bold-duotone" className="w-5 h-5" />
-                                            </div>
-                                            {stall.stall_code}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-slate-100 text-slate-600">
-                                                {stall.status?.name || 'Unknown'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-800">{stall.floor?.name || 'No Floor'}</span>
-                                                <span className="text-xs text-slate-500">{stall.floor?.building?.name || 'No Building'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right space-x-3">
-                                            <button className="text-blue-600 hover:text-blue-800 font-bold uppercase text-xs tracking-wider">Edit</button>
-                                            <button onClick={() => deleteStall(stall.id)} className="text-rose-600 hover:text-rose-800 font-bold uppercase text-xs tracking-wider">Delete</button>
+                {/* Unified Table Card */}
+                <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
+                                <tr>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Stall Code
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Current Status
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Location
+                                    </th>
+                                    <th className="px-6 py-4 text-center">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y-2 divide-slate-200">
+                                {stalls.data.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={4}
+                                            className="px-6 py-12 text-center text-slate-400 font-bold"
+                                        >
+                                            <Icon
+                                                icon="solar:ghost-broken"
+                                                className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
+                                            />
+                                            No stalls found in the registry.
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-400 font-bold">
-                                        <Icon icon="solar:ghost-broken" className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                        No stalls found. Add a stall to populate the layout.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    stalls.data.map((stall: any) => (
+                                        <tr
+                                            key={stall.id}
+                                            className="hover:bg-blue-50 transition-colors"
+                                        >
+                                            <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center text-base">
+                                                {stall.stall_code}
+                                            </td>
+                                            <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                <span className="inline-block px-3 py-1 rounded border-2 font-black text-[10px] uppercase tracking-wider bg-slate-100 border-slate-300 text-slate-700">
+                                                    {stall.status?.name ||
+                                                        "Unknown"}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                <div className="font-bold text-slate-800">
+                                                    {stall.floor?.name || (
+                                                        <span className="text-rose-500">
+                                                            No Floor
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    {stall.floor?.building
+                                                        ?.name || "No Building"}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            setEditingStall(
+                                                                stall,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                    >
+                                                        <Icon
+                                                            icon="solar:pen-bold"
+                                                            className="w-4 h-4"
+                                                        />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            confirmDelete(
+                                                                stall.id,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                    >
+                                                        <Icon
+                                                            icon="solar:trash-bin-trash-bold"
+                                                            className="w-4 h-4"
+                                                        />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            {/* Create Stall Modal */}
-            <Modal show={isCreateModalOpen} onClose={closeCreateModal} maxWidth="md">
-                <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
-                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-                        <Icon icon="solar:shop-bold-duotone" className="w-6 h-6 text-blue-700" />
-                        Register Stall
-                    </h2>
-                </div>
-
-                <form onSubmit={submitCreate} className="p-6 space-y-5 bg-white">
-                    {/* Floor Selection */}
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Location (Floor/Section)</label>
-                        <select
-                            value={data.floor_id}
-                            onChange={e => setData('floor_id', e.target.value)}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
-                            required
-                        >
-                            <option value="" disabled>Select a location...</option>
-                            {floors.map((floor: any) => (
-                                <option key={floor.id} value={floor.id}>
-                                    {floor.name} ({floor.building?.name})
-                                </option>
-                            ))}
-                        </select>
-                        {errors.floor_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.floor_id}</p>}
-                    </div>
-
-                    {/* Stall Code */}
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Stall Code</label>
-                        <input
-                            type="text"
-                            value={data.stall_code}
-                            onChange={e => setData('stall_code', e.target.value.toUpperCase())}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none placeholder-slate-400"
-                            placeholder="e.g. B1, ST-014"
-                            required
-                        />
-                        {errors.stall_code && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.stall_code}</p>}
-                    </div>
-
-                    {/* Status Selection */}
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Initial Status</label>
-                        <select
-                            value={data.status_id}
-                            onChange={e => setData('status_id', e.target.value)}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
-                            required
-                        >
-                            <option value="" disabled>Select a status...</option>
-                            {statuses && statuses.length > 0 ? (
-                                statuses.map((status: any) => (
-                                    <option key={status.id} value={status.id}>
-                                        {status.name}
-                                    </option>
-                                ))
-                            ) : (
-                                <option value="" disabled>No statuses found in database!</option>
-                            )}
-                        </select>
-                        {errors.status_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.status_id}</p>}
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t-2 border-slate-100">
-                        <button type="button" onClick={closeCreateModal} className="px-5 py-2 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100">
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={processing} className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50">
-                            Save Stall
-                        </button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Render Modals */}
+            <CreateStallModal
+                show={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                floors={floors}
+                statuses={statuses}
+            />
+            <EditStallModal
+                show={editingStall !== null}
+                onClose={() => setEditingStall(null)}
+                stall={editingStall}
+                floors={floors}
+                statuses={statuses}
+            />
         </AuthenticatedLayout>
     );
 }

@@ -1,288 +1,316 @@
-import { useState } from "react";
-import { Head, useForm, router } from "@inertiajs/react";
+import { useState, useEffect, useRef } from "react";
+import { Head, router, useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import CreateTenantModal from "./Partials/CreateTenantModal";
+import EditTenantModal from "./Partials/EditTenantModal";
 import Modal from "@/Components/Modal";
+import ToastListener from "@/Components/ToastListener";
 
 export default function TenantsIndex({ tenants, filters }: any) {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [search, setSearch] = useState(filters?.search || "");
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingTenant, setEditingTenant] = useState<any>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data, setData, post, processing, errors, reset, clearErrors } =
-        useForm({
-            first_name: "",
-            last_name: "",
-            company_name: "",
-            contact_number: "",
-            address: "",
-        });
+    // Delete Confirmation State
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    const closeCreateModal = () => {
-        setIsCreateModalOpen(false);
-        reset();
-        clearErrors();
+    // Debounced Search Logic
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            router.get(
+                route("tenants.index"),
+                { search },
+                { preserveState: true, replace: true },
+            );
+        }, 300);
+        return () => clearTimeout(delay);
+    }, [search]);
+
+    const confirmDelete = (id: number) => {
+        setDeletingId(id);
     };
 
-    const submitCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(route("tenants.store"), {
-            onSuccess: () => closeCreateModal(),
-        });
-    };
-
-    const deleteTenant = (id: number) => {
-        if (
-            confirm(
-                "Are you sure you want to delete this tenant? This may affect their contracts.",
-            )
-        ) {
-            router.delete(route("tenants.destroy", id));
+    const handleDelete = () => {
+        if (deletingId) {
+            router.delete(route("tenants.destroy", deletingId), {
+                preserveScroll: true,
+                onFinish: () => setDeletingId(null),
+            });
         }
     };
+
+    // Import Handling
+    const { post: postImport, processing: importing } = useForm({
+        file: null as File | null,
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            postImport(route("tenants.import"), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                },
+            });
+        }
+    };
+
+    const totalTenants = tenants.total || tenants.data.length;
 
     return (
         <AuthenticatedLayout>
             <Head title="Manage Tenants" />
-            <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8">
-                {/* Header & Actions */}
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                        Tenant Registry
-                    </h3>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg transition-colors shadow-sm"
-                    >
-                        <Icon
-                            icon="solar:users-group-rounded-bold-duotone"
-                            className="w-5 h-5"
-                        />
-                        Register New Tenant
-                    </button>
-                </div>
+            <ToastListener />
 
-                {/* Tenants Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase font-black text-slate-800 tracking-wide">
-                            <tr>
-                                <th className="px-6 py-4">Tenant Name</th>
-                                <th className="px-6 py-4">
-                                    Business / Company
-                                </th>
-                                <th className="px-6 py-4">Contact Info</th>
-                                <th className="px-6 py-4 text-right">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tenants.data.length > 0 ? (
-                                tenants.data.map((tenant: any) => (
-                                    <tr
-                                        key={tenant.id}
-                                        className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4 font-black text-slate-900 flex items-center gap-3">
-                                            <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
-                                                <Icon
-                                                    icon="solar:user-id-bold-duotone"
-                                                    className="w-5 h-5"
-                                                />
-                                            </div>
-                                            {tenant.first_name}{" "}
-                                            {tenant.last_name}
-                                        </td>
-                                        <td className="px-6 py-4 font-bold text-slate-700">
-                                            {tenant.company_name || (
-                                                <span className="text-slate-400 italic font-normal">
-                                                    N/A
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-800">
-                                                    {tenant.contact_number ||
-                                                        "No Number"}
-                                                </span>
-                                                <span
-                                                    className="text-[10px] text-slate-500 uppercase tracking-wide truncate max-w-[200px]"
-                                                    title={tenant.address}
-                                                >
-                                                    {tenant.address ||
-                                                        "No Address"}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right space-x-3">
-                                            <button className="text-blue-600 hover:text-blue-800 font-bold uppercase text-xs tracking-wider">
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    deleteTenant(tenant.id)
-                                                }
-                                                className="text-rose-600 hover:text-rose-800 font-bold uppercase text-xs tracking-wider"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td
-                                        colSpan={4}
-                                        className="px-6 py-12 text-center text-slate-400 font-bold"
-                                    >
-                                        <Icon
-                                            icon="solar:ghost-broken"
-                                            className="w-12 h-12 mx-auto mb-2 opacity-50"
-                                        />
-                                        No tenants registered yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {/* Create Tenant Modal */}
+            {/* High-Contrast Delete Confirmation Modal */}
             <Modal
-                show={isCreateModalOpen}
-                onClose={closeCreateModal}
-                maxWidth="2xl"
+                show={deletingId !== null}
+                onClose={() => setDeletingId(null)}
+                maxWidth="sm"
             >
-                <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
-                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
+                <div className="p-6 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-100 mb-4 border-2 border-rose-300">
                         <Icon
-                            icon="solar:user-plus-bold-duotone"
-                            className="w-6 h-6 text-blue-700"
-                        />
-                        Tenant Registration Form
-                    </h2>
-                </div>
-
-                <form
-                    onSubmit={submitCreate}
-                    className="p-6 space-y-5 bg-white"
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {/* First Name */}
-                        <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
-                                First Name
-                            </label>
-                            <input
-                                type="text"
-                                value={data.first_name}
-                                onChange={(e) =>
-                                    setData("first_name", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none"
-                                required
-                            />
-                            {errors.first_name && (
-                                <p className="text-rose-600 text-xs font-bold mt-1.5">
-                                    {errors.first_name}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Last Name */}
-                        <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
-                                Last Name
-                            </label>
-                            <input
-                                type="text"
-                                value={data.last_name}
-                                onChange={(e) =>
-                                    setData("last_name", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none"
-                                required
-                            />
-                            {errors.last_name && (
-                                <p className="text-rose-600 text-xs font-bold mt-1.5">
-                                    {errors.last_name}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {/* Company Name */}
-                        <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
-                                Business / Company Name{" "}
-                                <span className="text-[10px] text-slate-500 font-normal ml-1">
-                                    (Optional)
-                                </span>
-                            </label>
-                            <input
-                                type="text"
-                                value={data.company_name}
-                                onChange={(e) =>
-                                    setData("company_name", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none"
-                            />
-                        </div>
-
-                        {/* Contact Number */}
-                        <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
-                                Contact Number{" "}
-                                <span className="text-[10px] text-slate-500 font-normal ml-1">
-                                    (Optional)
-                                </span>
-                            </label>
-                            <input
-                                type="text"
-                                value={data.contact_number}
-                                onChange={(e) =>
-                                    setData("contact_number", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Address */}
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
-                            Full Address{" "}
-                            <span className="text-[10px] text-slate-500 font-normal ml-1">
-                                (Optional)
-                            </span>
-                        </label>
-                        <textarea
-                            value={data.address}
-                            onChange={(e) => setData("address", e.target.value)}
-                            rows={3}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none resize-none"
+                            icon="solar:danger-triangle-bold"
+                            className="h-8 w-8 text-rose-600"
                         />
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t-2 border-slate-100">
+                    <h3 className="text-xl font-black text-slate-900 mb-2">
+                        Delete Tenant?
+                    </h3>
+                    <p className="text-sm text-slate-700 font-medium mb-6">
+                        Are you sure you want to completely remove this tenant?
+                        Active contracts linked to this tenant may be affected.
+                    </p>
+                    <div className="flex justify-center gap-3">
                         <button
-                            type="button"
-                            onClick={closeCreateModal}
-                            className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                            onClick={() => setDeletingId(null)}
+                            className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-800 font-bold rounded-lg hover:bg-slate-100 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
-                            type="submit"
-                            disabled={processing}
-                            className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                            onClick={handleDelete}
+                            className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
                         >
-                            Save Tenant
+                            Yes, Delete Tenant
                         </button>
                     </div>
-                </form>
+                </div>
             </Modal>
+
+            <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+                {/* Header & Tools Area */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    {/* Title & Count Tracker */}
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                                <Icon
+                                    icon="solar:users-group-rounded-bold-duotone"
+                                    className="w-7 h-7 text-blue-700"
+                                />
+                                Tenant Registry
+                            </h3>
+                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
+                                {totalTenants}{" "}
+                                {totalTenants === 1 ? "Record" : "Records"}
+                            </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-500">
+                            Manage stall owners, businesses, and their contact
+                            information.
+                        </p>
+                    </div>
+
+                    {/* Search & Actions */}
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Icon
+                                    icon="solar:magnifer-bold"
+                                    className="h-5 w-5 text-slate-400"
+                                />
+                            </div>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
+                                placeholder="Search tenants..."
+                            />
+                        </div>
+
+                        <a
+                            href={route("tenants.export")}
+                            className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0"
+                            title="Export to Excel"
+                        >
+                            <Icon
+                                icon="solar:export-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                        </a>
+
+                        <input
+                            type="file"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors disabled:opacity-50 shrink-0"
+                            title="Import from Excel"
+                        >
+                            <Icon
+                                icon="solar:import-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                        </button>
+
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 border-2 border-blue-900 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg shadow-sm transition-colors shrink-0 whitespace-nowrap"
+                        >
+                            <Icon
+                                icon="solar:user-plus-bold-duotone"
+                                className="w-5 h-5"
+                            />
+                            <span className="hidden sm:inline">
+                                Register Tenant
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Unified Table Card */}
+                <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
+                                <tr>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Tenant Name
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Business / Company
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Contact Info
+                                    </th>
+                                    <th className="px-6 py-4 text-center">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y-2 divide-slate-200">
+                                {tenants.data.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={4}
+                                            className="px-6 py-12 text-center text-slate-400 font-bold"
+                                        >
+                                            <Icon
+                                                icon="solar:ghost-broken"
+                                                className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
+                                            />
+                                            No tenants registered yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    tenants.data.map((tenant: any) => (
+                                        <tr
+                                            key={tenant.id}
+                                            className="hover:bg-blue-50 transition-colors"
+                                        >
+                                            <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
+                                                        <Icon
+                                                            icon="solar:user-id-bold-duotone"
+                                                            className="w-5 h-5"
+                                                        />
+                                                    </div>
+                                                    {tenant.first_name}{" "}
+                                                    {tenant.last_name}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center border-r border-slate-200 font-bold text-slate-700">
+                                                {tenant.company_name || (
+                                                    <span className="text-slate-400 italic font-normal">
+                                                        N/A
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                <div className="font-bold text-slate-800">
+                                                    {tenant.contact_number ||
+                                                        "No Number"}
+                                                </div>
+                                                <div
+                                                    className="text-[10px] text-slate-500 uppercase tracking-wide truncate max-w-[200px] mx-auto"
+                                                    title={tenant.address}
+                                                >
+                                                    {tenant.address ||
+                                                        "No Address"}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            setEditingTenant(
+                                                                tenant,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                    >
+                                                        <Icon
+                                                            icon="solar:pen-bold"
+                                                            className="w-4 h-4"
+                                                        />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            confirmDelete(
+                                                                tenant.id,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                    >
+                                                        <Icon
+                                                            icon="solar:trash-bin-trash-bold"
+                                                            className="w-4 h-4"
+                                                        />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Render Modals */}
+            <CreateTenantModal
+                show={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+            />
+            <EditTenantModal
+                show={editingTenant !== null}
+                onClose={() => setEditingTenant(null)}
+                tenant={editingTenant}
+            />
         </AuthenticatedLayout>
     );
 }

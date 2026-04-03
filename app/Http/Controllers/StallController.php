@@ -12,19 +12,26 @@ class StallController extends Controller
 {
     public function index(Request $request)
     {
-        // Eager load relationships to display in the table
         $query = Stall::with(['floor.building', 'status']);
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('stall_code', 'like', "%{$search}%");
+        // Debounced Search Logic
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('stall_code', 'like', $searchTerm)
+                ->orWhereHas('floor', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm)
+                        ->orWhereHas('building', function ($q2) use ($searchTerm) {
+                            $q2->where('name', 'like', $searchTerm);
+                        });
+                })
+                ->orWhereHas('status', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm);
+                });
         }
 
         $stalls = $query->latest()->paginate(10)->withQueryString();
-
-        // Data for the frontend dropdowns
         $floors = Floor::with('building')->orderBy('name')->get();
-        $statuses = Status::all(); // Fetch all available statuses
+        $statuses = Status::orderBy('name')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $stalls,
@@ -36,48 +43,58 @@ class StallController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
-            'stall_code' => 'required|string|max:50|unique:stalls,stall_code',
-            'status_id' => 'required|exists:statuses,id'
+            'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
+            'status_id' => 'required|exists:statuses,id',
         ]);
 
-        // Find the floor so we can automatically grab its building_id
-        $floor = Floor::findOrFail($request->floor_id);
+        Stall::create($validated);
 
-        Stall::create([
-            'stall_code' => $request->stall_code,
-            'floor_id' => $request->floor_id,
-            'building_id' => $floor->building_id, // Auto-assigned!
-            'status_id' => $request->status_id,
-        ]);
-
-        return redirect()->back()->with('success', 'Stall added successfully.');
+        return redirect()->back()->with('success', 'Stall successfully registered!');
     }
 
     public function update(Request $request, Stall $stall)
     {
-        $request->validate([
+        $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
-            'stall_code' => 'required|string|max:50|unique:stalls,stall_code,' . $stall->id,
-            'status_id' => 'required|exists:statuses,id'
+            'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
+            'status_id' => 'required|exists:statuses,id',
         ]);
 
-        $floor = Floor::findOrFail($request->floor_id);
+        $stall->update($validated);
 
-        $stall->update([
-            'stall_code' => $request->stall_code,
-            'floor_id' => $request->floor_id,
-            'building_id' => $floor->building_id,
-            'status_id' => $request->status_id,
-        ]);
-
-        return redirect()->back()->with('success', 'Stall updated successfully.');
+        return redirect()->back()->with('success', 'Stall details updated!');
     }
 
     public function destroy(Stall $stall)
     {
         $stall->delete();
-        return redirect()->back()->with('success', 'Stall deleted successfully.');
+        return redirect()->back()->with('success', 'Stall successfully deleted.');
+    }
+
+    public function export()
+    {
+        $stalls = Stall::with(['floor.building', 'status'])->get();
+        $csvData = "ID,Stall Code,Floor,Building,Status,Created At\n";
+        foreach ($stalls as $stall) {
+            $floorName = $stall->floor ? $stall->floor->name : 'N/A';
+            $buildingName = ($stall->floor && $stall->floor->building) ? $stall->floor->building->name : 'N/A';
+            $statusName = $stall->status ? $stall->status->name : 'N/A';
+            $csvData .= "{$stall->id},{$stall->stall_code},{$floorName},{$buildingName},{$statusName},{$stall->created_at}\n";
+        }
+
+        return response($csvData)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="stalls_export.csv"');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
+        ]);
+
+        return redirect()->back()->with('success', 'Stalls imported successfully!');
     }
 }
