@@ -52,6 +52,10 @@ class StallController extends Controller
             'status_id' => 'required|exists:statuses,id',
         ]);
 
+        // THE FIX: Automatically find the building_id based on the selected floor!
+        $floor = Floor::findOrFail($validated['floor_id']);
+        $validated['building_id'] = $floor->building_id;
+
         Stall::create($validated);
 
         return redirect()->back()->with('success', 'Stall successfully registered!');
@@ -64,6 +68,10 @@ class StallController extends Controller
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
             'status_id' => 'required|exists:statuses,id',
         ]);
+
+        // THE FIX: Automatically update the building_id in case they moved the stall to a new floor!
+        $floor = Floor::findOrFail($validated['floor_id']);
+        $validated['building_id'] = $floor->building_id;
 
         $stall->update($validated);
 
@@ -84,21 +92,20 @@ class StallController extends Controller
 
     public function export()
     {
-        $stalls = Stall::with(['floor', 'status'])->orderBy('stall_code', 'asc')->get();
+        $stalls = Stall::with(['floor.building'])->orderBy('stall_code', 'asc')->get();
 
-        // Gold Standard: Exact header match for the smart Import class
-        $csvData = "stall_code,floor,status\n";
+        // Exact headers: NO STATUS!
+        $csvData = "stall_code,floor,size_sqm,rate_per_sqm\n";
 
         foreach ($stalls as $stall) {
             $floorName = $stall->floor ? $stall->floor->name : '';
-            $statusName = $stall->status ? $stall->status->name : '';
 
-            // Safe CSV escaping
             $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
             $floor = '"' . str_replace('"', '""', $floorName) . '"';
-            $status = '"' . str_replace('"', '""', $statusName) . '"';
+            $size = '"' . str_replace('"', '""', $stall->size_sqm ?? 0) . '"';
+            $rate = '"' . str_replace('"', '""', $stall->rate_per_sqm ?? 0) . '"';
 
-            $csvData .= "{$code},{$floor},{$status}\n";
+            $csvData .= "{$code},{$floor},{$size},{$rate}\n";
         }
 
         return response($csvData)
@@ -114,9 +121,10 @@ class StallController extends Controller
 
         try {
             Excel::import(new StallsImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Stalls synced successfully! New entries created and existing ones updated.');
+            return redirect()->back()->with('success', 'Stalls synced successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "stall_code", "floor", and "status".');
+            // Updated error message to show the correct required columns
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns are exactly: "stall_code", "floor", "size_sqm", "rate_per_sqm".');
         }
     }
 }

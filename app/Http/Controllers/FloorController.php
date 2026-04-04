@@ -83,15 +83,15 @@ class FloorController extends Controller
     public function export()
     {
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
-        // Gold Standard: Exact header match for the smart Import class
+        // Exact headers for the import class
         $csvData = "name,building,description\n";
 
         foreach ($floors as $floor) {
             $buildingName = $floor->building ? $floor->building->name : '';
-            // Safe CSV escaping
+
             $name = '"' . str_replace('"', '""', $floor->name) . '"';
             $building = '"' . str_replace('"', '""', $buildingName) . '"';
-            $desc = '"' . str_replace('"', '""', $floor->description) . '"';
+            $desc = '"' . str_replace('"', '""', $floor->description ?? '') . '"';
 
             $csvData .= "{$name},{$building},{$desc}\n";
         }

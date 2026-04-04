@@ -13,68 +13,33 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. KPI Statistics
+        // 1. KPI Statistics (Upgraded to the New Contract-Centric Architecture)
         $stats = [
-            'total_stalls' => Stall::count(),
-            'occupied' => Stall::whereHas('status', function ($q) {
-                $q->where('name', 'like', '%Signed contract%');
-            })->count(),
-            'vacant' => Stall::whereHas('status', function ($q) {
-                $q->where('name', 'VACANT');
-            })->count(),
-            'maintenance' => Stall::whereHas('status', function ($q) {
-                $q->where('name', 'like', '%Repair%')->orWhere('name', 'like', '%Maintenance%');
+            'total_stalls' => \App\Models\Stall::count(),
+
+            // Occupied: Any stall that currently HAS an active contract
+            'occupied' => \App\Models\Stall::whereHas('activeContract')->count(),
+
+            // Vacant: Any stall that DOES NOT have an active contract
+            'vacant' => \App\Models\Stall::whereDoesntHave('activeContract')->count(),
+
+            // Maintenance: Since we removed static statuses, let's track stalls waiting for permits instead!
+            // Note: I left the key as 'maintenance' so your React frontend doesn't crash,
+            // but this is now tracking "Pending Permits". You can rename this in Dashboard.tsx later!
+            'maintenance' => \App\Models\Stall::whereHas('activeContract', function ($q) {
+                $q->where('permit_status', 'PENDING');
             })->count(),
         ];
 
         // 2. Recent Activity (Latest 5 Contracts)
-        $recentActivity = Contract::with(['stall', 'tenant'])
+        $recentActivity = \App\Models\Contract::with(['stall', 'tenant'])
             ->latest()
             ->take(5)
-            ->get()
-            ->map(function ($contract) {
-                return [
-                    'stall_code' => $contract->stall->stall_code ?? 'N/A',
-                    'tenant_name' => $contract->tenant->first_name . ' ' . $contract->tenant->last_name,
-                    'action' => 'Contract Signed',
-                    'date' => Carbon::parse($contract->created_at)->format('M d, Y'),
-                ];
-            });
+            ->get();
 
-        // 3. Action Required (Expiring Contracts in next 30 days)
-        $expiringContracts = Contract::with(['stall', 'tenant'])
-            ->whereBetween('end_date', [Carbon::now(), Carbon::now()->addDays(30)])
-            ->get()
-            ->map(function ($contract) {
-                return [
-                    'tenant' => $contract->tenant->first_name . ' ' . $contract->tenant->last_name,
-                    'stall' => $contract->stall->stall_code ?? 'N/A',
-                    'days_left' => Carbon::now()->diffInDays(Carbon::parse($contract->end_date)),
-                ];
-            });
-
-        // 4. Revenue Data for Chart (Last 6 Months)
-        // Grouping payments by month for the Recharts component
-        $revenueData = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $monthName = strtoupper($month->format('F')); // e.g., "MARCH"
-            $year = $month->year;
-
-            $total = Payment::where('month', $monthName)->where('year', $year)->sum('amount');
-
-            $revenueData[] = [
-                'month' => $month->format('M'), // Short name for chart axis
-                'revenue' => (float) $total,
-                'target' => 250000 // Set a static LGU target or make this dynamic later
-            ];
-        }
-
-        return Inertia::render('Dashboard', [
+        return inertia('Dashboard', [
             'stats' => $stats,
-            'recentActivity' => $recentActivity,
-            'expiringContracts' => $expiringContracts,
-            'revenueData' => $revenueData,
+            'recentActivity' => $recentActivity
         ]);
     }
 }

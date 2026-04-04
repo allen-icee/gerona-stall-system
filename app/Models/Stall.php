@@ -7,8 +7,8 @@ use Carbon\Carbon;
 
 class Stall extends Model
 {
-    protected $fillable = ['floor_id', 'stall_code', 'size_sqm', 'rate_per_sqm']; // Note: Removed status_id!
-
+    // UPDATE THIS LINE: Add building_id, remove status_id
+    protected $fillable = ['building_id', 'floor_id', 'stall_code', 'size_sqm', 'rate_per_sqm'];
     // 1. A stall has a history of many contracts
     public function contracts()
     {
@@ -16,9 +16,11 @@ class Stall extends Model
     }
 
     // 2. A stall has ONE currently active contract
+    // A stall has ONE currently active contract
     public function activeContract()
     {
-        return $this->hasOne(Contract::class)->where('is_active', true)->latestOfMany();
+        // Added 'contracts.' before 'is_active' to prevent any SQL ambiguity!
+        return $this->hasOne(Contract::class)->where('contracts.is_active', true)->latestOfMany();
     }
 
     // 3. Get the current tenant directly through the active contract

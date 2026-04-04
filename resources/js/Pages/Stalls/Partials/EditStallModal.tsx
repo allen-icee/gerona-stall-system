@@ -2,21 +2,13 @@ import { useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
-import CustomSelect from "@/Components/CustomSelect";
-import SearchableSelect from "@/Components/SearchableSelect"; // Imported Searchable Select
+import SearchableSelect from "@/Components/SearchableSelect";
 
-export default function EditStallModal({
-    show,
-    onClose,
-    stall,
-    floors,
-    statuses,
-}: any) {
+export default function EditStallModal({ show, onClose, stall, floors }: any) {
     const { data, setData, put, processing, errors, reset, clearErrors } =
         useForm({
             floor_id: "",
             stall_code: "",
-            status_id: "",
         });
 
     useEffect(() => {
@@ -24,7 +16,6 @@ export default function EditStallModal({
             setData({
                 floor_id: stall.floor_id || "",
                 stall_code: stall.stall_code || "",
-                status_id: stall.status_id || "",
             });
         }
     }, [stall]);
@@ -79,6 +70,7 @@ export default function EditStallModal({
                             label: `${f.name} (${f.building?.name || "No Building"})`,
                         }))}
                         placeholder="Search locations..."
+                        theme="amber"
                         error={errors.floor_id}
                     />
                     {errors.floor_id && (
@@ -104,28 +96,6 @@ export default function EditStallModal({
                     {errors.stall_code && (
                         <p className="text-rose-600 text-xs font-bold mt-1.5">
                             {errors.stall_code}
-                        </p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Status
-                    </label>
-                    <CustomSelect
-                        value={data.status_id}
-                        onChange={(val: any) => setData("status_id", val)}
-                        options={statuses.map((s: any) => ({
-                            value: s.id,
-                            label: s.name,
-                        }))}
-                        placeholder="Select a status..."
-                        theme="amber"
-                        error={errors.status_id}
-                    />
-                    {errors.status_id && (
-                        <p className="text-rose-600 text-xs font-bold mt-1.5">
-                            {errors.status_id}
                         </p>
                     )}
                 </div>

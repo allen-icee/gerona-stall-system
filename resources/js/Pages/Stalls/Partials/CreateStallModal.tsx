@@ -1,20 +1,13 @@
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
-import CustomSelect from "@/Components/CustomSelect";
-import SearchableSelect from "@/Components/SearchableSelect"; // Imported Searchable Select
+import SearchableSelect from "@/Components/SearchableSelect";
 
-export default function CreateStallModal({
-    show,
-    onClose,
-    floors,
-    statuses,
-}: any) {
+export default function CreateStallModal({ show, onClose, floors }: any) {
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
             floor_id: "",
             stall_code: "",
-            status_id: "",
         });
 
     const submit = (e: React.FormEvent) => {
@@ -57,7 +50,6 @@ export default function CreateStallModal({
                     <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Location (Floor/Section)
                     </label>
-                    {/* Gold Standard: Searchable Select for large datasets */}
                     <SearchableSelect
                         value={data.floor_id}
                         onChange={(val: any) => setData("floor_id", val)}
@@ -92,27 +84,6 @@ export default function CreateStallModal({
                     {errors.stall_code && (
                         <p className="text-rose-600 text-xs font-bold mt-1.5">
                             {errors.stall_code}
-                        </p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Initial Status
-                    </label>
-                    <CustomSelect
-                        value={data.status_id}
-                        onChange={(val: any) => setData("status_id", val)}
-                        options={statuses.map((s: any) => ({
-                            value: s.id,
-                            label: s.name,
-                        }))}
-                        placeholder="Select a status..."
-                        error={errors.status_id}
-                    />
-                    {errors.status_id && (
-                        <p className="text-rose-600 text-xs font-bold mt-1.5">
-                            {errors.status_id}
                         </p>
                     )}
                 </div>
