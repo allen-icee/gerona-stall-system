@@ -5,35 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\Contract;
 use App\Models\Stall;
 use App\Models\Tenant;
-use App\Models\Status;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Imports\ContractsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ContractController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Contract::with(['stall.building', 'tenant']);
+        $query = Contract::with(['tenant', 'stall.floor.building']);
 
-        // Debounced Search Logic
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
-            $query->whereHas('tenant', function ($q) use ($searchTerm) {
-                $q->where('first_name', 'like', $searchTerm)
-                    ->orWhere('last_name', 'like', $searchTerm)
-                    ->orWhere('company_name', 'like', $searchTerm);
-            })->orWhereHas('stall', function ($q) use ($searchTerm) {
-                $q->where('stall_code', 'like', $searchTerm);
-            });
+            $query->where('contract_number', 'like', $searchTerm)
+                ->orWhereHas('tenant', function ($q) use ($searchTerm) {
+                    $q->where('first_name', 'like', $searchTerm)
+                        ->orWhere('last_name', 'like', $searchTerm);
+                })
+                ->orWhereHas('stall', function ($q) use ($searchTerm) {
+                    $q->where('stall_code', 'like', $searchTerm);
+                });
         }
 
-        $contracts = $query->latest()->paginate(10)->withQueryString();
-        $tenants = Tenant::orderBy('last_name')->get();
+        // Gold Standard: Alphabetically sorted by contract_number
+        $contracts = $query->orderBy('contract_number', 'asc')->paginate(10)->withQueryString();
+        $tenants = Tenant::orderBy('last_name', 'asc')->get();
 
-        // STRICT EXCEL RULE: Only fetch stalls that are currently 'VACANT'
-        $vacantStatus = Status::where('name', 'VACANT')->first();
-        $availableStalls = Stall::with('building')->where('status_id', $vacantStatus?->id)->get();
+        // Fetch stalls that DO NOT have an active contract, meaning they are VACANT!
+        $availableStalls = Stall::with('floor.building')
+            ->whereDoesntHave('activeContract')
+            ->orderBy('stall_code', 'asc')
+            ->get();
 
         return Inertia::render('Contracts/Index', [
             'contracts' => $contracts,
@@ -54,24 +58,19 @@ class ContractController extends Controller
             'security_deposit' => 'nullable|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($validated) {
-            Contract::create($validated);
+        // Automatically assign default lifecycle statuses if not provided
+        $validated['is_active'] = true;
+        $validated['permit_status'] = 'PENDING';
 
-            $stall = Stall::find($validated['stall_id']);
-            $signedStatus = Status::where('name', 'COMPLETE REQUIREMENTS - Signed contract')->first();
+        // Notice: No manual stall status_id updating needed anymore! Dynamic Computed Status handles it.
+        Contract::create($validated);
 
-            if ($signedStatus && $stall) {
-                $stall->update(['status_id' => $signedStatus->id]);
-            }
-        });
-
-        return redirect()->back()->with('success', 'Contract created and stall marked as Signed!');
+        return redirect()->back()->with('success', 'Contract created successfully!');
     }
 
     public function update(Request $request, Contract $contract)
     {
-        // For safety, we only allow updating dates and fees on an active contract.
-        // Changing a tenant or stall requires creating a new contract.
+        // For safety, only allow updating dates and fees on an active contract.
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -86,30 +85,31 @@ class ContractController extends Controller
 
     public function destroy(Contract $contract)
     {
+        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($contract) {
-            // Revert the stall back to VACANT
-            $stall = Stall::find($contract->stall_id);
-            $vacantStatus = Status::where('name', 'VACANT')->first();
+            // Delete all payments specifically linked to THIS contract first
+            \App\Models\Payment::where('contract_id', $contract->id)->delete();
 
-            if ($stall && $vacantStatus) {
-                $stall->update(['status_id' => $vacantStatus->id]);
-            }
-
-            // Delete the contract
+            // Notice: No manual stall status_id reverting needed! Dynamic Computed Status handles it.
             $contract->delete();
         });
 
-        return redirect()->back()->with('success', 'Contract deleted. Stall is now Vacant.');
+        return redirect()->back()->with('success', 'Contract deleted. Stall is automatically Vacant.');
     }
 
     public function export()
     {
-        $contracts = Contract::with(['stall', 'tenant'])->get();
-        $csvData = "ID,Tenant,Stall,Start Date,End Date,Monthly Rent,Deposit\n";
+        $contracts = Contract::with(['stall', 'tenant'])->orderBy('contract_number', 'asc')->get();
+
+        // Exact headers for foolproof importing
+        $csvData = "tenant_first_name,tenant_last_name,stall_code,start_date,end_date,monthly_rent,security_deposit\n";
+
         foreach ($contracts as $contract) {
-            $tenantName = $contract->tenant ? $contract->tenant->first_name . ' ' . $contract->tenant->last_name : 'N/A';
-            $stallCode = $contract->stall ? $contract->stall->stall_code : 'N/A';
-            $csvData .= "{$contract->id},{$tenantName},{$stallCode},{$contract->start_date},{$contract->end_date},{$contract->monthly_rent},{$contract->security_deposit}\n";
+            $tenantFirst = $contract->tenant ? '"' . str_replace('"', '""', $contract->tenant->first_name) . '"' : '""';
+            $tenantLast = $contract->tenant ? '"' . str_replace('"', '""', $contract->tenant->last_name) . '"' : '""';
+            $stallCode = $contract->stall ? '"' . str_replace('"', '""', $contract->stall->stall_code) . '"' : '""';
+
+            $csvData .= "{$tenantFirst},{$tenantLast},{$stallCode},{$contract->start_date},{$contract->end_date},{$contract->monthly_rent},{$contract->security_deposit}\n";
         }
 
         return response($csvData)
@@ -120,6 +120,12 @@ class ContractController extends Controller
     public function import(Request $request)
     {
         $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
-        return redirect()->back()->with('success', 'Contracts imported successfully!');
+
+        try {
+            Excel::import(new ContractsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Contracts synced successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure columns are exactly: "tenant_first_name", "tenant_last_name", "stall_code", "start_date", "end_date", "monthly_rent", "security_deposit".');
+        }
     }
 }

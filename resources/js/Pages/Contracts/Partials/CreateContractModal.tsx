@@ -1,6 +1,7 @@
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
+import SearchableSelect from "@/Components/SearchableSelect"; // Use Gold Standard component
 
 export default function CreateContractModal({
     show,
@@ -63,29 +64,19 @@ export default function CreateContractModal({
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Assign to Tenant
                         </label>
-                        <select
+                        <SearchableSelect
                             value={data.tenant_id}
-                            onChange={(e) =>
-                                setData("tenant_id", e.target.value)
-                            }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 transition-colors cursor-pointer"
-                            required
-                        >
-                            <option value="">
-                                -- Select Registered Tenant --
-                            </option>
-                            {tenants.map((t: any) => (
-                                <option key={t.id} value={t.id}>
-                                    {t.first_name} {t.last_name}{" "}
-                                    {t.company_name
-                                        ? `(${t.company_name})`
-                                        : ""}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val: any) => setData("tenant_id", val)}
+                            options={tenants.map((t: any) => ({
+                                value: t.id,
+                                label: `${t.first_name} ${t.last_name} ${t.company_name ? `(${t.company_name})` : ""}`,
+                            }))}
+                            placeholder="Search registered tenants..."
+                            error={errors.tenant_id}
+                        />
                         {errors.tenant_id && (
                             <p className="text-rose-600 text-xs font-bold mt-1.5">
                                 {errors.tenant_id}
@@ -94,24 +85,20 @@ export default function CreateContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Available Stall
                         </label>
-                        <select
+                        <SearchableSelect
                             value={data.stall_id}
-                            onChange={(e) =>
-                                setData("stall_id", e.target.value)
-                            }
-                            className="w-full bg-emerald-50 border-2 border-emerald-300 rounded-lg px-4 py-2.5 text-sm font-bold text-emerald-900 focus:border-emerald-600 focus:ring-0 transition-colors cursor-pointer"
-                            required
-                        >
-                            <option value="">-- Select Vacant Stall --</option>
-                            {availableStalls.map((s: any) => (
-                                <option key={s.id} value={s.id}>
-                                    {s.stall_code} - {s.building?.name}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val: any) => setData("stall_id", val)}
+                            options={availableStalls.map((s: any) => ({
+                                value: s.id,
+                                label: `${s.stall_code} - ${s.floor?.building?.name || "No Building"}`,
+                            }))}
+                            placeholder="Search vacant stalls..."
+                            error={errors.stall_id}
+                            theme="amber"
+                        />
                         {errors.stall_id && (
                             <p className="text-rose-600 text-xs font-bold mt-1.5">
                                 {errors.stall_id}
@@ -127,7 +114,7 @@ export default function CreateContractModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Contract Start Date
                         </label>
                         <input
@@ -147,7 +134,7 @@ export default function CreateContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Contract End Date
                         </label>
                         <input
@@ -169,7 +156,7 @@ export default function CreateContractModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Monthly Rent (₱)
                         </label>
                         <input
@@ -191,7 +178,7 @@ export default function CreateContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Security Deposit (₱){" "}
                             <span className="font-normal text-slate-500">
                                 (Optional)
@@ -214,14 +201,14 @@ export default function CreateContractModal({
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Finalize Contract
                     </button>

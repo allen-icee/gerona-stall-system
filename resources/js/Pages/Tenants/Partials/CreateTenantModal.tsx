@@ -68,6 +68,7 @@ export default function CreateTenantModal({
                                 setData("first_name", e.target.value)
                             }
                             className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
+                            placeholder="e.g. Juan"
                             required
                         />
                         {errors.first_name && (
@@ -87,6 +88,7 @@ export default function CreateTenantModal({
                                 setData("last_name", e.target.value)
                             }
                             className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
+                            placeholder="e.g. Dela Cruz"
                             required
                         />
                         {errors.last_name && (
@@ -112,6 +114,7 @@ export default function CreateTenantModal({
                                 setData("company_name", e.target.value)
                             }
                             className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
+                            placeholder="e.g. Sari-Sari Store"
                         />
                     </div>
                     <div>
@@ -128,6 +131,7 @@ export default function CreateTenantModal({
                                 setData("contact_number", e.target.value)
                             }
                             className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
+                            placeholder="e.g. 0912 345 6789"
                         />
                     </div>
                 </div>
@@ -144,6 +148,7 @@ export default function CreateTenantModal({
                         onChange={(e) => setData("address", e.target.value)}
                         rows={3}
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors resize-none"
+                        placeholder="e.g. Brgy. Poblacion 1, Gerona, Tarlac"
                     />
                 </div>
 

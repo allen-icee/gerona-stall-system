@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Imports;
+
+use App\Models\Contract;
+use App\Models\Stall;
+use App\Models\Tenant;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Carbon\Carbon;
+
+class ContractsImport implements ToModel, WithHeadingRow
+{
+    public function model(array $row)
+    {
+        if (empty($row['tenant_first_name']) || empty($row['tenant_last_name']) || empty($row['stall_code'])) {
+            return null;
+        }
+
+        // Resolve relations safely
+        $tenant = Tenant::where('first_name', $row['tenant_first_name'])
+            ->where('last_name', $row['tenant_last_name'])
+            ->first();
+
+        $stall = Stall::where('stall_code', $row['stall_code'])->first();
+
+        if (!$tenant || !$stall) {
+            return null; // Skip if references are invalid
+        }
+
+        // Format dates safely
+        $startDate = isset($row['start_date']) ? Carbon::parse($row['start_date'])->format('Y-m-d') : null;
+        $endDate = isset($row['end_date']) ? Carbon::parse($row['end_date'])->format('Y-m-d') : null;
+
+        // Foolproof Sync: If a contract for this tenant and stall already exists, update its terms. Otherwise, create it.
+        return Contract::updateOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'stall_id' => $stall->id,
+            ],
+            [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'monthly_rent' => $row['monthly_rent'] ?? 0,
+                'security_deposit' => $row['security_deposit'] ?? 0,
+                // Defaults for the lifecycle columns we added earlier
+                'is_active' => true,
+                'permit_status' => 'PENDING'
+            ]
+        );
+    }
+}

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreateContractModal from "./Partials/CreateContractModal";
 import EditContractModal from "./Partials/EditContractModal";
 import Modal from "@/Components/Modal";
-import ToastListener from "@/Components/ToastListener";
 
 export default function ContractsIndex({
     contracts,
@@ -18,10 +17,9 @@ export default function ContractsIndex({
     const [editingContract, setEditingContract] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Delete Confirmation State
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Debounced Search Logic
+    // Gold Standard: Debounced Search Logic
     useEffect(() => {
         const delay = setTimeout(() => {
             router.get(
@@ -46,19 +44,31 @@ export default function ContractsIndex({
         }
     };
 
-    // Import Handling
-    const { post: postImport, processing: importing } = useForm({
-        file: null as File | null,
-    });
-
+    // Gold Standard: Direct router.post for File Upload
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            postImport(route("contracts.import"), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    if (fileInputRef.current) fileInputRef.current.value = "";
+            router.post(
+                route("contracts.import"),
+                {
+                    file: e.target.files[0],
                 },
-            });
+                {
+                    preserveScroll: true,
+                    forceFormData: true,
+                    onSuccess: () => {
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                    onError: (errors) => {
+                        alert(
+                            errors.file ||
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                        );
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                },
+            );
         }
     };
 
@@ -67,9 +77,8 @@ export default function ContractsIndex({
     return (
         <AuthenticatedLayout>
             <Head title="Lease Contracts" />
-            <ToastListener />
 
-            {/* High-Contrast Delete Confirmation Modal */}
+            {/* Custom High-Contrast Delete Confirmation Modal */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -110,7 +119,6 @@ export default function ContractsIndex({
             <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 {/* Header & Tools Area */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    {/* Title & Count Tracker */}
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
@@ -169,8 +177,7 @@ export default function ContractsIndex({
                         />
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={importing}
-                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors disabled:opacity-50 shrink-0"
+                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors shrink-0"
                             title="Import from Excel"
                         >
                             <Icon
@@ -200,6 +207,9 @@ export default function ContractsIndex({
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
                                 <tr>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
+                                        #
+                                    </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
                                         Tenant
                                     </th>
@@ -221,7 +231,7 @@ export default function ContractsIndex({
                                 {contracts.data.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={6}
                                             className="px-6 py-12 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
@@ -232,88 +242,100 @@ export default function ContractsIndex({
                                         </td>
                                     </tr>
                                 ) : (
-                                    contracts.data.map((contract: any) => (
-                                        <tr
-                                            key={contract.id}
-                                            className="hover:bg-blue-50 transition-colors"
-                                        >
-                                            <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700 shrink-0">
-                                                        <Icon
-                                                            icon="solar:document-text-bold-duotone"
-                                                            className="w-5 h-5"
-                                                        />
+                                    contracts.data.map(
+                                        (contract: any, index: number) => (
+                                            <tr
+                                                key={contract.id}
+                                                className="hover:bg-blue-50 transition-colors"
+                                            >
+                                                {/* Gold Standard Dynamic Row Numbers */}
+                                                <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                    {(contracts.from || 1) +
+                                                        index}
+                                                </td>
+                                                <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700 shrink-0">
+                                                            <Icon
+                                                                icon="solar:document-text-bold-duotone"
+                                                                className="w-5 h-5"
+                                                            />
+                                                        </div>
+                                                        {
+                                                            contract.tenant
+                                                                ?.first_name
+                                                        }{" "}
+                                                        {
+                                                            contract.tenant
+                                                                ?.last_name
+                                                        }
                                                     </div>
-                                                    {
-                                                        contract.tenant
-                                                            ?.first_name
-                                                    }{" "}
-                                                    {contract.tenant?.last_name}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                <div className="font-bold text-slate-800">
-                                                    {contract.stall?.stall_code}
-                                                </div>
-                                                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                                                    {
-                                                        contract.stall?.building
-                                                            ?.name
-                                                    }
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                <span className="font-bold text-slate-800">
-                                                    {contract.start_date}
-                                                </span>
-                                                <span className="text-slate-400 mx-2">
-                                                    to
-                                                </span>
-                                                <span className="font-bold text-slate-800">
-                                                    {contract.end_date}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center font-black text-emerald-700 border-r border-slate-200 text-base">
-                                                ₱{" "}
-                                                {Number(
-                                                    contract.monthly_rent,
-                                                ).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex justify-center gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            setEditingContract(
-                                                                contract,
-                                                            )
+                                                </td>
+                                                <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                    <div className="font-bold text-slate-800">
+                                                        {
+                                                            contract.stall
+                                                                ?.stall_code
                                                         }
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
-                                                    >
-                                                        <Icon
-                                                            icon="solar:pen-bold"
-                                                            className="w-4 h-4"
-                                                        />
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            confirmDelete(
-                                                                contract.id,
-                                                            )
-                                                        }
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
-                                                    >
-                                                        <Icon
-                                                            icon="solar:trash-bin-trash-bold"
-                                                            className="w-4 h-4"
-                                                        />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                                                        {contract.stall?.floor
+                                                            ?.building?.name ||
+                                                            "N/A"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                    <span className="font-bold text-slate-800">
+                                                        {contract.start_date}
+                                                    </span>
+                                                    <span className="text-slate-400 mx-2">
+                                                        to
+                                                    </span>
+                                                    <span className="font-bold text-slate-800">
+                                                        {contract.end_date}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center font-black text-emerald-700 border-r border-slate-200 text-base">
+                                                    ₱{" "}
+                                                    {Number(
+                                                        contract.monthly_rent,
+                                                    ).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button
+                                                            onClick={() =>
+                                                                setEditingContract(
+                                                                    contract,
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                        >
+                                                            <Icon
+                                                                icon="solar:pen-bold"
+                                                                className="w-4 h-4"
+                                                            />
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                confirmDelete(
+                                                                    contract.id,
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                        >
+                                                            <Icon
+                                                                icon="solar:trash-bin-trash-bold"
+                                                                className="w-4 h-4"
+                                                            />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )
                                 )}
                             </tbody>
                         </table>

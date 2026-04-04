@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use App\Imports\TenantsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TenantController extends Controller
 {
@@ -21,7 +24,8 @@ class TenantController extends Controller
                 ->orWhere('contact_number', 'like', $searchTerm);
         }
 
-        $tenants = $query->latest()->paginate(10)->withQueryString();
+        // Gold Standard: Alphabetical sorting by last name
+        $tenants = $query->orderBy('last_name', 'asc')->paginate(10)->withQueryString();
 
         return Inertia::render('Tenants/Index', [
             'tenants' => $tenants,
@@ -61,19 +65,33 @@ class TenantController extends Controller
 
     public function destroy(Tenant $tenant)
     {
-        $tenant->delete();
-        return redirect()->back()->with('success', 'Tenant successfully deleted.');
+        // Gold Standard: Transaction safely deletes children before the parent
+        DB::transaction(function () use ($tenant) {
+            // Sweep dependent records (assuming a Tenant has payments and contracts)
+            \App\Models\Payment::where('tenant_id', $tenant->id)->delete();
+            \App\Models\Contract::where('tenant_id', $tenant->id)->delete();
+            $tenant->delete();
+        });
+
+        return redirect()->back()->with('success', 'Tenant and all associated records successfully deleted.');
     }
 
     public function export()
     {
-        $tenants = Tenant::all();
-        $csvData = "ID,First Name,Last Name,Company Name,Contact Number,Address,Created At\n";
+        $tenants = Tenant::orderBy('last_name', 'asc')->get();
+
+        // Gold Standard: Exact header match for the smart Import class
+        $csvData = "first_name,last_name,company_name,contact_number,address\n";
+
         foreach ($tenants as $tenant) {
             // Escape commas in address/company to prevent CSV breaking
+            $first = '"' . str_replace('"', '""', $tenant->first_name) . '"';
+            $last = '"' . str_replace('"', '""', $tenant->last_name) . '"';
             $company = '"' . str_replace('"', '""', $tenant->company_name) . '"';
+            $contact = '"' . str_replace('"', '""', $tenant->contact_number) . '"';
             $address = '"' . str_replace('"', '""', $tenant->address) . '"';
-            $csvData .= "{$tenant->id},{$tenant->first_name},{$tenant->last_name},{$company},{$tenant->contact_number},{$address},{$tenant->created_at}\n";
+
+            $csvData .= "{$first},{$last},{$company},{$contact},{$address}\n";
         }
 
         return response($csvData)
@@ -87,6 +105,11 @@ class TenantController extends Controller
             'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
         ]);
 
-        return redirect()->back()->with('success', 'Tenants imported successfully!');
+        try {
+            Excel::import(new TenantsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Tenants synced successfully! New entries created and existing ones updated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns are exactly: "first_name", "last_name", "company_name", "contact_number", "address".');
+        }
     }
 }

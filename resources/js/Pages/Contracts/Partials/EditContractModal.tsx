@@ -57,7 +57,7 @@ export default function EditContractModal({
                 </h2>
                 <button
                     onClick={closeModal}
-                    className="text-slate-500 hover:text-slate-800 transition-colors"
+                    className="text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                 >
                     <Icon
                         icon="solar:close-circle-bold-duotone"
@@ -98,7 +98,7 @@ export default function EditContractModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Contract Start Date
                         </label>
                         <input
@@ -118,7 +118,7 @@ export default function EditContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Contract End Date
                         </label>
                         <input
@@ -140,7 +140,7 @@ export default function EditContractModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Monthly Rent (₱)
                         </label>
                         <input
@@ -161,7 +161,7 @@ export default function EditContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Security Deposit (₱)
                         </label>
                         <input
@@ -180,14 +180,14 @@ export default function EditContractModal({
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Update Contract
                     </button>

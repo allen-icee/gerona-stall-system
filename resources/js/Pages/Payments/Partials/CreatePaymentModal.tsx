@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
+import SearchableSelect from "@/Components/SearchableSelect";
+import CustomSelect from "@/Components/CustomSelect";
 
 export default function CreatePaymentModal({
     show,
@@ -85,24 +87,20 @@ export default function CreatePaymentModal({
                 className="p-6 space-y-5 bg-white rounded-b-2xl"
             >
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Find Active Contract / Tenant
                     </label>
-                    <select
+                    <SearchableSelect
                         value={data.contract_id}
-                        onChange={(e) => setData("contract_id", e.target.value)}
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 cursor-pointer transition-colors"
-                        required
-                    >
-                        <option value="">-- Select Payer --</option>
-                        {activeContracts.map((c: any) => (
-                            <option key={c.id} value={c.id}>
-                                {c.tenant?.first_name} {c.tenant?.last_name} |{" "}
-                                {c.stall?.stall_code} -{" "}
-                                {c.stall?.building?.name}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val: any) => setData("contract_id", val)}
+                        options={activeContracts.map((c: any) => ({
+                            value: c.id,
+                            label: `${c.tenant?.first_name} ${c.tenant?.last_name} | ${c.stall?.stall_code} - ${c.stall?.building?.name}`,
+                        }))}
+                        placeholder="Search for Payer or Stall..."
+                        error={errors.contract_id}
+                        theme="emerald" // Assuming you add emerald to your theme list, or use blue/amber
+                    />
                     {errors.contract_id && (
                         <p className="text-rose-500 text-xs font-bold mt-1">
                             {errors.contract_id}
@@ -112,7 +110,7 @@ export default function CreatePaymentModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             OR Number
                         </label>
                         <input
@@ -133,7 +131,7 @@ export default function CreatePaymentModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Amount Paid (₱)
                         </label>
                         <input
@@ -154,7 +152,7 @@ export default function CreatePaymentModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Date of Payment
                         </label>
                         <input
@@ -163,30 +161,25 @@ export default function CreatePaymentModal({
                             onChange={(e) =>
                                 setData("payment_date", e.target.value)
                             }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors cursor-pointer"
                             required
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             For Month
                         </label>
-                        <select
+                        <CustomSelect
                             value={data.month}
-                            onChange={(e) => setData("month", e.target.value)}
-                            className="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 cursor-pointer transition-colors"
-                            required
-                        >
-                            <option value="">-- Month --</option>
-                            {months.map((m) => (
-                                <option key={m} value={m}>
-                                    {m}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val: any) => setData("month", val)}
+                            options={months}
+                            placeholder="Select Month"
+                            error={errors.month}
+                            theme="amber"
+                        />
                     </div>
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             For Year
                         </label>
                         <input
@@ -195,7 +188,7 @@ export default function CreatePaymentModal({
                             onChange={(e) =>
                                 setData("year", parseInt(e.target.value))
                             }
-                            className="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
+                            className="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors"
                             required
                         />
                     </div>
@@ -205,14 +198,14 @@ export default function CreatePaymentModal({
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Save Official Receipt
                     </button>

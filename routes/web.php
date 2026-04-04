@@ -36,15 +36,20 @@ Route::middleware('auth')->group(function () {
     // User Management (Make sure only admins can access this later, but for now we group it in auth)
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('buildings', BuildingController::class)->except(['create', 'show', 'edit']);
+    // --- Buildings ---
     Route::get('buildings/export', [BuildingController::class, 'export'])->name('buildings.export');
     Route::post('buildings/import', [BuildingController::class, 'import'])->name('buildings.import');
-    Route::resource('floors', FloorController::class)->except(['create', 'show', 'edit']);
+    Route::resource('buildings', BuildingController::class)->except(['create', 'show', 'edit']);
+
+    // --- Floors ---
     Route::get('floors/export', [FloorController::class, 'export'])->name('floors.export');
     Route::post('floors/import', [FloorController::class, 'import'])->name('floors.import');
-    Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
+    Route::resource('floors', FloorController::class)->except(['create', 'show', 'edit']);
+
+    // --- Stalls ---
     Route::get('stalls/export', [StallController::class, 'export'])->name('stalls.export');
     Route::post('stalls/import', [StallController::class, 'import'])->name('stalls.import');
-    // Inside your auth middleware group:
+    Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);  // Inside your auth middleware group:
     Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
     Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
     Route::post('/mapper/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');

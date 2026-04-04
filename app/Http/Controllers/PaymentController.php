@@ -7,15 +7,16 @@ use App\Models\Contract;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Imports\PaymentsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Updated relationships: Payments now route through their Contract
         $query = Payment::with(['contract.stall.building', 'contract.tenant', 'encoder']);
 
-        // Debounced Search Logic updated for Contract relationship
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('or_number', 'like', $searchTerm)
@@ -31,14 +32,13 @@ class PaymentController extends Controller
                 });
         }
 
-        $payments = $query->latest()->paginate(15)->withQueryString();
+        // Gold Standard: Sort by latest payments
+        $payments = $query->latest('payment_date')->paginate(15)->withQueryString();
 
-        // 2. Load active contracts WITH OUR NEW COMPUTED FINANCIAL ENGINE!
         $activeContracts = Contract::with(['stall.building', 'tenant'])
             ->where('is_active', true)
             ->get()
             ->map(function ($contract) {
-                // Inject the dynamic Phase C financials so React can read them directly
                 $contract->append([
                     'total_paid',
                     'months_active',
@@ -67,7 +67,6 @@ class PaymentController extends Controller
             'or_number' => 'required|string|unique:payments,or_number',
         ]);
 
-        // 3. Storing strictly to the Contract, dropping redundant stall/tenant IDs
         Payment::create([
             'contract_id' => $validated['contract_id'],
             'amount' => $validated['amount'],
@@ -83,7 +82,6 @@ class PaymentController extends Controller
 
     public function update(Request $request, Payment $payment)
     {
-        // We only allow updating the transaction details, not the core contract
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -99,28 +97,28 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
-        $payment->delete();
+        // Gold Standard: Transaction safety
+        DB::transaction(function () use ($payment) {
+            $payment->delete();
+        });
+
         return redirect()->back()->with('success', 'Payment record successfully deleted.');
     }
 
     public function export()
     {
-        $payments = Payment::with(['contract.stall', 'contract.tenant', 'encoder'])->get();
-        $csvData = "ID,OR Number,Tenant,Stall,Month,Year,Amount,Date Paid,Encoder\n";
+        $payments = Payment::with(['contract.stall', 'contract.tenant', 'encoder'])
+            ->orderBy('payment_date', 'desc')
+            ->get();
+
+        // Exact headers matching the import class
+        $csvData = "or_number,tenant_first_name,tenant_last_name,amount,payment_date,month,year\n";
 
         foreach ($payments as $payment) {
-            // Navigate through the contract relationship for the export!
-            $tenantName = ($payment->contract && $payment->contract->tenant)
-                ? $payment->contract->tenant->first_name . ' ' . $payment->contract->tenant->last_name
-                : 'N/A';
+            $tenantFirst = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->first_name) . '"' : '""';
+            $tenantLast = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->last_name) . '"' : '""';
 
-            $stallCode = ($payment->contract && $payment->contract->stall)
-                ? $payment->contract->stall->stall_code
-                : 'N/A';
-
-            $encoderName = $payment->encoder ? $payment->encoder->name : 'N/A';
-
-            $csvData .= "{$payment->id},{$payment->or_number},{$tenantName},{$stallCode},{$payment->month},{$payment->year},{$payment->amount},{$payment->payment_date},{$encoderName}\n";
+            $csvData .= "{$payment->or_number},{$tenantFirst},{$tenantLast},{$payment->amount},{$payment->payment_date},{$payment->month},{$payment->year}\n";
         }
 
         return response($csvData)
@@ -131,6 +129,12 @@ class PaymentController extends Controller
     public function import(Request $request)
     {
         $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
-        return redirect()->back()->with('success', 'Payments imported successfully!');
+
+        try {
+            Excel::import(new PaymentsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Payments synced successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure columns are exactly: "or_number", "tenant_first_name", "tenant_last_name", "amount", "payment_date", "month", "year".');
+        }
     }
 }

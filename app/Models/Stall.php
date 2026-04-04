@@ -7,8 +7,27 @@ use Carbon\Carbon;
 
 class Stall extends Model
 {
-    // UPDATE THIS LINE: Add building_id, remove status_id
     protected $fillable = ['building_id', 'floor_id', 'stall_code', 'size_sqm', 'rate_per_sqm'];
+
+    // Tell Laravel to send this custom attribute to React!
+    protected $appends = ['computed_status'];
+
+    // --- NEW MISSING RELATIONSHIPS --- //
+
+    // A stall belongs to a specific floor
+    public function floor()
+    {
+        return $this->belongsTo(Floor::class);
+    }
+
+    // A stall belongs to a specific building
+    public function building()
+    {
+        return $this->belongsTo(Building::class);
+    }
+
+    // --------------------------------- //
+
     // 1. A stall has a history of many contracts
     public function contracts()
     {
@@ -16,10 +35,8 @@ class Stall extends Model
     }
 
     // 2. A stall has ONE currently active contract
-    // A stall has ONE currently active contract
     public function activeContract()
     {
-        // Added 'contracts.' before 'is_active' to prevent any SQL ambiguity!
         return $this->hasOne(Contract::class)->where('contracts.is_active', true)->latestOfMany();
     }
 
@@ -30,29 +47,20 @@ class Stall extends Model
             ->where('contracts.is_active', true);
     }
 
-    // 🔥 4. THE GENIUS PART: Dynamic Computed Status
-    // You can now call $stall->computed_status anywhere in your app!
+    // 4. THE GENIUS PART: Dynamic Computed Status
     public function getComputedStatusAttribute()
     {
         $contract = $this->activeContract;
 
-        // If no active contract exists
         if (!$contract) {
             return 'VACANT';
         }
-
-        // If contract exists but business permit is pending
         if ($contract->permit_status === 'PENDING') {
             return 'WAITING FOR PERMIT';
         }
-
-        // If contract is past its end date
         if (Carbon::now()->greaterThan(Carbon::parse($contract->end_date))) {
             return 'FOR RENEWAL';
         }
-
-        // If we want to check financials (You will build this in Phase C)
-        // if ($contract->hasOverdueBalance()) { return 'DELINQUENT'; }
 
         return 'OCCUPIED';
     }

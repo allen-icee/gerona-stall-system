@@ -235,72 +235,96 @@ export default function StallsIndex({
                                     </tr>
                                 ) : (
                                     stalls.data.map(
-                                        (stall: any, index: number) => (
-                                            <tr
-                                                key={stall.id}
-                                                className="hover:bg-blue-50 transition-colors"
-                                            >
-                                                {/* Gold Standard Dynamic Row Numbers */}
-                                                <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
-                                                    {(stalls.from || 1) + index}
-                                                </td>
-                                                <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center text-base">
-                                                    {stall.stall_code}
-                                                </td>
-                                                <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                    <span className="inline-block px-3 py-1 rounded border-2 font-black text-[10px] uppercase tracking-wider bg-slate-100 border-slate-300 text-slate-700">
-                                                        {stall.status?.name ||
-                                                            "Unknown"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                    <div className="font-bold text-slate-800">
-                                                        {stall.floor?.name || (
-                                                            <span className="text-rose-500">
-                                                                No Floor
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">
-                                                        {stall.floor?.building
-                                                            ?.name ||
-                                                            "No Building"}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-center gap-2">
-                                                        <button
-                                                            onClick={() =>
-                                                                setEditingStall(
-                                                                    stall,
-                                                                )
-                                                            }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                        (stall: any, index: number) => {
+                                            // Dynamic Color Coding for your Computed Status!
+                                            const statusColors: any = {
+                                                VACANT: "bg-emerald-100 border-emerald-300 text-emerald-700",
+                                                OCCUPIED:
+                                                    "bg-blue-100 border-blue-300 text-blue-700",
+                                                "WAITING FOR PERMIT":
+                                                    "bg-amber-100 border-amber-300 text-amber-700",
+                                                "FOR RENEWAL":
+                                                    "bg-rose-100 border-rose-300 text-rose-700",
+                                            };
+                                            const badgeColor =
+                                                statusColors[
+                                                    stall.computed_status
+                                                ] ||
+                                                "bg-slate-100 border-slate-300 text-slate-700";
+
+                                            return (
+                                                <tr
+                                                    key={stall.id}
+                                                    className="hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                        {(stalls.from || 1) +
+                                                            index}
+                                                    </td>
+                                                    <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center text-base">
+                                                        {stall.stall_code}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                        {/* THE FIX: Use computed_status here! */}
+                                                        <span
+                                                            className={`inline-block px-3 py-1 rounded border-2 font-black text-[10px] uppercase tracking-wider ${badgeColor}`}
                                                         >
-                                                            <Icon
-                                                                icon="solar:pen-bold"
-                                                                className="w-4 h-4"
-                                                            />
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            onClick={() =>
-                                                                confirmDelete(
-                                                                    stall.id,
-                                                                )
+                                                            {
+                                                                stall.computed_status
                                                             }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
-                                                        >
-                                                            <Icon
-                                                                icon="solar:trash-bin-trash-bold"
-                                                                className="w-4 h-4"
-                                                            />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ),
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                        <div className="font-bold text-slate-800">
+                                                            {stall.floor
+                                                                ?.name || (
+                                                                <span className="text-rose-500">
+                                                                    No Floor
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-slate-500">
+                                                            {stall.floor
+                                                                ?.building
+                                                                ?.name ||
+                                                                "No Building"}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex justify-center gap-2">
+                                                            <button
+                                                                onClick={() =>
+                                                                    setEditingStall(
+                                                                        stall,
+                                                                    )
+                                                                }
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            >
+                                                                <Icon
+                                                                    icon="solar:pen-bold"
+                                                                    className="w-4 h-4"
+                                                                />
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    confirmDelete(
+                                                                        stall.id,
+                                                                    )
+                                                                }
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            >
+                                                                <Icon
+                                                                    icon="solar:trash-bin-trash-bold"
+                                                                    className="w-4 h-4"
+                                                                />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        },
                                     )
                                 )}
                             </tbody>

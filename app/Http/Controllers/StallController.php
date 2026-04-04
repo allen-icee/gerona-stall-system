@@ -15,7 +15,8 @@ class StallController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Stall::with(['floor.building', 'status']);
+        // THE FIX: Load the 'activeContract' instead of the deleted 'status'
+        $query = Stall::with(['floor.building', 'activeContract']);
 
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
@@ -25,21 +26,17 @@ class StallController extends Controller
                         ->orWhereHas('building', function ($q2) use ($searchTerm) {
                             $q2->where('name', 'like', $searchTerm);
                         });
-                })
-                ->orWhereHas('status', function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm);
                 });
         }
 
         // Gold Standard: Alphabetical sorting by stall_code
         $stalls = $query->orderBy('stall_code', 'asc')->paginate(10)->withQueryString();
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
-        $statuses = Status::orderBy('name', 'asc')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $stalls,
             'floors' => $floors,
-            'statuses' => $statuses,
+            // Notice: 'statuses' is completely gone from here!
             'filters' => $request->only(['search']),
         ]);
     }
@@ -49,10 +46,10 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
-            'status_id' => 'required|exists:statuses,id',
+            // DELETED: 'status_id' is no longer validated!
         ]);
 
-        // THE FIX: Automatically find the building_id based on the selected floor!
+        // Automatically find the building_id based on the selected floor!
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
@@ -66,10 +63,10 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
-            'status_id' => 'required|exists:statuses,id',
+            // DELETED: 'status_id' is no longer validated!
         ]);
 
-        // THE FIX: Automatically update the building_id in case they moved the stall to a new floor!
+        // Automatically update the building_id in case they moved the stall to a new floor!
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
@@ -78,9 +75,9 @@ class StallController extends Controller
         return redirect()->back()->with('success', 'Stall details updated!');
     }
 
+
     public function destroy(Stall $stall)
     {
-        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($stall) {
             \App\Models\Payment::where('stall_id', $stall->id)->delete();
             \App\Models\Contract::where('stall_id', $stall->id)->delete();

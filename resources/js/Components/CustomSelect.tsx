@@ -15,7 +15,7 @@ interface Props {
     options: string[] | SelectOption[];
     error?: string;
     placeholder?: string;
-    theme?: "blue" | "amber" | "rose" | "purple";
+    theme?: "amber" | "blue" | "rose" | "purple" | "emerald"; // Added emerald here
     disabled?: boolean;
 }
 
@@ -35,8 +35,9 @@ export default function CustomSelect({
     const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
 
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const listRef = useRef<HTMLUListElement>(null); // Ref for the portal list
+    const listRef = useRef<HTMLUListElement>(null);
 
+    // FIX: Added the 'emerald' theme configuration here so it knows what classes to load!
     const themeStyles = {
         blue: {
             focus: "focus:border-blue-600 focus:ring-blue-600",
@@ -58,6 +59,11 @@ export default function CustomSelect({
             activeBg: "bg-purple-50 text-purple-800 font-black",
             icon: "text-purple-600",
         },
+        emerald: {
+            focus: "focus:border-emerald-600 focus:ring-emerald-600",
+            activeBg: "bg-emerald-50 text-emerald-800 font-black",
+            icon: "text-emerald-600",
+        },
     };
 
     const activeTheme = themeStyles[theme];
@@ -73,7 +79,6 @@ export default function CustomSelect({
         setSelectedIndex(index);
     }, [value, options]);
 
-    // FIXED: Close on click outside (now checks both wrapper AND portal list)
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node;
@@ -91,15 +96,11 @@ export default function CustomSelect({
             document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Close on scroll to prevent the portal from detaching from the input
-    // Close on scroll to prevent detachment, but IGNORE internal dropdown scrolling
     useEffect(() => {
         const handleScroll = (e: Event) => {
-            // If the scroll event originated from INSIDE our dropdown list, do nothing!
             if (listRef.current && listRef.current.contains(e.target as Node)) {
                 return;
             }
-            // Otherwise, they are scrolling the background, so close it.
             setIsOpen(false);
         };
 

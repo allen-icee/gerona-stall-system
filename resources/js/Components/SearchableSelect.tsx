@@ -16,7 +16,7 @@ interface Props {
     placeholder?: string;
     disabled?: boolean;
     error?: string;
-    theme?: "blue" | "amber" | "rose" | "purple";
+    theme?: "blue" | "amber" | "rose" | "purple" | "emerald";
     onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -60,6 +60,11 @@ export default function SearchableSelect({
             focus: "focus:border-purple-600 focus:ring-purple-600",
             activeBg: "bg-purple-50 text-purple-700 font-black",
             highlightBg: "bg-purple-100/50",
+        },
+        emerald: {
+            focus: "focus:border-emerald-600 focus:ring-emerald-600",
+            activeBg: "bg-emerald-50 text-emerald-700 font-black",
+            highlightBg: "bg-emerald-100/50",
         },
     };
 

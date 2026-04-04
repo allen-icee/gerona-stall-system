@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreatePaymentModal from "./Partials/CreatePaymentModal";
 import EditPaymentModal from "./Partials/EditPaymentModal";
 import Modal from "@/Components/Modal";
-import ToastListener from "@/Components/ToastListener";
 
 export default function PaymentsIndex({
     payments,
@@ -20,7 +19,7 @@ export default function PaymentsIndex({
     // Delete Confirmation State
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Debounced Search Logic
+    // Gold Standard: Debounced Search Logic
     useEffect(() => {
         const delay = setTimeout(() => {
             router.get(
@@ -45,19 +44,31 @@ export default function PaymentsIndex({
         }
     };
 
-    // Import Handling
-    const { post: postImport, processing: importing } = useForm({
-        file: null as File | null,
-    });
-
+    // Gold Standard: Direct router.post for File Upload
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            postImport(route("payments.import"), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    if (fileInputRef.current) fileInputRef.current.value = "";
+            router.post(
+                route("payments.import"),
+                {
+                    file: e.target.files[0],
                 },
-            });
+                {
+                    preserveScroll: true,
+                    forceFormData: true,
+                    onSuccess: () => {
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                    onError: (errors) => {
+                        alert(
+                            errors.file ||
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                        );
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                },
+            );
         }
     };
 
@@ -66,9 +77,8 @@ export default function PaymentsIndex({
     return (
         <AuthenticatedLayout>
             <Head title="Treasury & Payments" />
-            <ToastListener />
 
-            {/* High-Contrast Delete Confirmation Modal */}
+            {/* Custom High-Contrast Delete Confirmation Modal */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -108,7 +118,6 @@ export default function PaymentsIndex({
             <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 {/* Header & Tools Area */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    {/* Title & Count Tracker */}
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
@@ -118,7 +127,7 @@ export default function PaymentsIndex({
                                 />
                                 Treasury Ledger
                             </h3>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
+                            <span className="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-black border-2 border-emerald-200">
                                 {totalPayments}{" "}
                                 {totalPayments === 1 ? "Record" : "Records"}
                             </span>
@@ -167,8 +176,7 @@ export default function PaymentsIndex({
                         />
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={importing}
-                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors disabled:opacity-50 shrink-0"
+                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors shrink-0"
                             title="Import from Excel"
                         >
                             <Icon
@@ -243,15 +251,24 @@ export default function PaymentsIndex({
                                             </td>
                                             <td className="px-6 py-4 text-center border-r border-slate-200">
                                                 <div className="font-bold text-slate-900">
-                                                    {payment.tenant?.first_name}{" "}
-                                                    {payment.tenant?.last_name}
+                                                    {
+                                                        payment.contract?.tenant
+                                                            ?.first_name
+                                                    }{" "}
+                                                    {
+                                                        payment.contract?.tenant
+                                                            ?.last_name
+                                                    }
                                                 </div>
                                                 <div className="text-[10px] uppercase font-bold text-slate-500 mt-0.5 tracking-wide">
-                                                    {payment.stall?.stall_code}{" "}
+                                                    {
+                                                        payment.contract?.stall
+                                                            ?.stall_code
+                                                    }{" "}
                                                     -{" "}
                                                     {
-                                                        payment.stall?.building
-                                                            ?.name
+                                                        payment.contract?.stall
+                                                            ?.building?.name
                                                     }
                                                 </div>
                                             </td>
