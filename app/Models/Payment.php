@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     protected $fillable = [
-        'stall_id',
-        'tenant_id',
+        'contract_id',
         'amount',
         'payment_date',
         'month',
@@ -17,24 +16,11 @@ class Payment extends Model
         'encoded_by'
     ];
 
-
-    protected $casts = [
-        'payment_date' => 'date',
-        'amount' => 'decimal:2',
-        'year' => 'integer',
-    ];
-
-    public function stall()
+    public function contract()
     {
-        return $this->belongsTo(Stall::class);
+        return $this->belongsTo(Contract::class);
     }
 
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
-    // Links to the specific Treasury staff member who logged the Official Receipt
     public function encoder()
     {
         return $this->belongsTo(User::class, 'encoded_by');

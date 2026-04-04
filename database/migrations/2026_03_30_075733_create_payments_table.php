@@ -12,14 +12,16 @@ return new class extends Migration {
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('stall_id')->constrained();
-            $table->foreignId('tenant_id')->constrained();
+            // The ONLY relational link we need.
+            // Through the contract, we already know the exact Stall and Tenant!
+            $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
+
             $table->decimal('amount', 10, 2);
             $table->date('payment_date');
-            $table->string('month'); // e.g., JAN, FEB
+            $table->string('month');
             $table->integer('year');
-            $table->string('or_number')->unique(); // Official Receipt
-            $table->foreignId('encoded_by')->constrained('users'); // Tracks which Treasury staff encoded it
+            $table->string('or_number')->unique();
+            $table->foreignId('encoded_by')->constrained('users');
             $table->timestamps();
         });
     }

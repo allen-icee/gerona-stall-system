@@ -14,10 +14,19 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('stall_id')->constrained()->cascadeOnDelete();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+
+            // Legal constraints
             $table->date('start_date');
             $table->date('end_date');
+
+            // Financial agreements
             $table->decimal('monthly_rent', 10, 2);
             $table->decimal('security_deposit', 10, 2)->nullable();
+
+            // Lifecycle tracking (Crucial for your new architecture)
+            $table->boolean('is_active')->default(true);
+            $table->string('permit_status')->default('PENDING'); // PENDING, CLEARED, EXPIRED
+
             $table->timestamps();
         });
     }

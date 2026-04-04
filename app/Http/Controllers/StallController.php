@@ -7,6 +7,7 @@ use App\Models\Floor;
 use App\Models\Status;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class StallController extends Controller
 {
@@ -14,7 +15,6 @@ class StallController extends Controller
     {
         $query = Stall::with(['floor.building', 'status']);
 
-        // Debounced Search Logic
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('stall_code', 'like', $searchTerm)
@@ -69,8 +69,14 @@ class StallController extends Controller
 
     public function destroy(Stall $stall)
     {
-        $stall->delete();
-        return redirect()->back()->with('success', 'Stall successfully deleted.');
+        // THE FIX: Transaction safely deletes children before the parent
+        DB::transaction(function () use ($stall) {
+            \App\Models\Payment::where('stall_id', $stall->id)->delete();
+            \App\Models\Contract::where('stall_id', $stall->id)->delete();
+            $stall->delete();
+        });
+
+        return redirect()->back()->with('success', 'Stall and associated records successfully deleted.');
     }
 
     public function export()

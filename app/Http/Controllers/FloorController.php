@@ -6,6 +6,7 @@ use App\Models\Floor;
 use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class FloorController extends Controller
 {
@@ -13,7 +14,6 @@ class FloorController extends Controller
     {
         $query = Floor::with('building');
 
-        // Debounced Search Logic
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('name', 'like', $searchTerm)
@@ -61,8 +61,20 @@ class FloorController extends Controller
 
     public function destroy(Floor $floor)
     {
-        $floor->delete();
-        return redirect()->back()->with('success', 'Floor successfully deleted.');
+        // THE FIX: Transaction safely deletes children before the parent
+        DB::transaction(function () use ($floor) {
+            $stallIds = $floor->stalls()->pluck('id');
+
+            if ($stallIds->isNotEmpty()) {
+                \App\Models\Payment::whereIn('stall_id', $stallIds)->delete();
+                \App\Models\Contract::whereIn('stall_id', $stallIds)->delete();
+                \App\Models\Stall::whereIn('id', $stallIds)->delete();
+            }
+
+            $floor->delete();
+        });
+
+        return redirect()->back()->with('success', 'Floor and all associated stalls deleted successfully.');
     }
 
     public function export()

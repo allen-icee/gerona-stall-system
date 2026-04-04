@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class BuildingController extends Controller
 {
@@ -12,7 +13,6 @@ class BuildingController extends Controller
     {
         $query = Building::query();
 
-        // 1. Makes the Search Bar Work
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%')
                 ->orWhere('description', 'like', '%' . $request->search . '%');
@@ -25,38 +25,58 @@ class BuildingController extends Controller
             'filters' => $request->only(['search']),
         ]);
     }
+
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:buildings,name',
-            'description' => 'nullable|string|max:1000',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
-        Building::create($request->all());
+        Building::create($validated);
 
-        return redirect()->back()->with('success', 'Building created successfully.');
+        return redirect()->back()->with('success', 'Building added successfully.');
     }
 
     public function update(Request $request, Building $building)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:buildings,name,' . $building->id,
-            'description' => 'nullable|string|max:1000',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
-        $building->update($request->all());
+        $building->update($validated);
 
         return redirect()->back()->with('success', 'Building updated successfully.');
     }
 
     public function destroy(Building $building)
     {
-        $building->delete();
-        return redirect()->back()->with('success', 'Building deleted successfully.');
+        // THE FIX: Transaction safely deletes children before the parent
+        DB::transaction(function () use ($building) {
+            // 1. Get all floor IDs belonging to this building
+            $floorIds = $building->floors()->pluck('id');
+
+            // 2. Get all stall IDs belonging to those floors
+            $stallIds = \App\Models\Stall::whereIn('floor_id', $floorIds)->pluck('id');
+
+            if ($stallIds->isNotEmpty()) {
+                // 3. Delete the blocking child records first!
+                \App\Models\Payment::whereIn('stall_id', $stallIds)->delete();
+                \App\Models\Contract::whereIn('stall_id', $stallIds)->delete();
+                \App\Models\Stall::whereIn('id', $stallIds)->delete();
+            }
+
+            // 4. Finally, delete the floors and the building itself
+            $building->floors()->delete();
+            $building->delete();
+        });
+
+        return redirect()->back()->with('success', 'Building and all associated records deleted successfully.');
     }
+
     public function export()
     {
-        // Note: If you don't have Maatwebsite/Excel installed yet, we can return a CSV manually:
         $buildings = Building::all();
         $csvData = "ID,Building Name,Description,Created At\n";
         foreach ($buildings as $building) {
@@ -74,8 +94,6 @@ class BuildingController extends Controller
             'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
         ]);
 
-        // For now, this just proves the button works and triggers the Toast!
-        // Real logic to parse the Excel file will go here when we install Maatwebsite/Excel
         return redirect()->back()->with('success', 'Building list imported successfully!');
     }
 }
