@@ -5,6 +5,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreateBuildingModal from "./Partials/CreateBuildingModal";
 import EditBuildingModal from "./Partials/EditBuildingModal";
 import Modal from "@/Components/Modal";
+import ToastListener from "@/Components/ToastListener";
 
 export default function BuildingsIndex({ buildings, filters }: any) {
     const [search, setSearch] = useState(filters?.search || "");
@@ -12,10 +13,8 @@ export default function BuildingsIndex({ buildings, filters }: any) {
     const [editingBuilding, setEditingBuilding] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Delete Confirmation State
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Debounced Search Logic
     useEffect(() => {
         const delay = setTimeout(() => {
             router.get(
@@ -27,7 +26,6 @@ export default function BuildingsIndex({ buildings, filters }: any) {
         return () => clearTimeout(delay);
     }, [search]);
 
-    // Handle Delete Actions
     const confirmDelete = (id: number) => {
         setDeletingId(id);
     };
@@ -41,30 +39,45 @@ export default function BuildingsIndex({ buildings, filters }: any) {
         }
     };
 
-    // Import Handling
     const { post: postImport, processing: importing } = useForm({
         file: null as File | null,
     });
 
+    // Import Handling (FIXED: Directly sends the file via router)
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            postImport(route("buildings.import"), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    if (fileInputRef.current) fileInputRef.current.value = "";
+            router.post(
+                route("buildings.import"),
+                {
+                    file: e.target.files[0],
                 },
-            });
+                {
+                    preserveScroll: true,
+                    forceFormData: true, // Crucial for file uploads!
+                    onSuccess: () => {
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                    onError: (errors) => {
+                        // If Laravel blocks the file, alert the user!
+                        alert(
+                            errors.file ||
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                        );
+                        if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                    },
+                },
+            );
         }
     };
 
-    // Calculate total records for the tracker
     const totalBuildings = buildings.total || buildings.data.length;
 
     return (
         <AuthenticatedLayout>
             <Head title="Buildings" />
 
-            {/* Simple High-Contrast Delete Confirmation Modal */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -100,11 +113,8 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                     </div>
                 </div>
             </Modal>
-
             <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                {/* Header & Tools Area */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    {/* Title & Count Tracker */}
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
@@ -125,7 +135,6 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                         </p>
                     </div>
 
-                    {/* Search & Actions */}
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-64">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -188,13 +197,14 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                     </div>
                 </div>
 
-                {/* Unified Table Card */}
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    {/* Centered Column Headers */}
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
+                                        #
+                                    </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center w-1/3">
                                         Building Name
                                     </th>
@@ -210,7 +220,7 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                                 {buildings.data.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={3}
+                                            colSpan={4}
                                             className="px-6 py-12 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
@@ -222,71 +232,77 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                                         </td>
                                     </tr>
                                 ) : (
-                                    buildings.data.map((building: any) => (
-                                        <tr
-                                            key={building.id}
-                                            className="hover:bg-blue-50 transition-colors"
-                                        >
-                                            <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
-                                                        <Icon
-                                                            icon="solar:buildings-2-bold-duotone"
-                                                            className="w-5 h-5"
-                                                        />
+                                    buildings.data.map(
+                                        (building: any, index: number) => (
+                                            <tr
+                                                key={building.id}
+                                                className="hover:bg-blue-50 transition-colors"
+                                            >
+                                                <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                    {/* Correctly calculates row number based on current pagination page */}
+                                                    {(buildings.from || 1) +
+                                                        index}
+                                                </td>
+                                                <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
+                                                            <Icon
+                                                                icon="solar:buildings-2-bold-duotone"
+                                                                className="w-5 h-5"
+                                                            />
+                                                        </div>
+                                                        {building.name}
                                                     </div>
-                                                    {building.name}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-500 font-medium border-r border-slate-200">
-                                                {building.description || (
-                                                    <span className="italic opacity-50">
-                                                        No description provided
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex justify-center gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            setEditingBuilding(
-                                                                building,
-                                                            )
-                                                        }
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
-                                                    >
-                                                        <Icon
-                                                            icon="solar:pen-bold"
-                                                            className="w-4 h-4"
-                                                        />
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            confirmDelete(
-                                                                building.id,
-                                                            )
-                                                        }
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
-                                                    >
-                                                        <Icon
-                                                            icon="solar:trash-bin-trash-bold"
-                                                            className="w-4 h-4"
-                                                        />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-500 font-medium border-r border-slate-200 text-center">
+                                                    {building.description || (
+                                                        <span className="italic opacity-50">
+                                                            No description
+                                                            provided
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button
+                                                            onClick={() =>
+                                                                setEditingBuilding(
+                                                                    building,
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                        >
+                                                            <Icon
+                                                                icon="solar:pen-bold"
+                                                                className="w-4 h-4"
+                                                            />
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                confirmDelete(
+                                                                    building.id,
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                        >
+                                                            <Icon
+                                                                icon="solar:trash-bin-trash-bold"
+                                                                className="w-4 h-4"
+                                                            />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )
                                 )}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
-            {/* Render Modals */}
             <CreateBuildingModal
                 show={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}

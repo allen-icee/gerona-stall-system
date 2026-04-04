@@ -7,6 +7,8 @@ use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Imports\FloorsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FloorController extends Controller
 {
@@ -23,8 +25,9 @@ class FloorController extends Controller
                 });
         }
 
-        $floors = $query->latest()->paginate(10)->withQueryString();
-        $buildings = Building::orderBy('name')->get();
+        // Gold Standard: Alphabetical sorting
+        $floors = $query->orderBy('name', 'asc')->paginate(10)->withQueryString();
+        $buildings = Building::orderBy('name', 'asc')->get();
 
         return Inertia::render('Floors/Index', [
             'floors' => $floors,
@@ -61,7 +64,7 @@ class FloorController extends Controller
 
     public function destroy(Floor $floor)
     {
-        // THE FIX: Transaction safely deletes children before the parent
+        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($floor) {
             $stallIds = $floor->stalls()->pluck('id');
 
@@ -79,11 +82,18 @@ class FloorController extends Controller
 
     public function export()
     {
-        $floors = Floor::with('building')->get();
-        $csvData = "ID,Floor Name,Parent Building,Description,Created At\n";
+        $floors = Floor::with('building')->orderBy('name', 'asc')->get();
+        // Gold Standard: Exact header match for the smart Import class
+        $csvData = "name,building,description\n";
+
         foreach ($floors as $floor) {
-            $buildingName = $floor->building ? $floor->building->name : 'N/A';
-            $csvData .= "{$floor->id},{$floor->name},{$buildingName},{$floor->description},{$floor->created_at}\n";
+            $buildingName = $floor->building ? $floor->building->name : '';
+            // Safe CSV escaping
+            $name = '"' . str_replace('"', '""', $floor->name) . '"';
+            $building = '"' . str_replace('"', '""', $buildingName) . '"';
+            $desc = '"' . str_replace('"', '""', $floor->description) . '"';
+
+            $csvData .= "{$name},{$building},{$desc}\n";
         }
 
         return response($csvData)
@@ -97,6 +107,11 @@ class FloorController extends Controller
             'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
         ]);
 
-        return redirect()->back()->with('success', 'Floors imported successfully!');
+        try {
+            Excel::import(new FloorsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Floors synced successfully! New entries created and existing ones updated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "name", "building", and "description".');
+        }
     }
 }

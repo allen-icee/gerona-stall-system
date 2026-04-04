@@ -1,15 +1,22 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
+
+export interface SelectOption {
+    value: string | number;
+    label: string;
+}
 
 interface Props {
     id?: string;
     nextElementId?: string;
-    value: string;
-    onChange: (value: string) => void;
-    options: string[];
+    value: string | number | undefined | null;
+    onChange: (value: any) => void;
+    options: string[] | SelectOption[];
     error?: string;
     placeholder?: string;
     theme?: "blue" | "amber" | "rose" | "purple";
+    disabled?: boolean;
 }
 
 export default function CustomSelect({
@@ -21,64 +28,120 @@ export default function CustomSelect({
     error,
     placeholder = "Select...",
     theme = "blue",
+    disabled = false,
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
-    const [placement, setPlacement] = useState<"top" | "bottom">("bottom");
-    const listRef = useRef<HTMLUListElement>(null);
+    const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
+
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const listRef = useRef<HTMLUListElement>(null); // Ref for the portal list
 
     const themeStyles = {
-        blue: { focus: "focus:border-blue-600 focus:ring-blue-600", activeBg: "bg-blue-50 text-blue-800 font-black" },
-        amber: { focus: "focus:border-amber-500 focus:ring-amber-500", activeBg: "bg-amber-50 text-amber-900 font-black" },
-        rose: { focus: "focus:border-rose-500 focus:ring-rose-500", activeBg: "bg-rose-50 text-rose-800 font-black" },
-        purple: { focus: "focus:border-purple-600 focus:ring-purple-600", activeBg: "bg-purple-50 text-purple-800 font-black" },
+        blue: {
+            focus: "focus:border-blue-600 focus:ring-blue-600",
+            activeBg: "bg-blue-50 text-blue-800 font-black",
+            icon: "text-blue-600",
+        },
+        amber: {
+            focus: "focus:border-amber-500 focus:ring-amber-500",
+            activeBg: "bg-amber-50 text-amber-900 font-black",
+            icon: "text-amber-600",
+        },
+        rose: {
+            focus: "focus:border-rose-500 focus:ring-rose-500",
+            activeBg: "bg-rose-50 text-rose-800 font-black",
+            icon: "text-rose-600",
+        },
+        purple: {
+            focus: "focus:border-purple-600 focus:ring-purple-600",
+            activeBg: "bg-purple-50 text-purple-800 font-black",
+            icon: "text-purple-600",
+        },
     };
 
     const activeTheme = themeStyles[theme];
 
+    const normalizedOptions = options.map((opt) =>
+        typeof opt === "string" ? { value: opt, label: opt } : opt,
+    );
+
+    const selectedOption = normalizedOptions.find((opt) => opt.value === value);
+
     useEffect(() => {
-        setSelectedIndex(options.indexOf(value));
+        const index = normalizedOptions.findIndex((opt) => opt.value === value);
+        setSelectedIndex(index);
     }, [value, options]);
 
-    // Handle click outside
+    // FIXED: Close on click outside (now checks both wrapper AND portal list)
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            if (
+                wrapperRef.current &&
+                !wrapperRef.current.contains(target) &&
+                listRef.current &&
+                !listRef.current.contains(target)
+            ) {
                 setIsOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Close on scroll to prevent the portal from detaching from the input
+    // Close on scroll to prevent detachment, but IGNORE internal dropdown scrolling
+    useEffect(() => {
+        const handleScroll = (e: Event) => {
+            // If the scroll event originated from INSIDE our dropdown list, do nothing!
+            if (listRef.current && listRef.current.contains(e.target as Node)) {
+                return;
+            }
+            // Otherwise, they are scrolling the background, so close it.
+            setIsOpen(false);
+        };
+
+        if (isOpen) {
+            window.addEventListener("scroll", handleScroll, true);
+        }
+        return () => window.removeEventListener("scroll", handleScroll, true);
+    }, [isOpen]);
+
     const toggleDropdown = () => {
-        if (wrapperRef.current) {
-            const rect = wrapperRef.current.getBoundingClientRect();
-            setPlacement((window.innerHeight - rect.bottom < 220 && rect.top > 220) ? "top" : "bottom");
+        if (disabled) return;
+        if (!isOpen && wrapperRef.current) {
+            setDropdownRect(wrapperRef.current.getBoundingClientRect());
         }
         setIsOpen(!isOpen);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!isOpen && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
+        if (
+            !isOpen &&
+            (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")
+        ) {
             e.preventDefault();
-            setIsOpen(true);
+            toggleDropdown();
             return;
         }
 
         if (isOpen) {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : prev));
+                setSelectedIndex((prev) =>
+                    prev < normalizedOptions.length - 1 ? prev + 1 : prev,
+                );
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
                 setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
             } else if (e.key === "Enter" && selectedIndex >= 0) {
                 e.preventDefault();
-                onChange(options[selectedIndex]);
+                onChange(normalizedOptions[selectedIndex].value);
                 setIsOpen(false);
-                if (nextElementId) document.getElementById(nextElementId)?.focus();
+                if (nextElementId)
+                    document.getElementById(nextElementId)?.focus();
             } else if (e.key === "Escape") {
                 setIsOpen(false);
             }
@@ -92,12 +155,14 @@ export default function CustomSelect({
                     id={id}
                     type="text"
                     readOnly
-                    value={value || ""}
+                    disabled={disabled}
+                    value={selectedOption ? selectedOption.label : ""}
                     placeholder={placeholder}
                     onClick={toggleDropdown}
                     onKeyDown={handleKeyDown}
-                    className={`w-full bg-white border-2 border-slate-300 rounded-lg pl-10 pr-10 py-2.5 text-sm font-bold text-slate-900 cursor-pointer caret-transparent outline-none transition-all focus:ring-1 ${activeTheme.focus
-                        } ${error ? "border-rose-600 focus:border-rose-600 focus:ring-rose-600" : ""}`}
+                    className={`w-full bg-white border-2 border-slate-300 rounded-lg pl-4 pr-10 py-2.5 text-sm font-bold text-slate-900 cursor-pointer caret-transparent outline-none transition-all focus:ring-1 disabled:opacity-50 disabled:bg-slate-50 ${
+                        activeTheme.focus
+                    } ${error ? "border-rose-600 focus:border-rose-600 focus:ring-rose-600" : ""}`}
                 />
 
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
@@ -109,35 +174,64 @@ export default function CustomSelect({
                 </div>
             </div>
 
-            {isOpen && (
-                <ul
-                    ref={listRef}
-                    className={`absolute z-[9999] w-full bg-white border-2 border-slate-300 max-h-52 overflow-y-auto shadow-2xl rounded-xl py-1.5 text-sm ${placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
-                        }`}
-                >
-                    {options.map((opt, index) => (
-                        <li
-                            key={opt}
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                onChange(opt);
-                                setIsOpen(false);
-                                if (nextElementId) document.getElementById(nextElementId)?.focus();
-                            }}
-                            onMouseEnter={() => setSelectedIndex(index)}
-                            className={`px-4 py-2.5 cursor-pointer flex items-center justify-between transition-colors uppercase tracking-tight ${index === selectedIndex || opt === value
-                                ? activeTheme.activeBg
-                                : "text-slate-700 font-bold hover:bg-slate-50"
-                                }`}
-                        >
-                            <span>{opt}</span>
-                            {(index === selectedIndex || opt === value) && (
-                                <Icon icon="solar:check-circle-bold" width="18" className="text-blue-600" />
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
+            {isOpen &&
+                dropdownRect &&
+                createPortal(
+                    <ul
+                        ref={listRef}
+                        className="fixed z-[99999] bg-white border-2 border-slate-300 max-h-52 overflow-y-auto shadow-2xl rounded-xl py-1.5 text-sm hide-scrollbar"
+                        style={{
+                            top:
+                                window.innerHeight - dropdownRect.bottom < 220
+                                    ? undefined
+                                    : dropdownRect.bottom + 6,
+                            bottom:
+                                window.innerHeight - dropdownRect.bottom < 220
+                                    ? window.innerHeight - dropdownRect.top + 6
+                                    : undefined,
+                            left: dropdownRect.left,
+                            width: dropdownRect.width,
+                        }}
+                    >
+                        {normalizedOptions.map((opt, index) => {
+                            const isActive =
+                                index === selectedIndex || opt.value === value;
+
+                            return (
+                                <li
+                                    key={opt.value}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        onChange(opt.value);
+                                        setIsOpen(false);
+                                        if (nextElementId)
+                                            document
+                                                .getElementById(nextElementId)
+                                                ?.focus();
+                                    }}
+                                    onMouseEnter={() => setSelectedIndex(index)}
+                                    className={`px-4 py-2.5 hover:cursor-pointer flex items-center justify-between transition-colors uppercase tracking-tight ${
+                                        isActive
+                                            ? activeTheme.activeBg
+                                            : "text-slate-700 font-bold hover:bg-slate-50"
+                                    }`}
+                                >
+                                    <span className="truncate">
+                                        {opt.label}
+                                    </span>
+                                    {isActive && (
+                                        <Icon
+                                            icon="solar:check-circle-bold"
+                                            width="18"
+                                            className={activeTheme.icon}
+                                        />
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>,
+                    document.body,
+                )}
         </div>
     );
 }

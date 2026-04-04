@@ -18,7 +18,6 @@ export default function EditBuildingModal({
             description: "",
         });
 
-    // Populate the form when a building is selected
     useEffect(() => {
         if (building) {
             setData({

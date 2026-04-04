@@ -1,18 +1,15 @@
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
+import CustomSelect from "@/Components/CustomSelect";
+import SearchableSelect from "@/Components/SearchableSelect"; // Imported Searchable Select
 
 export default function CreateStallModal({
     show,
     onClose,
     floors,
     statuses,
-}: {
-    show: boolean;
-    onClose: () => void;
-    floors: any[];
-    statuses: any[];
-}) {
+}: any) {
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
             floor_id: "",
@@ -22,9 +19,7 @@ export default function CreateStallModal({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route("stalls.store"), {
-            onSuccess: () => closeModal(),
-        });
+        post(route("stalls.store"), { onSuccess: () => closeModal() });
     };
 
     const closeModal = () => {
@@ -59,24 +54,20 @@ export default function CreateStallModal({
                 className="p-6 space-y-4 bg-white rounded-b-2xl"
             >
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Location (Floor/Section)
                     </label>
-                    <select
+                    {/* Gold Standard: Searchable Select for large datasets */}
+                    <SearchableSelect
                         value={data.floor_id}
-                        onChange={(e) => setData("floor_id", e.target.value)}
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors cursor-pointer"
-                        required
-                    >
-                        <option value="" disabled>
-                            Select a location...
-                        </option>
-                        {floors.map((floor: any) => (
-                            <option key={floor.id} value={floor.id}>
-                                {floor.name} ({floor.building?.name})
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val: any) => setData("floor_id", val)}
+                        options={floors.map((f: any) => ({
+                            value: f.id,
+                            label: `${f.name} (${f.building?.name || "No Building"})`,
+                        }))}
+                        placeholder="Search locations..."
+                        error={errors.floor_id}
+                    />
                     {errors.floor_id && (
                         <p className="text-rose-600 text-xs font-bold mt-1.5">
                             {errors.floor_id}
@@ -85,7 +76,7 @@ export default function CreateStallModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Stall Code
                     </label>
                     <input
@@ -94,7 +85,7 @@ export default function CreateStallModal({
                         onChange={(e) =>
                             setData("stall_code", e.target.value.toUpperCase())
                         }
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors placeholder-slate-400"
+                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors placeholder-slate-400 cursor-text"
                         placeholder="e.g. B1, ST-014"
                         required
                     />
@@ -106,30 +97,19 @@ export default function CreateStallModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Initial Status
                     </label>
-                    <select
+                    <CustomSelect
                         value={data.status_id}
-                        onChange={(e) => setData("status_id", e.target.value)}
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors cursor-pointer"
-                        required
-                    >
-                        <option value="" disabled>
-                            Select a status...
-                        </option>
-                        {statuses && statuses.length > 0 ? (
-                            statuses.map((status: any) => (
-                                <option key={status.id} value={status.id}>
-                                    {status.name}
-                                </option>
-                            ))
-                        ) : (
-                            <option value="" disabled>
-                                No statuses found in database!
-                            </option>
-                        )}
-                    </select>
+                        onChange={(val: any) => setData("status_id", val)}
+                        options={statuses.map((s: any) => ({
+                            value: s.id,
+                            label: s.name,
+                        }))}
+                        placeholder="Select a status..."
+                        error={errors.status_id}
+                    />
                     {errors.status_id && (
                         <p className="text-rose-600 text-xs font-bold mt-1.5">
                             {errors.status_id}
@@ -141,14 +121,14 @@ export default function CreateStallModal({
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Save Stall
                     </button>

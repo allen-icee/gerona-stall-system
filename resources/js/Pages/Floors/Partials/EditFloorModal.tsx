@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
+import SearchableSelect from "@/Components/SearchableSelect";
 
 export default function EditFloorModal({
     show,
@@ -70,24 +71,20 @@ export default function EditFloorModal({
                 className="p-6 space-y-4 bg-white rounded-b-2xl"
             >
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Parent Building
                     </label>
-                    <select
+                    <SearchableSelect
                         value={data.building_id}
-                        onChange={(e) => setData("building_id", e.target.value)}
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors cursor-pointer"
-                        required
-                    >
-                        <option value="" disabled>
-                            Select a building...
-                        </option>
-                        {buildings.map((building: any) => (
-                            <option key={building.id} value={building.id}>
-                                {building.name}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val: any) => setData("building_id", val)}
+                        options={buildings.map((b: any) => ({
+                            value: b.id,
+                            label: b.name,
+                        }))}
+                        placeholder="Search and select a building..."
+                        theme="amber"
+                        error={errors.building_id}
+                    />
                     {errors.building_id && (
                         <p className="text-rose-600 text-xs font-bold mt-1.5">
                             {errors.building_id}
@@ -96,7 +93,7 @@ export default function EditFloorModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Floor Name
                     </label>
                     <input
@@ -114,7 +111,7 @@ export default function EditFloorModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                         Description (Optional)
                     </label>
                     <textarea
@@ -134,14 +131,14 @@ export default function EditFloorModal({
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors"
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Update Floor
                     </button>

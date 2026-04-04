@@ -6,6 +6,8 @@ use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Imports\BuildingsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BuildingController extends Controller
 {
@@ -18,7 +20,8 @@ class BuildingController extends Controller
                 ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        $buildings = $query->latest()->paginate(10)->withQueryString();
+        // Changed from latest() to alphabetical sorting
+        $buildings = $query->orderBy('name', 'asc')->paginate(10)->withQueryString();
 
         return Inertia::render('Buildings/Index', [
             'buildings' => $buildings,
@@ -52,22 +55,16 @@ class BuildingController extends Controller
 
     public function destroy(Building $building)
     {
-        // THE FIX: Transaction safely deletes children before the parent
         DB::transaction(function () use ($building) {
-            // 1. Get all floor IDs belonging to this building
             $floorIds = $building->floors()->pluck('id');
-
-            // 2. Get all stall IDs belonging to those floors
             $stallIds = \App\Models\Stall::whereIn('floor_id', $floorIds)->pluck('id');
 
             if ($stallIds->isNotEmpty()) {
-                // 3. Delete the blocking child records first!
                 \App\Models\Payment::whereIn('stall_id', $stallIds)->delete();
                 \App\Models\Contract::whereIn('stall_id', $stallIds)->delete();
                 \App\Models\Stall::whereIn('id', $stallIds)->delete();
             }
 
-            // 4. Finally, delete the floors and the building itself
             $building->floors()->delete();
             $building->delete();
         });
@@ -77,10 +74,10 @@ class BuildingController extends Controller
 
     public function export()
     {
-        $buildings = Building::all();
-        $csvData = "ID,Building Name,Description,Created At\n";
+        $buildings = Building::orderBy('name')->get();
+        $csvData = "name,description\n"; // Headers specifically matching what the import expects
         foreach ($buildings as $building) {
-            $csvData .= "{$building->id},{$building->name},{$building->description},{$building->created_at}\n";
+            $csvData .= "\"{$building->name}\",\"{$building->description}\"\n";
         }
 
         return response($csvData)
@@ -94,6 +91,11 @@ class BuildingController extends Controller
             'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
         ]);
 
-        return redirect()->back()->with('success', 'Building list imported successfully!');
+        try {
+            Excel::import(new BuildingsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Buildings synced successfully! New entries created and existing ones updated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "name" and "description".');
+        }
     }
 }

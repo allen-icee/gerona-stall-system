@@ -8,6 +8,8 @@ use App\Models\Status;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Imports\StallsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StallController extends Controller
 {
@@ -29,9 +31,10 @@ class StallController extends Controller
                 });
         }
 
-        $stalls = $query->latest()->paginate(10)->withQueryString();
-        $floors = Floor::with('building')->orderBy('name')->get();
-        $statuses = Status::orderBy('name')->get();
+        // Gold Standard: Alphabetical sorting by stall_code
+        $stalls = $query->orderBy('stall_code', 'asc')->paginate(10)->withQueryString();
+        $floors = Floor::with('building')->orderBy('name', 'asc')->get();
+        $statuses = Status::orderBy('name', 'asc')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $stalls,
@@ -69,7 +72,7 @@ class StallController extends Controller
 
     public function destroy(Stall $stall)
     {
-        // THE FIX: Transaction safely deletes children before the parent
+        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($stall) {
             \App\Models\Payment::where('stall_id', $stall->id)->delete();
             \App\Models\Contract::where('stall_id', $stall->id)->delete();
@@ -81,13 +84,21 @@ class StallController extends Controller
 
     public function export()
     {
-        $stalls = Stall::with(['floor.building', 'status'])->get();
-        $csvData = "ID,Stall Code,Floor,Building,Status,Created At\n";
+        $stalls = Stall::with(['floor', 'status'])->orderBy('stall_code', 'asc')->get();
+
+        // Gold Standard: Exact header match for the smart Import class
+        $csvData = "stall_code,floor,status\n";
+
         foreach ($stalls as $stall) {
-            $floorName = $stall->floor ? $stall->floor->name : 'N/A';
-            $buildingName = ($stall->floor && $stall->floor->building) ? $stall->floor->building->name : 'N/A';
-            $statusName = $stall->status ? $stall->status->name : 'N/A';
-            $csvData .= "{$stall->id},{$stall->stall_code},{$floorName},{$buildingName},{$statusName},{$stall->created_at}\n";
+            $floorName = $stall->floor ? $stall->floor->name : '';
+            $statusName = $stall->status ? $stall->status->name : '';
+
+            // Safe CSV escaping
+            $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
+            $floor = '"' . str_replace('"', '""', $floorName) . '"';
+            $status = '"' . str_replace('"', '""', $statusName) . '"';
+
+            $csvData .= "{$code},{$floor},{$status}\n";
         }
 
         return response($csvData)
@@ -101,6 +112,11 @@ class StallController extends Controller
             'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
         ]);
 
-        return redirect()->back()->with('success', 'Stalls imported successfully!');
+        try {
+            Excel::import(new StallsImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Stalls synced successfully! New entries created and existing ones updated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "stall_code", "floor", and "status".');
+        }
     }
 }
