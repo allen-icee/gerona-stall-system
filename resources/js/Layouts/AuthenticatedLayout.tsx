@@ -53,8 +53,8 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                     </div>
                 </div>
 
-                {/* NAV */}
-                <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">
+                {/* NAV - SCROLLBAR HIDDEN HERE */}
+                <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {/* Dashboard */}
                     <Link
                         href={route("dashboard")}

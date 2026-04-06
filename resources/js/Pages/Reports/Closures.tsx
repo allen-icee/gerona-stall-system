@@ -52,13 +52,19 @@ export default function ClosuresReport({ closures }: any) {
                                 ) : (
                                     closures.map((record: any) => (
                                         <tr key={record.id} className="hover:bg-red-50 transition-colors">
+                                            {/* THE FIX: Move 'title' to a wrapper span */}
                                             <td className="px-4 py-4 text-center border-r border-red-100">
                                                 {record.severity === 'critical' ? (
-                                                    <Icon icon="solar:shield-warning-bold" className="w-6 h-6 text-red-700 mx-auto animate-pulse" title="Critical" />
+                                                    <span title="Critical" className="inline-flex justify-center w-full">
+                                                        <Icon icon="solar:shield-warning-bold" className="w-6 h-6 text-red-700 animate-pulse" />
+                                                    </span>
                                                 ) : (
-                                                    <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-amber-500 mx-auto" title="High Risk" />
+                                                    <span title="High Risk" className="inline-flex justify-center w-full">
+                                                        <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-amber-500" />
+                                                    </span>
                                                 )}
                                             </td>
+
                                             <td className="px-4 py-4 font-black text-slate-900 border-r border-red-100">
                                                 {record.tenant_name}
                                             </td>
