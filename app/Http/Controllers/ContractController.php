@@ -19,18 +19,20 @@ class ContractController extends Controller
 
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
-            $query->where('contract_number', 'like', $searchTerm)
-                ->orWhereHas('tenant', function ($q) use ($searchTerm) {
-                    $q->where('first_name', 'like', $searchTerm)
-                        ->orWhere('last_name', 'like', $searchTerm);
-                })
+
+            // THE FIX: Removed 'contract_number' from the search query. 
+            // Now it safely searches only by Tenant Name or Stall Code!
+            $query->whereHas('tenant', function ($q) use ($searchTerm) {
+                $q->where('first_name', 'like', $searchTerm)
+                    ->orWhere('last_name', 'like', $searchTerm);
+            })
                 ->orWhereHas('stall', function ($q) use ($searchTerm) {
                     $q->where('stall_code', 'like', $searchTerm);
                 });
         }
 
-        // Gold Standard: Alphabetically sorted by contract_number
-        $contracts = $query->orderBy('contract_number', 'asc')->paginate(10)->withQueryString();
+        // THE FIX: Reverted to latest() instead of orderBy('contract_number')
+        $contracts = $query->latest()->paginate(10)->withQueryString();
         $tenants = Tenant::orderBy('last_name', 'asc')->get();
 
         // Fetch stalls that DO NOT have an active contract, meaning they are VACANT!

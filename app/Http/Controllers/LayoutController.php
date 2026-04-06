@@ -12,24 +12,25 @@ use Inertia\Inertia;
 
 class LayoutController extends Controller
 {
-    // 1. Load the Mapper Interface
     public function mapper(Request $request)
     {
-        // Load buildings and floors for the sidebar dropdown
         $buildings = Building::with('floors')->orderBy('name')->get();
-
         $floor_id = $request->floor_id;
         $layout = null;
         $stalls = [];
 
         if ($floor_id) {
-            // Get the layout and its cells (with the assigned stalls and their colors)
-            $layout = Layout::with(['cells.stall.status'])
+            // THE FIX: Force the database to return cells in exact Row -> Column sequence!
+            $layout = Layout::with([
+                'cells' => function ($query) {
+                    $query->orderBy('row_number', 'asc')->orderBy('column_number', 'asc');
+                },
+                'cells.stall.activeContract.tenant'
+            ])
                 ->where('floor_id', $floor_id)
                 ->first();
 
-            // Get all stalls for this floor so we can drop them onto the map
-            $stalls = Stall::where('floor_id', $floor_id)->with('status')->get();
+            $stalls = Stall::where('floor_id', $floor_id)->with('activeContract.tenant')->get();
         }
 
         return Inertia::render('Layouts/Mapper', [
@@ -40,7 +41,6 @@ class LayoutController extends Controller
         ]);
     }
 
-    // 2. Generate a new blank grid
     public function generate(Request $request)
     {
         $request->validate([
@@ -52,7 +52,6 @@ class LayoutController extends Controller
 
         $layout = Layout::create($request->only('floor_id', 'name', 'total_rows', 'total_cols'));
 
-        // Automatically create the blank cells
         $cells = [];
         for ($r = 1; $r <= $layout->total_rows; $r++) {
             for ($c = 1; $c <= $layout->total_cols; $c++) {
@@ -70,22 +69,95 @@ class LayoutController extends Controller
         LayoutCell::insert($cells);
 
         return redirect()->route('layouts.mapper', ['floor_id' => $request->floor_id])
-            ->with('success', 'Grid generated successfully! You can now design the map.');
+            ->with('success', 'Grid generated successfully!');
     }
 
-    // 3. Save the mapped cells
+
+
+    public function expand(Request $request, Layout $layout)
+    {
+        // THE FIX: Auto-save any unsaved drawing progress BEFORE expanding!
+        if ($request->has('cells')) {
+            foreach ($request->input('cells') as $cellData) {
+                LayoutCell::where('id', $cellData['id'])->update([
+                    'type' => $cellData['type'],
+                    'stall_id' => $cellData['stall_id'],
+                ]);
+            }
+        }
+
+        $direction = $request->input('direction');
+
+        if ($direction === 'row') {
+            $layout->increment('total_rows');
+            $cells = [];
+            for ($c = 1; $c <= $layout->total_cols; $c++) {
+                $cells[] = [
+                    'layout_id' => $layout->id,
+                    'row_number' => $layout->total_rows,
+                    'column_number' => $c,
+                    'type' => 'vacant',
+                    'stall_id' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            LayoutCell::insert($cells);
+        } elseif ($direction === 'col') {
+            $layout->increment('total_cols');
+            $cells = [];
+            for ($r = 1; $r <= $layout->total_rows; $r++) {
+                $cells[] = [
+                    'layout_id' => $layout->id,
+                    'row_number' => $r,
+                    'column_number' => $layout->total_cols,
+                    'type' => 'vacant',
+                    'stall_id' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            LayoutCell::insert($cells);
+        }
+
+        return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
+            ->with('success', 'Grid expanded and progress auto-saved!');
+    }
+
+    public function shrink(Request $request, Layout $layout)
+    {
+        // THE FIX: Auto-save any unsaved drawing progress BEFORE shrinking!
+        if ($request->has('cells')) {
+            foreach ($request->input('cells') as $cellData) {
+                LayoutCell::where('id', $cellData['id'])->update([
+                    'type' => $cellData['type'],
+                    'stall_id' => $cellData['stall_id'],
+                ]);
+            }
+        }
+
+        $direction = $request->input('direction');
+
+        if ($direction === 'row' && $layout->total_rows > 1) {
+            LayoutCell::where('layout_id', $layout->id)->where('row_number', $layout->total_rows)->delete();
+            $layout->decrement('total_rows');
+        } elseif ($direction === 'col' && $layout->total_cols > 1) {
+            LayoutCell::where('layout_id', $layout->id)->where('column_number', $layout->total_cols)->delete();
+            $layout->decrement('total_cols');
+        }
+
+        return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
+            ->with('success', 'Grid trimmed and progress auto-saved!');
+    }
     public function saveMap(Request $request, Layout $layout)
     {
-        $cells = $request->input('cells'); // Array of cell data from React
-
-        // Bulk update the cells
+        $cells = $request->input('cells');
         foreach ($cells as $cellData) {
             LayoutCell::where('id', $cellData['id'])->update([
                 'type' => $cellData['type'],
                 'stall_id' => $cellData['stall_id'],
             ]);
         }
-
-        return redirect()->back()->with('success', 'Map layout saved successfully!');
+        return redirect()->back()->with('success', 'Map layout updated successfully!');
     }
 }

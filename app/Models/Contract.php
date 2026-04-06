@@ -18,13 +18,26 @@ class Contract extends Model
         'permit_status'
     ];
 
+    // THE FIX: Forces Laravel to send strictly "YYYY-MM-DD" to React
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
     ];
 
-    // ... (Keep your existing stall() and tenant() relationships) ...
+    // ==========================================
+    // RELATIONSHIPS
+    // ==========================================
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function stall()
+    {
+        return $this->belongsTo(Stall::class);
+    }
 
     public function payments()
     {
@@ -35,48 +48,34 @@ class Contract extends Model
     // 🔥 THE FINANCIAL ENGINE (COMPUTED LOGIC)
     // ==========================================
 
-    // 1. Total amount of money actually paid
     public function getTotalPaidAttribute()
     {
         return $this->payments()->sum('amount');
     }
 
-    // 2. How many months the tenant has been occupying the stall
     public function getMonthsActiveAttribute()
     {
         $start = Carbon::parse($this->start_date);
 
-        // If the contract hasn't started yet, 0 months active.
-        if (Carbon::now()->lt($start)) {
+        if (Carbon::now()->lt($start))
             return 0;
-        }
 
-        // If active, calculate to TODAY. If expired/closed, calculate to the END DATE.
         $end = $this->is_active ? Carbon::now() : Carbon::parse($this->end_date);
-
-        // +1 because the first month's rent is due immediately upon starting
         return $start->diffInMonths($end) + 1;
     }
 
-    // 3. How much money they SHOULD have paid by now
     public function getExpectedRentAttribute()
     {
         return $this->months_active * $this->monthly_rent;
     }
 
-    // 4. The actual Outstanding Balance (Overdue)
     public function getOutstandingBalanceAttribute()
     {
-        $balance = $this->expected_rent - $this->total_paid;
-
-        // Return 0 if they overpaid (advanced payment), otherwise return the debt
-        return max(0, $balance);
+        return max(0, $this->expected_rent - $this->total_paid);
     }
 
-    // 5. Total Advanced Payment (If they paid ahead of time)
     public function getAdvancedPaymentAttribute()
     {
-        $balance = $this->total_paid - $this->expected_rent;
-        return max(0, $balance);
+        return max(0, $this->total_paid - $this->expected_rent);
     }
 }

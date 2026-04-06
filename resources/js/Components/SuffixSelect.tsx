@@ -5,6 +5,7 @@ interface Props {
     value: string;
     onChange: (value: string) => void;
     error?: string;
+    theme?: "blue" | "amber" | "rose" | "purple" | "emerald" | "fuchsia"; // Added theme here!
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -14,11 +15,42 @@ export default function SuffixSelect({
     value,
     onChange,
     error,
+    theme = "blue", // Default to blue
     onKeyDown,
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const listRef = useRef<HTMLUListElement>(null);
+
+    // Theme Styles Configuration
+    const themeStyles = {
+        blue: {
+            focus: "focus:border-blue-600 focus:ring-blue-600",
+            activeBg: "bg-blue-100 text-blue-800 font-black",
+        },
+        amber: {
+            focus: "focus:border-amber-500 focus:ring-amber-500",
+            activeBg: "bg-amber-100 text-amber-900 font-black",
+        },
+        rose: {
+            focus: "focus:border-rose-500 focus:ring-rose-500",
+            activeBg: "bg-rose-100 text-rose-900 font-black",
+        },
+        purple: {
+            focus: "focus:border-purple-600 focus:ring-purple-600",
+            activeBg: "bg-purple-100 text-purple-900 font-black",
+        },
+        emerald: {
+            focus: "focus:border-emerald-600 focus:ring-emerald-600",
+            activeBg: "bg-emerald-100 text-emerald-900 font-black",
+        },
+        fuchsia: {
+            focus: "focus:border-fuchsia-500 focus:ring-fuchsia-500",
+            activeBg: "bg-fuchsia-100 text-fuchsia-900 font-black",
+        },
+    };
+
+    const activeTheme = themeStyles[theme];
 
     useEffect(() => {
         setSelectedIndex(SUFFIXES.indexOf(value));
@@ -81,7 +113,7 @@ export default function SuffixSelect({
             <div className="relative">
                 <input
                     type="text"
-                    className={`w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 cursor-pointer caret-transparent outline-none transition-all focus:ring-1 focus:border-blue-600 focus:ring-blue-600 placeholder-slate-400 ${error ? "border-rose-600 focus:border-rose-600 focus:ring-rose-600" : ""}`}
+                    className={`w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 cursor-pointer caret-transparent outline-none transition-all focus:ring-1 ${activeTheme.focus} placeholder-slate-400 ${error ? "border-rose-600 focus:border-rose-600 focus:ring-rose-600" : ""}`}
                     value={value || "N/A"}
                     onClick={() => setIsOpen(true)}
                     onFocus={() => setIsOpen(true)}
@@ -109,7 +141,7 @@ export default function SuffixSelect({
                         <li
                             key={opt}
                             className={`px-4 py-2.5 cursor-pointer text-slate-700 font-bold transition-colors ${index === selectedIndex
-                                ? "bg-blue-100 text-blue-800 font-black"
+                                ? activeTheme.activeBg
                                 : "hover:bg-slate-100 hover:text-slate-900"
                                 }`}
                             onMouseDown={(e) => {

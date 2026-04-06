@@ -53,6 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
     Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
     Route::post('/mapper/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');
+    Route::post('layouts/{layout}/expand', [App\Http\Controllers\LayoutController::class, 'expand'])->name('layouts.expand');
+    // ADD THIS NEW ROUTE:
+    Route::post('layouts/{layout}/shrink', [App\Http\Controllers\LayoutController::class, 'shrink'])->name('layouts.shrink');
+    Route::post('layouts/{layout}/save', [App\Http\Controllers\LayoutController::class, 'saveMap'])->name('layouts.save');
     Route::resource('tenants', TenantController::class)->except(['create', 'show', 'edit']);
     Route::get('tenants/export', [TenantController::class, 'export'])->name('tenants.export');
     Route::post('tenants/import', [TenantController::class, 'import'])->name('tenants.import');
