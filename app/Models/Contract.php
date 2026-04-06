@@ -15,14 +15,32 @@ class Contract extends Model
         'monthly_rent',
         'security_deposit',
         'is_active',
-        'permit_status'
+
+        // --- Added Phase 1 Fields ---
+        'permit_status',
+        'document_status',
+        'remarks',
+        'deposit_paid',
+        'deposit_reference'
     ];
 
-    // THE FIX: Forces Laravel to send strictly "YYYY-MM-DD" to React
+    // Forces Laravel to send strictly "YYYY-MM-DD" to React
     protected $casts = [
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
+        'deposit_paid' => 'decimal:2',
+        'security_deposit' => 'decimal:2',
+        'monthly_rent' => 'decimal:2',
+    ];
+
+    // 🔥 CRUCIAL: This automatically attaches our computed Excel math to the JSON sent to React!
+    protected $appends = [
+        'total_paid',
+        'outstanding_balance',
+        'deposit_variance',
+        'total_outstanding',
+        'monthly_matrix'
     ];
 
     // ==========================================
@@ -42,6 +60,12 @@ class Contract extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    // New Phase 1 Relationship
+    public function violations()
+    {
+        return $this->hasMany(Violation::class);
     }
 
     // ==========================================
@@ -77,5 +101,55 @@ class Contract extends Model
     public function getAdvancedPaymentAttribute()
     {
         return max(0, $this->total_paid - $this->expected_rent);
+    }
+
+    // --- NEW TREASURY LOGIC ---
+
+    public function getDepositVarianceAttribute()
+    {
+        // How much deposit they owe vs what they actually paid
+        $required = $this->security_deposit ?? 0;
+        $paid = $this->deposit_paid ?? 0;
+        return $required - $paid;
+    }
+
+    public function getTotalOutstandingAttribute()
+    {
+        // Rental Debt + Missing Deposit
+        return $this->outstanding_balance + max(0, $this->deposit_variance);
+    }
+
+    public function getMonthlyMatrixAttribute()
+    {
+        // 12-Month Treasury Grid
+        $matrix = [
+            'JAN' => 0,
+            'FEB' => 0,
+            'MAR' => 0,
+            'APR' => 0,
+            'MAY' => 0,
+            'JUN' => 0,
+            'JUL' => 0,
+            'AUG' => 0,
+            'SEP' => 0,
+            'OCT' => 0,
+            'NOV' => 0,
+            'DEC' => 0
+        ];
+
+        // Ensure we don't crash if payments aren't loaded yet
+        if ($this->relationLoaded('payments') || $this->payments()->exists()) {
+            foreach ($this->payments as $payment) {
+                // Assuming payment created_at represents the month paid. 
+                // (If you have a specific 'payment_date' column, change 'created_at' to 'payment_date')
+                $monthIndex = strtoupper($payment->created_at->format('M'));
+
+                if (isset($matrix[$monthIndex])) {
+                    $matrix[$monthIndex] += $payment->amount;
+                }
+            }
+        }
+
+        return $matrix;
     }
 }

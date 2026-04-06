@@ -12,6 +12,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController; // <-- NEW PHASE 7 CONTROLLER
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -33,9 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // User Management (Make sure only admins can access this later, but for now we group it in auth)
+    // User Management (Make sure only admins can access this later)
     Route::resource('users', UserController::class)->except(['show']);
-    Route::resource('buildings', BuildingController::class)->except(['create', 'show', 'edit']);
+
     // --- Buildings ---
     Route::get('buildings/export', [BuildingController::class, 'export'])->name('buildings.export');
     Route::post('buildings/import', [BuildingController::class, 'import'])->name('buildings.import');
@@ -49,23 +50,37 @@ Route::middleware('auth')->group(function () {
     // --- Stalls ---
     Route::get('stalls/export', [StallController::class, 'export'])->name('stalls.export');
     Route::post('stalls/import', [StallController::class, 'import'])->name('stalls.import');
-    Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);  // Inside your auth middleware group:
+    Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
+
+    // --- Mapper / Layouts ---
     Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
     Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
     Route::post('/mapper/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');
-    Route::post('layouts/{layout}/expand', [App\Http\Controllers\LayoutController::class, 'expand'])->name('layouts.expand');
-    // ADD THIS NEW ROUTE:
-    Route::post('layouts/{layout}/shrink', [App\Http\Controllers\LayoutController::class, 'shrink'])->name('layouts.shrink');
-    Route::post('layouts/{layout}/save', [App\Http\Controllers\LayoutController::class, 'saveMap'])->name('layouts.save');
+    Route::post('layouts/{layout}/expand', [LayoutController::class, 'expand'])->name('layouts.expand');
+    Route::post('layouts/{layout}/shrink', [LayoutController::class, 'shrink'])->name('layouts.shrink');
+    Route::post('layouts/{layout}/save', [LayoutController::class, 'saveMap'])->name('layouts.save');
+
+    // --- Tenants ---
     Route::resource('tenants', TenantController::class)->except(['create', 'show', 'edit']);
     Route::get('tenants/export', [TenantController::class, 'export'])->name('tenants.export');
     Route::post('tenants/import', [TenantController::class, 'import'])->name('tenants.import');
+
+    // --- Contracts ---
     Route::get('contracts/export', [ContractController::class, 'export'])->name('contracts.export');
     Route::post('contracts/import', [ContractController::class, 'import'])->name('contracts.import');
-    Route::resource('contracts', ContractController::class); // Remove the ->only(['index', 'store']) if it's there
+    Route::resource('contracts', ContractController::class);
+
+    // --- Payments ---
     Route::get('payments/export', [PaymentController::class, 'export'])->name('payments.export');
     Route::post('payments/import', [PaymentController::class, 'import'])->name('payments.import');
-    Route::resource('payments', PaymentController::class); // Remove ->only(['index', 'store']) if it exists
+    Route::resource('payments', PaymentController::class);
+
+    // --- ENTERPRISE REPORTING ENGINE (PHASE 7) ---
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/balances', [ReportController::class, 'balances'])->name('balances');
+        Route::get('/closures', [ReportController::class, 'closures'])->name('closures');
+        Route::get('/balances/export', [ReportController::class, 'exportBalances'])->name('balances.export');
+    });
 });
 
 require __DIR__ . '/auth.php';

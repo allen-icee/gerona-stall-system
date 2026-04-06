@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Stall;
 use App\Models\Floor;
-use App\Models\Status;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +14,6 @@ class StallController extends Controller
 {
     public function index(Request $request)
     {
-        // THE FIX: Load the 'activeContract' instead of the deleted 'status'
         $query = Stall::with(['floor.building', 'activeContract']);
 
         if ($request->filled('search')) {
@@ -29,14 +27,12 @@ class StallController extends Controller
                 });
         }
 
-        // Gold Standard: Alphabetical sorting by stall_code
         $stalls = $query->orderBy('stall_code', 'asc')->paginate(10)->withQueryString();
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $stalls,
             'floors' => $floors,
-            // Notice: 'statuses' is completely gone from here!
             'filters' => $request->only(['search']),
         ]);
     }
@@ -46,10 +42,15 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
-            // DELETED: 'status_id' is no longer validated!
+            // --- NEW PHASE 6 FIELDS ---
+            'section' => 'nullable|string|max:255',
+            'classification' => 'nullable|string|max:255',
+            'size_sqm' => 'nullable|numeric|min:0',
+            'stall_type' => 'required|string|in:sqm_based,class_based,manual',
+            'rate_per_sqm' => 'nullable|numeric|min:0',
+            'fixed_rate' => 'nullable|numeric|min:0',
         ]);
 
-        // Automatically find the building_id based on the selected floor!
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
@@ -63,10 +64,15 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
-            // DELETED: 'status_id' is no longer validated!
+            // --- NEW PHASE 6 FIELDS ---
+            'section' => 'nullable|string|max:255',
+            'classification' => 'nullable|string|max:255',
+            'size_sqm' => 'nullable|numeric|min:0',
+            'stall_type' => 'required|string|in:sqm_based,class_based,manual',
+            'rate_per_sqm' => 'nullable|numeric|min:0',
+            'fixed_rate' => 'nullable|numeric|min:0',
         ]);
 
-        // Automatically update the building_id in case they moved the stall to a new floor!
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
@@ -74,7 +80,6 @@ class StallController extends Controller
 
         return redirect()->back()->with('success', 'Stall details updated!');
     }
-
 
     public function destroy(Stall $stall)
     {
@@ -91,18 +96,19 @@ class StallController extends Controller
     {
         $stalls = Stall::with(['floor.building'])->orderBy('stall_code', 'asc')->get();
 
-        // Exact headers: NO STATUS!
-        $csvData = "stall_code,floor,size_sqm,rate_per_sqm\n";
+        $csvData = "stall_code,floor,stall_type,size_sqm,rate_per_sqm,fixed_rate\n";
 
         foreach ($stalls as $stall) {
             $floorName = $stall->floor ? $stall->floor->name : '';
 
             $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
             $floor = '"' . str_replace('"', '""', $floorName) . '"';
+            $type = '"' . str_replace('"', '""', $stall->stall_type) . '"';
             $size = '"' . str_replace('"', '""', $stall->size_sqm ?? 0) . '"';
             $rate = '"' . str_replace('"', '""', $stall->rate_per_sqm ?? 0) . '"';
+            $fixed = '"' . str_replace('"', '""', $stall->fixed_rate ?? 0) . '"';
 
-            $csvData .= "{$code},{$floor},{$size},{$rate}\n";
+            $csvData .= "{$code},{$floor},{$type},{$size},{$rate},{$fixed}\n";
         }
 
         return response($csvData)
@@ -112,16 +118,13 @@ class StallController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
-        ]);
+        $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
 
         try {
             Excel::import(new StallsImport, $request->file('file'));
             return redirect()->back()->with('success', 'Stalls synced successfully!');
         } catch (\Exception $e) {
-            // Updated error message to show the correct required columns
-            return redirect()->back()->with('error', 'Import failed. Ensure your columns are exactly: "stall_code", "floor", "size_sqm", "rate_per_sqm".');
+            return redirect()->back()->with('error', 'Import failed. Check column headers.');
         }
     }
 }

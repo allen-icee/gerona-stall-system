@@ -15,13 +15,13 @@ class ContractController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Contract::with(['tenant', 'stall.floor.building']);
+        // 🔥 CRUCIAL FIX: We MUST eager load 'payments' here so the Phase 2 Monthly Matrix 
+        // doesn't cause an N+1 database crash when rendering the Treasury Ledger.
+        $query = Contract::with(['tenant', 'stall.floor.building', 'payments']);
 
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
 
-            // THE FIX: Removed 'contract_number' from the search query. 
-            // Now it safely searches only by Tenant Name or Stall Code!
             $query->whereHas('tenant', function ($q) use ($searchTerm) {
                 $q->where('first_name', 'like', $searchTerm)
                     ->orWhere('last_name', 'like', $searchTerm);
@@ -31,13 +31,13 @@ class ContractController extends Controller
                 });
         }
 
-        // THE FIX: Reverted to latest() instead of orderBy('contract_number')
         $contracts = $query->latest()->paginate(10)->withQueryString();
         $tenants = Tenant::orderBy('last_name', 'asc')->get();
 
-        // Fetch stalls that DO NOT have an active contract, meaning they are VACANT!
         $availableStalls = Stall::with('floor.building')
-            ->whereDoesntHave('activeContract')
+            ->whereDoesntHave('contracts', function ($query) {
+                $query->where('is_active', true);
+            })
             ->orderBy('stall_code', 'asc')
             ->get();
 
@@ -58,41 +58,50 @@ class ContractController extends Controller
             'end_date' => 'required|date|after:start_date',
             'monthly_rent' => 'required|numeric|min:0',
             'security_deposit' => 'nullable|numeric|min:0',
+
+            // --- NEW PHASE 1 FIELDS ---
+            'document_status' => 'nullable|string',
+            'permit_status' => 'nullable|string',
+            'deposit_paid' => 'nullable|numeric|min:0',
+            'deposit_reference' => 'nullable|string',
+            'remarks' => 'nullable|string',
         ]);
 
-        // Automatically assign default lifecycle statuses if not provided
         $validated['is_active'] = true;
-        $validated['permit_status'] = 'PENDING';
+        // If not provided from frontend, set defaults
+        $validated['document_status'] = $validated['document_status'] ?? 'For Contract';
+        $validated['permit_status'] = $validated['permit_status'] ?? 'Waiting';
 
-        // Notice: No manual stall status_id updating needed anymore! Dynamic Computed Status handles it.
         Contract::create($validated);
 
-        return redirect()->back()->with('success', 'Contract created successfully!');
+        return redirect()->back()->with('success', 'Contract drafted successfully!');
     }
 
     public function update(Request $request, Contract $contract)
     {
-        // For safety, only allow updating dates and fees on an active contract.
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'monthly_rent' => 'required|numeric|min:0',
             'security_deposit' => 'nullable|numeric|min:0',
+
+            // --- NEW PHASE 1 FIELDS ---
+            'document_status' => 'nullable|string',
+            'permit_status' => 'nullable|string',
+            'deposit_paid' => 'nullable|numeric|min:0',
+            'deposit_reference' => 'nullable|string',
+            'remarks' => 'nullable|string',
         ]);
 
         $contract->update($validated);
 
-        return redirect()->back()->with('success', 'Contract details updated!');
+        return redirect()->back()->with('success', 'Contract operations updated!');
     }
 
     public function destroy(Contract $contract)
     {
-        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($contract) {
-            // Delete all payments specifically linked to THIS contract first
             \App\Models\Payment::where('contract_id', $contract->id)->delete();
-
-            // Notice: No manual stall status_id reverting needed! Dynamic Computed Status handles it.
             $contract->delete();
         });
 
@@ -101,9 +110,9 @@ class ContractController extends Controller
 
     public function export()
     {
-        $contracts = Contract::with(['stall', 'tenant'])->orderBy('contract_number', 'asc')->get();
+        // Add EEDO/Treasury fields to export if needed later
+        $contracts = Contract::with(['stall', 'tenant'])->get();
 
-        // Exact headers for foolproof importing
         $csvData = "tenant_first_name,tenant_last_name,stall_code,start_date,end_date,monthly_rent,security_deposit\n";
 
         foreach ($contracts as $contract) {
@@ -122,12 +131,11 @@ class ContractController extends Controller
     public function import(Request $request)
     {
         $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
-
         try {
             Excel::import(new ContractsImport, $request->file('file'));
             return redirect()->back()->with('success', 'Contracts synced successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure columns are exactly: "tenant_first_name", "tenant_last_name", "stall_code", "start_date", "end_date", "monthly_rent", "security_deposit".');
+            return redirect()->back()->with('error', 'Import failed.');
         }
     }
 }

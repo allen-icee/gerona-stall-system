@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
-// THE FIX: Added onShrinkRow and onShrinkCol to the props list right here!
 export default function InteractiveGrid({
     layout, gridCells, onCellClick, onClearAll, onRevert,
     onExpandRow, onExpandCol, onShrinkRow, onShrinkCol
@@ -54,20 +53,10 @@ export default function InteractiveGrid({
         };
     }, []);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'VACANT': return '#10b981';
-            case 'OCCUPIED': return '#3b82f6';
-            case 'WAITING FOR PERMIT': return '#f59e0b';
-            case 'FOR RENEWAL': return '#e11d48';
-            default: return '#ffffff';
-        }
-    };
-
     return (
         <div ref={containerRef} className="relative w-full h-full overflow-hidden flex flex-col bg-slate-100">
 
-            {/* 1. FLOATING SEARCH BAR (Top Center) */}
+            {/* 1. FLOATING SEARCH BAR */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-96 max-w-[90%]">
                 <div className="relative shadow-2xl rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -83,7 +72,7 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {/* 2. FLOATING QUICK ACTIONS (Bottom Left) */}
+            {/* 2. FLOATING QUICK ACTIONS */}
             <div className="absolute bottom-6 left-6 z-50 flex items-center gap-1.5 p-1.5 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80">
                 <div className="flex gap-1.5 border-r-2 border-slate-200 pr-1.5">
                     <button onClick={onExpandRow} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title="Add Row to Bottom">
@@ -119,20 +108,22 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {/* 3. FLOATING COLLAPSIBLE LEGEND (Bottom Right - Above Zoom) */}
+            {/* 3. UPDATED EXCEL-ALIGNED LEGEND */}
             <div className="absolute bottom-24 right-6 z-50 flex flex-col items-end">
                 {isLegendOpen && (
-                    <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-72 animate-fade-in-up origin-bottom-right">
+                    <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-80 animate-fade-in-up origin-bottom-right">
                         <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 border-b-2 border-slate-100 pb-2">Color Legend</h4>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[10px] uppercase font-bold text-slate-600 tracking-tight">
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#10b981]"></div> Vacant</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#3b82f6]"></div> Occupied</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#f59e0b]"></div> Processing</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#e11d48]"></div> Renewal</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#00ff00]"></div> Vacant</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#ffffff] border-2 border-slate-300"></div> Signed</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#ffff00]"></div> For Contract</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#00ffff]"></div> For Signing</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#ff00ff]"></div> Waiting Permit</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#999999]"></div> On Process</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#9900ff]"></div> Confirm Permit</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#ff0000]"></div> Unpaid</div>
+                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#f4cccc]"></div> Closed</div>
                             <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-slate-300"></div> Walkway</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-cyan-100 border-2 border-cyan-300"></div> CR</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-purple-100 border-2 border-purple-300"></div> Stairs</div>
-                            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-slate-800 border-2 border-slate-900"></div> Wall</div>
                         </div>
                     </div>
                 )}
@@ -143,7 +134,7 @@ export default function InteractiveGrid({
                 </button>
             </div>
 
-            {/* 4. ZOOM CONTROLS (Bottom Right) */}
+            {/* 4. ZOOM CONTROLS */}
             <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300">
                 <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors">
                     <Icon icon="solar:minus-circle-bold-duotone" className="w-6 h-6" />
@@ -177,7 +168,6 @@ export default function InteractiveGrid({
                             let content: any = "";
                             let dbColor = "";
 
-                            // HIGHLIGHT LOGIC
                             let isHighlighted = false;
                             let isDimmed = false;
 
@@ -194,7 +184,7 @@ export default function InteractiveGrid({
                                         isDimmed = true;
                                     }
                                 } else {
-                                    isDimmed = true; // Dim empty space when searching
+                                    isDimmed = true;
                                 }
                             }
 
@@ -209,20 +199,20 @@ export default function InteractiveGrid({
                             } else if (cell.type === 'wall') {
                                 cellStyle = "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner";
                             } else if (cell.type === 'stall' && cell.stall) {
-                                cellStyle = "border-solid border-slate-800 shadow-sm text-white font-black";
+                                cellStyle = "border-solid border-slate-800 shadow-sm text-slate-800 font-black";
                                 const tenant = cell.stall.active_contract?.tenant;
 
                                 content = (
                                     <div className="flex flex-col items-center justify-center leading-none text-center w-full px-1">
                                         <span className="text-[10px] opacity-80">{cell.stall.stall_code}</span>
-                                        {/* Name is still truncated inside the box to save space, but full details are in the tooltip! */}
                                         {tenant && <span className="text-[9px] truncate w-full mt-1 tracking-tight">{tenant.last_name}</span>}
                                     </div>
                                 );
-                                dbColor = getStatusColor(cell.stall.computed_status);
+
+                                // THE FIX: Pulls the color straight from the backend model!
+                                dbColor = cell.stall.computed_status?.color || '#ffffff';
                             }
 
-                            // Dynamic Highlight Styling
                             if (isHighlighted) {
                                 cellStyle += " ring-4 ring-amber-400 scale-110 z-10 shadow-2xl";
                             } else if (isDimmed) {
@@ -249,7 +239,7 @@ export default function InteractiveGrid({
                                 >
                                     {content && (
                                         typeof content === 'string' ? (
-                                            <span className="drop-shadow-md bg-black/30 px-1 rounded truncate max-w-full">
+                                            <span className="drop-shadow-md bg-white/50 px-1 rounded truncate max-w-full">
                                                 {content}
                                             </span>
                                         ) : content
@@ -261,7 +251,7 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {/* 6. CUSTOM PORTAL TOOLTIP */}
+            {/* 6. DYNAMIC PORTAL TOOLTIP */}
             {tooltip.show && tooltip.data && createPortal(
                 <div
                     className="fixed z-[99999] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl pointer-events-none border border-slate-700 animate-fade-in-up"
@@ -288,14 +278,18 @@ export default function InteractiveGrid({
                         <p className="text-xs text-slate-400 italic">No current occupant.</p>
                     )}
 
-                    <div className="mt-3 pt-2 border-t border-slate-700 flex justify-between items-center">
+                    <div className="mt-3 pt-2 border-t border-slate-700 flex justify-between items-center gap-4">
                         <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">Status</span>
-                        <span className={`text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded ${tooltip.data.computed_status === 'VACANT' ? 'bg-emerald-500/20 text-emerald-400' :
-                            tooltip.data.computed_status === 'OCCUPIED' ? 'bg-blue-500/20 text-blue-400' :
-                                tooltip.data.computed_status === 'WAITING FOR PERMIT' ? 'bg-amber-500/20 text-amber-400' :
-                                    'bg-rose-500/20 text-rose-400'
-                            }`}>
-                            {tooltip.data.computed_status}
+
+                        {/* THE FIX: Dynamic tooltip colors based on backend status object! */}
+                        <span
+                            className="text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded border border-slate-700"
+                            style={{
+                                backgroundColor: tooltip.data.computed_status?.color ? `${tooltip.data.computed_status.color}33` : '#000000',
+                                color: tooltip.data.computed_status?.color || '#ffffff'
+                            }}
+                        >
+                            {tooltip.data.computed_status?.label || 'UNKNOWN'}
                         </span>
                     </div>
                 </div>,
