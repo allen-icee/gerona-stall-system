@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use App\Imports\BuildingsImport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -13,89 +12,87 @@ class BuildingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Building::query();
+        $query = Building::withCount('floors');
 
+        // Search Filter
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                ->orWhere('description', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Changed from latest() to alphabetical sorting
-        $buildings = $query->orderBy('name', 'asc')->paginate(10)->withQueryString();
+        // Dynamic Sorting (Default is Name Ascending)
+        $sortBy = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $query->orderBy($sortBy, $direction);
+
+        $buildings = $query->paginate(10)->withQueryString();
 
         return Inertia::render('Buildings/Index', [
             'buildings' => $buildings,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction'])
         ]);
     }
 
     public function store(Request $request)
     {
+        // Added 50 character limit restriction
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:50|unique:buildings,name'
         ]);
 
         Building::create($validated);
-
-        return redirect()->back()->with('success', 'Building added successfully.');
+        return redirect()->route('buildings.index')->with('success', 'Building created successfully.');
     }
 
     public function update(Request $request, Building $building)
     {
+        // Added 50 character limit restriction
+        $validated = $request->request->add(['name' => strtoupper($request->name)]); // Force uppercase
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:50|unique:buildings,name,' . $building->id
         ]);
 
         $building->update($validated);
-
-        return redirect()->back()->with('success', 'Building updated successfully.');
+        return redirect()->route('buildings.index')->with('success', 'Building updated successfully.');
     }
 
     public function destroy(Building $building)
     {
-        DB::transaction(function () use ($building) {
-            $floorIds = $building->floors()->pluck('id');
-            $stallIds = \App\Models\Stall::whereIn('floor_id', $floorIds)->pluck('id');
-
-            if ($stallIds->isNotEmpty()) {
-                \App\Models\Payment::whereIn('stall_id', $stallIds)->delete();
-                \App\Models\Contract::whereIn('stall_id', $stallIds)->delete();
-                \App\Models\Stall::whereIn('id', $stallIds)->delete();
-            }
-
-            $building->floors()->delete();
+        try {
             $building->delete();
-        });
-
-        return redirect()->back()->with('success', 'Building and all associated records deleted successfully.');
+            return redirect()->route('buildings.index')->with('success', 'Building deleted successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('buildings.index')->with('error', 'Action Denied: You cannot delete this building because it contains active floors.');
+        }
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $buildings = Building::orderBy('name')->get();
-        $csvData = "name,description\n"; // Headers specifically matching what the import expects
-        foreach ($buildings as $building) {
-            $csvData .= "\"{$building->name}\",\"{$building->description}\"\n";
-        }
+        $query = Building::query();
 
+        // Apply the exact same filters to the EXPORT file
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        $sortBy = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $query->orderBy($sortBy, $direction);
+
+        $buildings = $query->get();
+        $csvData = "name\n";
+
+        foreach ($buildings as $building) {
+            $name = '"' . str_replace('"', '""', $building->name) . '"';
+            $csvData .= "{$name}\n";
+        }
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="buildings_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="filtered_buildings_export.csv"');
     }
 
     public function import(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
-        ]);
-
-        try {
-            Excel::import(new BuildingsImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Buildings synced successfully! New entries created and existing ones updated.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "name" and "description".');
-        }
+        $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
+        Excel::import(new BuildingsImport, $request->file('file'));
+        return redirect()->route('buildings.index')->with('success', 'Buildings imported successfully.');
     }
 }

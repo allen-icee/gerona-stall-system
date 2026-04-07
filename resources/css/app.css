@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Force cursor pointer on all interactive elements globally */
+button,
+a,
+select,
+[role="button"],
+[role="option"],
+[type="submit"] {
+    cursor: pointer !important;
+}
