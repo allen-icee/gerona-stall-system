@@ -68,7 +68,7 @@ export default function Welcome({ auth }: WelcomeProps) {
                         {auth.user ? (
                             <Link
                                 href={route('dashboard')}
-                                className="w-full flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                                className="w-full flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-amber-50 font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                             >
                                 Go to Dashboard
                                 <Icon icon="solar:alt-arrow-right-bold-duotone" className="w-5 h-5" />

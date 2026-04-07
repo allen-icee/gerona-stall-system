@@ -137,15 +137,15 @@ class Contract extends Model
             'DEC' => 0
         ];
 
-        // Ensure we don't crash if payments aren't loaded yet
         if ($this->relationLoaded('payments') || $this->payments()->exists()) {
             foreach ($this->payments as $payment) {
-                // Assuming payment created_at represents the month paid. 
-                // (If you have a specific 'payment_date' column, change 'created_at' to 'payment_date')
-                $monthIndex = strtoupper($payment->created_at->format('M'));
+                // THE FIX: Grab the first 3 letters of your 'month' string (e.g., "JANUARY" -> "JAN")
+                if (!empty($payment->month)) {
+                    $monthIndex = substr(strtoupper($payment->month), 0, 3);
 
-                if (isset($matrix[$monthIndex])) {
-                    $matrix[$monthIndex] += $payment->amount;
+                    if (isset($matrix[$monthIndex])) {
+                        $matrix[$monthIndex] += $payment->amount;
+                    }
                 }
             }
         }

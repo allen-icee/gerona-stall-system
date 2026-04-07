@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreateContractModal from "./Partials/CreateContractModal";
@@ -12,13 +12,15 @@ export default function ContractsIndex({
     availableStalls,
     filters,
 }: any) {
+    const { permissions = [] } = (usePage().props as any).auth;
+    const canManageContracts = permissions.includes('manage contracts');
+
     const [search, setSearch] = useState(filters?.search || "");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // 🔥 THE TOGGLE STATE 🔥
     const [viewMode, setViewMode] = useState<"standard" | "ledger">("standard");
 
     useEffect(() => {
@@ -54,7 +56,6 @@ export default function ContractsIndex({
         <AuthenticatedLayout>
             <Head title="Lease Contracts & Ledger" />
 
-            {/* High-Contrast Delete Confirmation Modal */}
             <Modal show={deletingId !== null} onClose={() => setDeletingId(null)} maxWidth="sm">
                 <div className="p-6 text-center">
                     <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-100 mb-4 border-2 border-rose-300">
@@ -72,8 +73,6 @@ export default function ContractsIndex({
             </Modal>
 
             <div className="py-12 max-w-[95%] mx-auto space-y-6">
-
-                {/* Header & Tools Area */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
@@ -89,19 +88,11 @@ export default function ContractsIndex({
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-
-                        {/* 🔥 LEDGER TOGGLE 🔥 */}
                         <div className="flex bg-slate-200 p-1 rounded-lg border-2 border-slate-300 shrink-0">
-                            <button
-                                onClick={() => setViewMode("standard")}
-                                className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${viewMode === 'standard' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
+                            <button onClick={() => setViewMode("standard")} className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${viewMode === 'standard' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}>
                                 <Icon icon="solar:folder-with-files-bold-duotone" className="w-4 h-4 inline mr-1" /> EEDO View
                             </button>
-                            <button
-                                onClick={() => setViewMode("ledger")}
-                                className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${viewMode === 'ledger' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
+                            <button onClick={() => setViewMode("ledger")} className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${viewMode === 'ledger' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500 hover:text-slate-700'}`}>
                                 <Icon icon="solar:wallet-money-bold-duotone" className="w-4 h-4 inline mr-1" /> Treasury Ledger
                             </button>
                         </div>
@@ -110,26 +101,21 @@ export default function ContractsIndex({
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Icon icon="solar:magnifer-bold" className="h-5 w-5 text-slate-400" />
                             </div>
-                            <input
-                                type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
-                                placeholder="Search Tenant or Stall..."
-                            />
+                            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors" placeholder="Search Tenant or Stall..." />
                         </div>
 
-                        <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 border-2 border-blue-900 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg shadow-sm transition-colors shrink-0">
-                            <Icon icon="solar:document-add-bold-duotone" className="w-5 h-5" />
-                            <span className="hidden sm:inline">Draft Contract</span>
-                        </button>
+                        {canManageContracts && (
+                            <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 border-2 border-blue-900 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg shadow-sm transition-colors shrink-0">
+                                <Icon icon="solar:document-add-bold-duotone" className="w-5 h-5" />
+                                <span className="hidden sm:inline">Draft Contract</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* THE MASTER TABLE */}
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-sm whitespace-nowrap">
-
-                            {/* DYNAMIC HEADERS BASED ON VIEW */}
                             {viewMode === "standard" ? (
                                 <thead className="bg-slate-100 text-slate-700 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                     <tr>
@@ -147,7 +133,6 @@ export default function ContractsIndex({
                                         <th className="px-4 py-3 sticky left-0 bg-slate-900 z-10 border-r-2 border-slate-700">Entity Details</th>
                                         <th className="px-4 py-3 text-right bg-rose-900/50 border-r border-slate-700 text-rose-300">Variance (Dep)</th>
                                         <th className="px-4 py-3 text-right bg-rose-900/50 border-r-2 border-slate-700 text-rose-300">Out. Balance</th>
-                                        {/* JAN-DEC Headers */}
                                         {months.map(m => <th key={m} className="px-3 py-3 text-center border-r border-slate-700 text-emerald-400">{m}</th>)}
                                         <th className="px-4 py-3 text-center sticky right-0 bg-slate-900 z-10">Act</th>
                                     </tr>
@@ -165,13 +150,9 @@ export default function ContractsIndex({
                                 ) : (
                                     contracts.data.map((contract: any, index: number) => (
                                         <tr key={contract.id} className="hover:bg-slate-50 transition-colors">
-
-                                            {/* --- STANDARD EEDO VIEW ROWS --- */}
                                             {viewMode === "standard" && (
                                                 <>
-                                                    <td className="px-4 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
-                                                        {(contracts.from || 1) + index}
-                                                    </td>
+                                                    <td className="px-4 py-4 font-bold text-slate-500 text-center border-r border-slate-200">{(contracts.from || 1) + index}</td>
                                                     <td className="px-4 py-4 border-r border-slate-200">
                                                         <div className="font-black text-slate-900">{contract.tenant?.first_name} {contract.tenant?.last_name}</div>
                                                         <div className="text-xs font-bold text-slate-500 mt-0.5">Stall: <span className="text-blue-700">{contract.stall?.stall_code}</span></div>
@@ -193,8 +174,6 @@ export default function ContractsIndex({
                                                     </td>
                                                 </>
                                             )}
-
-                                            {/* --- TREASURY LEDGER VIEW ROWS --- */}
                                             {viewMode === "ledger" && (
                                                 <>
                                                     <td className="px-4 py-3 sticky left-0 bg-white z-10 border-r-2 border-slate-300 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
@@ -211,7 +190,6 @@ export default function ContractsIndex({
                                                             {contract.outstanding_balance > 0 ? `₱ ${Number(contract.outstanding_balance).toLocaleString()}` : 'CLEARED'}
                                                         </span>
                                                     </td>
-                                                    {/* The Magic 12-Month Matrix */}
                                                     {months.map(m => {
                                                         const paidInMonth = contract.monthly_matrix?.[m] || 0;
                                                         return (
@@ -223,16 +201,24 @@ export default function ContractsIndex({
                                                 </>
                                             )}
 
-                                            {/* SHARED ACTIONS COLUMN */}
                                             <td className={`px-4 py-3 text-center ${viewMode === 'ledger' ? 'sticky right-0 bg-white shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] border-l-2 border-slate-300' : ''}`}>
-                                                <div className="flex justify-center gap-2">
-                                                    <button onClick={() => setEditingContract(contract)} className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors" title="Edit">
-                                                        <Icon icon="solar:pen-bold" className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => confirmDelete(contract.id)} className="p-1.5 bg-rose-100 text-rose-700 rounded hover:bg-rose-200 transition-colors" title="Delete">
-                                                        <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                                                {canManageContracts ? (
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => setEditingContract(contract)} className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors" title="Edit">
+                                                            <Icon icon="solar:pen-bold" className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => confirmDelete(contract.id)} className="p-1.5 bg-rose-100 text-rose-700 rounded hover:bg-rose-200 transition-colors" title="Delete">
+                                                            <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex justify-center">
+                                                        {/* THE FIX: Wrapped the Icon in a span for the title attribute */}
+                                                        <span title="Read Only" className="flex items-center justify-center">
+                                                            <Icon icon="solar:lock-password-bold-duotone" className="w-5 h-5 text-slate-300" />
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

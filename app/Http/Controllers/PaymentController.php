@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Imports\PaymentsImport;
 use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -32,7 +33,6 @@ class PaymentController extends Controller
                 });
         }
 
-        // Gold Standard: Sort by latest payments
         $payments = $query->latest('payment_date')->paginate(15)->withQueryString();
 
         $activeContracts = Contract::with(['stall.building', 'tenant'])
@@ -49,10 +49,20 @@ class PaymentController extends Controller
                 return $contract;
             });
 
+        // 🔥 NEW: Treasury KPIs for the Dashboard
+        $stats = [
+            'today_collection' => Payment::whereDate('payment_date', Carbon::today())->sum('amount'),
+            'month_collection' => Payment::whereMonth('payment_date', Carbon::now()->month)
+                ->whereYear('payment_date', Carbon::now()->year)
+                ->sum('amount'),
+            'total_ors' => Payment::count()
+        ];
+
         return Inertia::render('Payments/Index', [
             'payments' => $payments,
             'activeContracts' => $activeContracts,
             'filters' => $request->only(['search']),
+            'stats' => $stats // Passing the KPIs to React
         ]);
     }
 
@@ -97,7 +107,6 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
-        // Gold Standard: Transaction safety
         DB::transaction(function () use ($payment) {
             $payment->delete();
         });
@@ -111,7 +120,6 @@ class PaymentController extends Controller
             ->orderBy('payment_date', 'desc')
             ->get();
 
-        // Exact headers matching the import class
         $csvData = "or_number,tenant_first_name,tenant_last_name,amount,payment_date,month,year\n";
 
         foreach ($payments as $payment) {
@@ -134,7 +142,16 @@ class PaymentController extends Controller
             Excel::import(new PaymentsImport, $request->file('file'));
             return redirect()->back()->with('success', 'Payments synced successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure columns are exactly: "or_number", "tenant_first_name", "tenant_last_name", "amount", "payment_date", "month", "year".');
+            return redirect()->back()->with('error', 'Import failed.');
         }
+    }
+    public function print(Payment $payment)
+    {
+        // Eager load the required relationships so the React page has the data
+        $payment->load(['contract.tenant', 'contract.stall', 'encoder']);
+
+        return Inertia::render('Payments/Print', [
+            'payment' => $payment
+        ]);
     }
 }

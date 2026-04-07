@@ -29,15 +29,18 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return array_merge(parent::share($request), [
+        return [
+            ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                // 🔥 NEW: Pass roles and permissions to the React Frontend
+                'roles' => $request->user() ? $request->user()->getRoleNames() : [],
+                'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
             ],
-            // THIS IS REQUIRED FOR YOUR TOASTS TO WORK:
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
             ],
-        ]);
+        ];
     }
 }
