@@ -6,7 +6,6 @@ use App\Models\Floor;
 use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use App\Imports\FloorsImport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -14,25 +13,37 @@ class FloorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Floor::with('building');
+        $query = Floor::with('building')->withCount('stalls');
 
+        // Search Filter
         if ($request->filled('search')) {
-            $searchTerm = '%' . $request->search . '%';
-            $query->where('name', 'like', $searchTerm)
-                ->orWhere('description', 'like', $searchTerm)
-                ->orWhereHas('building', function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm);
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhereHas('building', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
                 });
         }
 
-        // Gold Standard: Alphabetical sorting
-        $floors = $query->orderBy('name', 'asc')->paginate(10)->withQueryString();
-        $buildings = Building::orderBy('name', 'asc')->get();
+        // 🔥 100% BULLETPROOF SORTING 🔥
+        // Only allow these exact strings. If it's anything else (like "[native code]"), fallback to 'building'
+        $allowedSorts = ['building', 'name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'building';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        if ($sortBy === 'building') {
+            $query->orderBy(Building::select('name')->whereColumn('buildings.id', 'floors.building_id'), $direction)
+                ->orderBy('name', 'asc');
+        } else {
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $floors = $query->paginate(10)->withQueryString();
+        $buildings = Building::orderBy('name')->get();
 
         return Inertia::render('Floors/Index', [
             'floors' => $floors,
             'buildings' => $buildings,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 
@@ -40,78 +51,76 @@ class FloorController extends Controller
     {
         $validated = $request->validate([
             'building_id' => 'required|exists:buildings,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:50',
+            'description' => 'nullable|string|max:1000'
         ]);
-
         Floor::create($validated);
-
-        return redirect()->back()->with('success', 'Floor successfully registered!');
+        return redirect()->back()->with('success', 'Floor created successfully.');
     }
 
     public function update(Request $request, Floor $floor)
     {
         $validated = $request->validate([
             'building_id' => 'required|exists:buildings,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:50',
+            'description' => 'nullable|string|max:1000'
         ]);
-
         $floor->update($validated);
-
-        return redirect()->back()->with('success', 'Floor details updated!');
+        return redirect()->back()->with('success', 'Floor updated successfully.');
     }
 
     public function destroy(Floor $floor)
     {
-        // Gold Standard: Transaction safely deletes children before the parent
-        DB::transaction(function () use ($floor) {
-            $stallIds = $floor->stalls()->pluck('id');
-
-            if ($stallIds->isNotEmpty()) {
-                \App\Models\Payment::whereIn('stall_id', $stallIds)->delete();
-                \App\Models\Contract::whereIn('stall_id', $stallIds)->delete();
-                \App\Models\Stall::whereIn('id', $stallIds)->delete();
-            }
-
+        try {
             $floor->delete();
-        });
-
-        return redirect()->back()->with('success', 'Floor and all associated stalls deleted successfully.');
+            return redirect()->back()->with('success', 'Floor deleted successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->back()->with('error', 'Action Denied: You cannot delete this floor because it contains active stalls. Please delete or move the stalls first.');
+        }
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $floors = Floor::with('building')->orderBy('name', 'asc')->get();
-        // Exact headers for the import class
-        $csvData = "name,building,description\n";
+        $query = Floor::with('building');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhereHas('building', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+        }
+
+        // 🔥 BULLETPROOF EXPORT SORTING 🔥
+        $allowedSorts = ['building', 'name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'building';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        if ($sortBy === 'building') {
+            $query->orderBy(Building::select('name')->whereColumn('buildings.id', 'floors.building_id'), $direction)->orderBy('name', 'asc');
+        } else {
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $floors = $query->get();
+        $csvData = "building_name,name,description\n";
 
         foreach ($floors as $floor) {
-            $buildingName = $floor->building ? $floor->building->name : '';
-
-            $name = '"' . str_replace('"', '""', $floor->name) . '"';
-            $building = '"' . str_replace('"', '""', $buildingName) . '"';
+            $bName = '"' . str_replace('"', '""', $floor->building->name ?? '') . '"';
+            $fName = '"' . str_replace('"', '""', $floor->name) . '"';
             $desc = '"' . str_replace('"', '""', $floor->description ?? '') . '"';
-
-            $csvData .= "{$name},{$building},{$desc}\n";
+            $csvData .= "{$bName},{$fName},{$desc}\n";
         }
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="floors_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="filtered_floors_export.csv"');
     }
 
     public function import(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:csv,txt,xlsx,xls|max:2048'
-        ]);
-
-        try {
-            Excel::import(new FloorsImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Floors synced successfully! New entries created and existing ones updated.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure your columns are "name", "building", and "description".');
-        }
+        $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
+        Excel::import(new FloorsImport, $request->file('file'));
+        return redirect()->back()->with('success', 'Floors imported successfully.');
     }
 }

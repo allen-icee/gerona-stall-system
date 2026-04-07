@@ -27,11 +27,29 @@ export default function BuildingsIndex({ buildings, filters }: any) {
     // Trigger backend filter when search or sort changes
     useEffect(() => {
         const delay = setTimeout(() => {
-            const [sort, direction] = sortFilter.split('_');
-            router.get(route('buildings.index'), { search, sort, direction }, { preserveState: true, replace: true });
+            // 🔥 THE FIX: Renamed 'sort' to 'sortBy'
+            const [sortBy, filterDirection] = sortFilter.split('_');
+
+            router.get(route('buildings.index'), {
+                search: search,
+                sort: sortBy,
+                direction: filterDirection
+            }, { preserveState: true, replace: true });
+
         }, 300);
         return () => clearTimeout(delay);
     }, [search, sortFilter]);
+
+    // Filtered Export Action
+    const handleExport = () => {
+        // 🔥 THE FIX: Renamed here as well
+        const [sortBy, filterDirection] = sortFilter.split('_');
+        window.location.href = route('buildings.export', {
+            search: search,
+            sort: sortBy,
+            direction: filterDirection
+        });
+    };
 
     const handleDelete = () => {
         if (deletingId) {
@@ -48,11 +66,6 @@ export default function BuildingsIndex({ buildings, filters }: any) {
         }
     };
 
-    // Filtered Export Action
-    const handleExport = () => {
-        const [sort, direction] = sortFilter.split('_');
-        window.location.href = route('buildings.export', { search, sort, direction });
-    };
 
     const totalBuildings = buildings.total || buildings.data.length;
 

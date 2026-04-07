@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, RefObject } from 'react';
 
-export function useEnterTab(ref: React.RefObject<HTMLElement>) {
+// 🔥 THE FIX: Added generic <T> to safely accept HTMLFormElement and allow nulls
+export function useEnterTab<T extends HTMLElement>(ref: RefObject<T | null>) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Enter') {
@@ -11,7 +12,7 @@ export function useEnterTab(ref: React.RefObject<HTMLElement>) {
                     return;
                 }
 
-                // Allow HeadlessUI/CustomSelect dropdowns to capture Enter for selection
+                // Allow CustomSelect dropdowns to capture Enter for selection
                 if (target.closest('[role="listbox"]') || target.closest('[role="option"]')) {
                     return;
                 }

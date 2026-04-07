@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
+import { useEnterTab } from "@/hooks/useEnterTab";
 
 export default function EditFloorModal({
     show,
@@ -21,6 +22,10 @@ export default function EditFloorModal({
             name: "",
             description: "",
         });
+
+    // 🔥 Added the smart Enter-to-Tab hook
+    const formRef = useRef<HTMLFormElement>(null);
+    useEnterTab(formRef);
 
     useEffect(() => {
         if (floor) {
@@ -67,6 +72,7 @@ export default function EditFloorModal({
             </div>
 
             <form
+                ref={formRef}
                 onSubmit={submit}
                 className="p-6 space-y-4 bg-white rounded-b-2xl"
             >
@@ -100,6 +106,7 @@ export default function EditFloorModal({
                         type="text"
                         value={data.name}
                         onChange={(e) => setData("name", e.target.value)}
+                        maxLength={50} // 🔥 Added character restriction
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors"
                         required
                     />

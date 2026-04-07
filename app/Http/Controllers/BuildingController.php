@@ -19,9 +19,13 @@ class BuildingController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Dynamic Sorting (Default is Name Ascending)
-        $sortBy = $request->input('sort', 'name');
-        $direction = $request->input('direction', 'asc');
+        // 🔥 BULLETPROOF SORTING 🔥
+        $allowedSorts = ['name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'name';
+
+        // Force direction to be exactly 'desc' or 'asc' (ignores "undefined")
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
         $query->orderBy($sortBy, $direction);
 
         $buildings = $query->paginate(10)->withQueryString();
@@ -34,7 +38,6 @@ class BuildingController extends Controller
 
     public function store(Request $request)
     {
-        // Added 50 character limit restriction
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:buildings,name'
         ]);
@@ -45,7 +48,6 @@ class BuildingController extends Controller
 
     public function update(Request $request, Building $building)
     {
-        // Added 50 character limit restriction
         $validated = $request->request->add(['name' => strtoupper($request->name)]); // Force uppercase
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:buildings,name,' . $building->id
@@ -69,12 +71,15 @@ class BuildingController extends Controller
     {
         $query = Building::query();
 
-        // Apply the exact same filters to the EXPORT file
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
-        $sortBy = $request->input('sort', 'name');
-        $direction = $request->input('direction', 'asc');
+
+        // 🔥 BULLETPROOF EXPORT SORTING 🔥
+        $allowedSorts = ['name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'name';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
         $query->orderBy($sortBy, $direction);
 
         $buildings = $query->get();

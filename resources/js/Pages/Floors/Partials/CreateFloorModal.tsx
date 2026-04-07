@@ -2,6 +2,8 @@ import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
+import { useRef } from "react";
+import { useEnterTab } from "@/hooks/useEnterTab";
 
 export default function CreateFloorModal({
     show,
@@ -18,6 +20,10 @@ export default function CreateFloorModal({
             name: "",
             description: "",
         });
+
+    // 🔥 Added the smart Enter-to-Tab hook
+    const formRef = useRef<HTMLFormElement>(null);
+    useEnterTab(formRef);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +60,7 @@ export default function CreateFloorModal({
             </div>
 
             <form
+                ref={formRef}
                 onSubmit={submit}
                 className="p-6 space-y-4 bg-white rounded-b-2xl"
             >
@@ -86,6 +93,7 @@ export default function CreateFloorModal({
                         type="text"
                         value={data.name}
                         onChange={(e) => setData("name", e.target.value)}
+                        maxLength={50} // 🔥 Added character restriction
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors"
                         placeholder="e.g. Ground Floor, Phase 1"
                         required
