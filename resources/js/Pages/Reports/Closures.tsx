@@ -79,16 +79,10 @@ export default function ClosuresReport({ closures }: any) {
                                             <td className="px-4 py-4 text-right border-r border-red-100 font-black text-red-700 text-base">
                                                 ₱ {Number(record.total_outstanding).toLocaleString()}
                                             </td>
-                                            <td className="px-4 py-4 text-center border-r border-red-100">
-                                                {record.severity === 'critical' ? (
-                                                    <span title="Critical" className="inline-block">
-                                                        <Icon icon="solar:shield-warning-bold" className="w-6 h-6 text-red-700 mx-auto animate-pulse" />
-                                                    </span>
-                                                ) : (
-                                                    <span title="High Risk" className="inline-block">
-                                                        <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-amber-500 mx-auto" />
-                                                    </span>
-                                                )}
+                                            <td className="px-4 py-4 font-bold text-slate-700">
+                                                <div className={`text-xs px-3 py-1.5 rounded inline-block ${record.severity === 'critical' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                    {record.reason}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
