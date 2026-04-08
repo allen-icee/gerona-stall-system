@@ -134,9 +134,9 @@ export default function Index({ users, roles, filters }: Props) {
                             />
                             System Users
                         </h1>
-                        <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
-                            {totalUsers}{" "}
-                            {totalUsers === 1 ? "Record" : "Records"}
+                        <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Tenants">
+                            <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
+                            {totalUsers}
                         </span>
                     </div>
 
@@ -231,15 +231,14 @@ export default function Index({ users, roles, filters }: Props) {
                                                 {user.roles.map((role) => (
                                                     <span
                                                         key={role.id}
-                                                        className={`inline-block px-3 py-1 rounded border-2 font-black text-xs uppercase tracking-wider ${
-                                                            role.name ===
+                                                        className={`inline-block px-3 py-1 rounded border-2 font-black text-xs uppercase tracking-wider ${role.name ===
                                                             "admin"
-                                                                ? "bg-purple-600 border-purple-800 text-white"
-                                                                : role.name ===
-                                                                    "treasury"
-                                                                  ? "bg-amber-500 border-amber-700 text-slate-900"
-                                                                  : "bg-blue-600 border-blue-800 text-white"
-                                                        }`}
+                                                            ? "bg-purple-600 border-purple-800 text-white"
+                                                            : role.name ===
+                                                                "treasury"
+                                                                ? "bg-amber-500 border-amber-700 text-slate-900"
+                                                                : "bg-blue-600 border-blue-800 text-white"
+                                                            }`}
                                                     >
                                                         {role.name}
                                                     </span>
@@ -266,11 +265,10 @@ export default function Index({ users, roles, filters }: Props) {
                                                             )
                                                         }
                                                         disabled={user.id === 1}
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded font-black text-xs uppercase tracking-wide transition-colors ${
-                                                            user.id === 1
-                                                                ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
-                                                                : "bg-rose-100 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600"
-                                                        }`}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded font-black text-xs uppercase tracking-wide transition-colors ${user.id === 1
+                                                            ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
+                                                            : "bg-rose-100 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600"
+                                                            }`}
                                                     >
                                                         <Icon
                                                             icon="solar:trash-bin-trash-bold"

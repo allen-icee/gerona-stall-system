@@ -27,13 +27,11 @@ class StallController extends Controller
                 });
         }
 
-        // 🔥 BULLETPROOF SORTING 🔥
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
 
         if ($sortBy === 'location') {
-            // Sort by Building -> Floor -> Stall Code
             $query->join('floors', 'stalls.floor_id', '=', 'floors.id')
                 ->join('buildings', 'floors.building_id', '=', 'buildings.id')
                 ->select('stalls.*')
@@ -122,7 +120,6 @@ class StallController extends Controller
                 });
         }
 
-        // 🔥 BULLETPROOF EXPORT SORTING 🔥
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -169,5 +166,32 @@ class StallController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Import failed. Check column headers.');
         }
+    }
+
+    // 🔥 ADDED QUICK STATUS ROUTE LOGIC 🔥
+    public function quickStatus(Request $request, Stall $stall)
+    {
+        $status = $request->input('status');
+
+        DB::transaction(function () use ($stall, $status) {
+            if ($status === 'vacant') {
+                // Wipe tenant data / Deactivate contract
+                \App\Models\Contract::where('stall_id', $stall->id)
+                    ->where('is_active', true)
+                    ->update([
+                        'is_active' => false,
+                        'remarks' => 'System Auto-Closed: Marked Vacant via Quick Paint Map Tool'
+                    ]);
+
+                // Clear the stall's internal status
+                $stall->update(['status' => 'Vacant']);
+            } else {
+                // Apply 'Under Maintenance' or 'Closed'
+                $formattedStatus = $status === 'maintenance' ? 'Under Maintenance' : ucfirst($status);
+                $stall->update(['status' => $formattedStatus]);
+            }
+        });
+
+        return redirect()->back()->with('success', "Stall securely updated to: " . strtoupper($status));
     }
 }

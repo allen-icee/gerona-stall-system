@@ -28,15 +28,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// Protected Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ==========================================
     // 1. ADMIN / EEDO ONLY ROUTES
-    // ==========================================
     Route::middleware(['can:manage users'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
     });
@@ -52,6 +49,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('stalls/export', [StallController::class, 'export'])->name('stalls.export');
         Route::post('stalls/import', [StallController::class, 'import'])->name('stalls.import');
+
+        // 🔥 ADDED QUICK STATUS ROUTE HERE 🔥
+        Route::post('stalls/{stall}/quick-status', [StallController::class, 'quickStatus'])->name('stalls.quick-status');
+
         Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
 
         Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
@@ -72,22 +73,15 @@ Route::middleware('auth')->group(function () {
         Route::resource('contracts', ContractController::class)->except(['index', 'create', 'show', 'edit']);
     });
 
-    // ==========================================
     // 2. TREASURY ONLY ROUTES
-    // ==========================================
     Route::middleware(['can:manage payments'])->group(function () {
         Route::get('payments/export', [PaymentController::class, 'export'])->name('payments.export');
         Route::post('payments/import', [PaymentController::class, 'import'])->name('payments.import');
-
-        // 🔥 NEW PRINT ROUTE
         Route::get('payments/{payment}/print', [PaymentController::class, 'print'])->name('payments.print');
-
         Route::resource('payments', PaymentController::class);
     });
 
-    // ==========================================
     // 3. SHARED ROUTES (Both Admin & Treasury Access)
-    // ==========================================
     Route::middleware(['can:view contracts'])->group(function () {
         Route::get('contracts/export', [ContractController::class, 'export'])->name('contracts.export');
         Route::get('contracts', [ContractController::class, 'index'])->name('contracts.index');

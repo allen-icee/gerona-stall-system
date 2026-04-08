@@ -123,8 +123,9 @@ export default function ContractsIndex({ contracts, tenants, availableStalls, bu
                                 <Icon icon="solar:document-text-bold-duotone" className="w-7 h-7 text-blue-700" />
                                 Master Contracts
                             </h3>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
-                                {totalContracts} {totalContracts === 1 ? "Record" : "Records"}
+                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Tenants">
+                                <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
+                                {totalContracts}
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">Manage operations, paper trails, and financial ledgers.</p>

@@ -83,17 +83,17 @@ class LayoutController extends Controller
         }
 
         $direction = $request->input('direction');
-        $amount = (int) $request->input('amount', 1);
+        // Phase 3: Bulk Expansion
+        $amount = max(1, (int) $request->input('amount', 1));
 
         if ($direction === 'row') {
-            $startRow = $layout->total_rows + 1;
-            $layout->increment('total_rows', $amount);
             $cells = [];
-            for ($r = $startRow; $r <= $layout->total_rows; $r++) {
+            for ($i = 0; $i < $amount; $i++) {
+                $newRow = $layout->total_rows + 1 + $i;
                 for ($c = 1; $c <= $layout->total_cols; $c++) {
                     $cells[] = [
                         'layout_id' => $layout->id,
-                        'row_number' => $r,
+                        'row_number' => $newRow,
                         'column_number' => $c,
                         'type' => 'vacant',
                         'stall_id' => null,
@@ -102,17 +102,18 @@ class LayoutController extends Controller
                     ];
                 }
             }
+            $layout->total_rows += $amount;
+            $layout->save();
             LayoutCell::insert($cells);
         } elseif ($direction === 'col') {
-            $startCol = $layout->total_cols + 1;
-            $layout->increment('total_cols', $amount);
             $cells = [];
-            for ($c = $startCol; $c <= $layout->total_cols; $c++) {
+            for ($i = 0; $i < $amount; $i++) {
+                $newCol = $layout->total_cols + 1 + $i;
                 for ($r = 1; $r <= $layout->total_rows; $r++) {
                     $cells[] = [
                         'layout_id' => $layout->id,
                         'row_number' => $r,
-                        'column_number' => $c,
+                        'column_number' => $newCol,
                         'type' => 'vacant',
                         'stall_id' => null,
                         'created_at' => now(),
@@ -120,11 +121,13 @@ class LayoutController extends Controller
                     ];
                 }
             }
+            $layout->total_cols += $amount;
+            $layout->save();
             LayoutCell::insert($cells);
         }
 
         return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', "Grid expanded by {$amount} and progress auto-saved!");
+            ->with('success', "Grid expanded by {$amount} {$direction}(s) and progress auto-saved!");
     }
 
     public function shrink(Request $request, Layout $layout)
@@ -139,20 +142,33 @@ class LayoutController extends Controller
         }
 
         $direction = $request->input('direction');
-        $amount = (int) $request->input('amount', 1);
+        // Phase 3: Bulk Shrinking
+        $amount = max(1, (int) $request->input('amount', 1));
 
-        if ($direction === 'row' && $layout->total_rows > 1) {
+        if ($direction === 'row') {
+            // Prevent shrinking the grid below 1 row
             $amount = min($amount, $layout->total_rows - 1);
-            LayoutCell::where('layout_id', $layout->id)->where('row_number', '>', $layout->total_rows - $amount)->delete();
-            $layout->decrement('total_rows', $amount);
-        } elseif ($direction === 'col' && $layout->total_cols > 1) {
+            if ($amount > 0) {
+                LayoutCell::where('layout_id', $layout->id)
+                    ->where('row_number', '>', $layout->total_rows - $amount)
+                    ->delete();
+                $layout->total_rows -= $amount;
+                $layout->save();
+            }
+        } elseif ($direction === 'col') {
+            // Prevent shrinking the grid below 1 column
             $amount = min($amount, $layout->total_cols - 1);
-            LayoutCell::where('layout_id', $layout->id)->where('column_number', '>', $layout->total_cols - $amount)->delete();
-            $layout->decrement('total_cols', $amount);
+            if ($amount > 0) {
+                LayoutCell::where('layout_id', $layout->id)
+                    ->where('column_number', '>', $layout->total_cols - $amount)
+                    ->delete();
+                $layout->total_cols -= $amount;
+                $layout->save();
+            }
         }
 
         return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', "Grid trimmed by {$amount} and progress auto-saved!");
+            ->with('success', "Grid trimmed by {$amount} {$direction}(s) and progress auto-saved!");
     }
 
     public function saveMap(Request $request, Layout $layout)

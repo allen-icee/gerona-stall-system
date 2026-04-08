@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 
 export default function InteractiveGrid({
     layout, gridCells, activeFloorData, onCellClick, onClearAll, onRevert,
-    onExpandRow, onExpandCol, onShrinkRow, onShrinkCol
+    onExpandRow, onExpandCol, onShrinkRow, onShrinkCol, onQuickPaint
 }: any) {
     const [zoom, setZoom] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -13,8 +13,17 @@ export default function InteractiveGrid({
     const [isLegendOpen, setIsLegendOpen] = useState(false);
     const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, data: null as any });
 
-    // 🔥 NEW: Mass Extender Input State
     const [expandAmount, setExpandAmount] = useState(1);
+
+    // Phase 3: Quick Paint State
+    const [paintMode, setPaintMode] = useState<{ id: string, color: string, label: string } | null>(null);
+
+    // Predefined LGU Quick Paint Statuses
+    const paintStatuses = [
+        { id: 'vacant', color: '#00ff00', label: 'Vacant (Wipe Data)', icon: 'solar:check-circle-bold' },
+        { id: 'maintenance', color: '#ff9900', label: 'Under Maintenance', icon: 'solar:danger-triangle-bold' },
+        { id: 'closed', color: '#f4cccc', label: 'Closed / Locked', icon: 'solar:lock-bold' }
+    ];
 
     useEffect(() => {
         const container = containerRef.current;
@@ -44,6 +53,9 @@ export default function InteractiveGrid({
                     setZoom(1);
                 }
             }
+            if (e.key === 'Escape') {
+                setPaintMode(null);
+            }
         };
 
         container.addEventListener("wheel", handleWheel, { passive: false });
@@ -55,7 +67,6 @@ export default function InteractiveGrid({
         };
     }, []);
 
-    // Calculate Price for Tooltip
     const formatPrice = (stall: any) => {
         if (stall.stall_type === 'sqm_based') return `₱${(Number(stall.size_sqm || 0) * Number(stall.rate_per_sqm || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         if (stall.stall_type === 'class_based') return `₱${Number(stall.fixed_rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -65,14 +76,21 @@ export default function InteractiveGrid({
     return (
         <div ref={containerRef} className="relative w-full h-full overflow-hidden flex flex-col bg-slate-100">
 
-            {/* 1. CENTER STAGE HEADER & FLOATING SEARCH BAR */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-96 max-w-[90%] pointer-events-none">
-                <div className="bg-slate-900/80 backdrop-blur-md text-white px-8 py-3 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-700 pointer-events-auto">
-                    <h1 className="text-xl font-black uppercase tracking-widest">{activeFloorData?.building_name || "Unknown Building"}</h1>
-                    <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest">{activeFloorData?.name || "Unknown Floor"}</h2>
+            {paintMode && (
+                <div className="absolute top-0 left-0 w-full bg-slate-900 text-white py-2 z-[60] flex items-center justify-center gap-4 animate-fade-in-down shadow-lg border-b-4" style={{ borderColor: paintMode.color }}>
+                    <Icon icon="solar:format-painter-bold-duotone" className="w-5 h-5 animate-pulse" style={{ color: paintMode.color }} />
+                    <span className="text-sm font-black tracking-widest uppercase">
+                        Paint Mode Active: <span style={{ color: paintMode.color }}>{paintMode.label}</span>
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Click a stall to apply. Press ESC to cancel.</span>
+                    <button onClick={() => setPaintMode(null)} className="ml-4 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-widest cursor-pointer">
+                        [ Cancel ]
+                    </button>
                 </div>
+            )}
 
-                <div className="relative shadow-2xl rounded-full w-full mt-4 pointer-events-auto border-2 border-slate-300">
+            <div className={`absolute left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-96 max-w-[90%] pointer-events-none transition-all duration-300 ${paintMode ? 'top-14' : 'top-6'}`}>
+                <div className="relative shadow-2xl rounded-full w-full mb-4 pointer-events-auto border-2 border-slate-300">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Icon icon="solar:magnifer-linear" className="h-5 w-5 text-slate-400" />
                     </div>
@@ -84,12 +102,33 @@ export default function InteractiveGrid({
                         className="w-full bg-white rounded-full pl-11 pr-4 py-3 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
+                <div className="bg-slate-900/80 backdrop-blur-md text-white px-8 py-3 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-700 pointer-events-auto">
+                    <h1 className="text-xl font-black uppercase tracking-widest">{activeFloorData?.building_name || "Unknown Building"}</h1>
+                    <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest">{activeFloorData?.name || "Unknown Floor"}</h2>
+                </div>
             </div>
 
-            {/* 2. FLOATING QUICK ACTIONS (WITH MASS GENERATOR INPUT) */}
-            <div className="absolute bottom-6 left-6 z-50 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80">
+            {/* FLOATING QUICK PAINT PALETTE */}
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border-2 border-slate-200 flex flex-col gap-2 items-center pointer-events-auto">
+                <div className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 border-b-2 border-slate-200 pb-1 w-full text-center">Paint</div>
+                {paintStatuses.map((status) => (
+                    <button
+                        key={status.id}
+                        onClick={() => setPaintMode(paintMode?.id === status.id ? null : status)}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer border-2 ${paintMode?.id === status.id ? 'scale-110 shadow-lg ring-4 ring-offset-2' : 'hover:scale-105 border-transparent shadow-sm'}`}
+                        style={{
+                            backgroundColor: status.color,
+                            // 🔥 FIX: Replaced ringColor with dynamic Tailwind CSS variable
+                            ['--tw-ring-color' as any]: status.color
+                        }}
+                        title={`Paint as ${status.label}`}
+                    >
+                        <Icon icon={status.icon} className={`w-6 h-6 ${paintMode?.id === status.id ? 'text-slate-900' : 'text-slate-800/70'}`} />
+                    </button>
+                ))}
+            </div>
 
-                {/* Mass Extender Input */}
+            <div className="absolute bottom-6 left-6 z-50 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80 pointer-events-auto">
                 <div className="flex flex-col items-center justify-center border-r-2 border-slate-200 pr-2">
                     <label className="text-[7px] font-black uppercase text-slate-500 mb-1">Add/Del Qty</label>
                     <input
@@ -98,45 +137,44 @@ export default function InteractiveGrid({
                         max="20"
                         value={expandAmount}
                         onChange={(e) => setExpandAmount(parseInt(e.target.value) || 1)}
-                        className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0"
+                        className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0 cursor-pointer"
                     />
                 </div>
 
                 <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                    <button onClick={() => onExpandRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title={`Add ${expandAmount} Row(s)`}>
+                    <button onClick={() => onExpandRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
                         <Icon icon="solar:row-bottom-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Row</span>
                     </button>
-                    <button onClick={() => onShrinkRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title={`Remove ${expandAmount} Row(s)`}>
+                    <button onClick={() => onShrinkRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
                         <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Row</span>
                     </button>
                 </div>
 
                 <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                    <button onClick={() => onExpandCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title={`Add ${expandAmount} Column(s)`}>
+                    <button onClick={() => onExpandCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
                         <Icon icon="solar:sidebar-right-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Col</span>
                     </button>
-                    <button onClick={() => onShrinkCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title={`Remove ${expandAmount} Column(s)`}>
+                    <button onClick={() => onShrinkCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
                         <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Col</span>
                     </button>
                 </div>
 
                 <div className="flex gap-1.5">
-                    <button onClick={onRevert} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all">
+                    <button onClick={onRevert} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all cursor-pointer">
                         <Icon icon="solar:history-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Revert</span>
                     </button>
-                    <button onClick={onClearAll} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all">
+                    <button onClick={onClearAll} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
                         <Icon icon="solar:eraser-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Clear</span>
                     </button>
                 </div>
             </div>
 
-            {/* 3. UPDATED EXCEL-ALIGNED LEGEND */}
             <div className="absolute bottom-24 right-6 z-50 flex flex-col items-end pointer-events-none">
                 {isLegendOpen && (
                     <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-80 animate-fade-in-up origin-bottom-right pointer-events-auto">
@@ -155,33 +193,31 @@ export default function InteractiveGrid({
                         </div>
                     </div>
                 )}
-                <button onClick={() => setIsLegendOpen(!isLegendOpen)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl shadow-xl hover:bg-slate-700 transition-colors border-2 border-slate-900 pointer-events-auto">
+                <button onClick={() => setIsLegendOpen(!isLegendOpen)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl shadow-xl hover:bg-slate-700 transition-colors border-2 border-slate-900 pointer-events-auto cursor-pointer">
                     <Icon icon="solar:map-point-bold-duotone" className="w-5 h-5" />
                     <span className="text-[11px] font-black uppercase tracking-wider">Legend</span>
                     <Icon icon={isLegendOpen ? "solar:alt-arrow-down-bold" : "solar:alt-arrow-up-bold"} className="w-4 h-4 ml-1" />
                 </button>
             </div>
 
-            {/* 4. ZOOM CONTROLS */}
-            <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300">
-                <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors">
+            <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300 pointer-events-auto">
+                <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer">
                     <Icon icon="solar:minus-circle-bold-duotone" className="w-6 h-6" />
                 </button>
                 <span className="w-16 text-center font-black text-slate-800 text-xs uppercase tracking-wider">
                     {Math.round(zoom * 100)}%
                 </span>
-                <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors">
+                <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer">
                     <Icon icon="solar:add-circle-bold-duotone" className="w-6 h-6" />
                 </button>
-                <button onClick={() => setZoom(1)} className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-black text-[10px] uppercase tracking-wider transition-colors border-2 border-blue-200">
+                <button onClick={() => setZoom(1)} className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-black text-[10px] uppercase tracking-wider transition-colors border-2 border-blue-200 cursor-pointer">
                     Reset
                 </button>
             </div>
 
-            {/* 5. INTERACTIVE SCROLLABLE GRID */}
-            <div className="overflow-auto w-full h-full p-32 custom-scrollbar flex items-start justify-center">
+            <div className={`overflow-auto w-full h-full p-32 custom-scrollbar flex items-start justify-center transition-all ${paintMode ? 'cursor-crosshair' : 'cursor-default'}`}>
                 <div
-                    className="bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block origin-center transition-transform duration-200 ease-out"
+                    className="bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block origin-center transition-transform duration-200 ease-out pointer-events-auto"
                     style={{ transform: `scale(${zoom})` }}
                 >
                     <div
@@ -236,7 +272,6 @@ export default function InteractiveGrid({
                                         {tenant && <span className="text-[9px] truncate w-full mt-1 tracking-tight">{tenant.last_name}</span>}
                                     </div>
                                 );
-
                                 dbColor = cell.stall.computed_status?.color || '#ffffff';
                             }
 
@@ -249,20 +284,31 @@ export default function InteractiveGrid({
                             return (
                                 <div
                                     key={cell.id}
-                                    onClick={() => onCellClick(index)}
+                                    onClick={() => {
+                                        if (paintMode) {
+                                            if (cell.type === 'stall' && cell.stall) {
+                                                onQuickPaint(cell.stall.id, paintMode.id);
+                                            }
+                                        } else {
+                                            onCellClick(index);
+                                        }
+                                    }}
                                     onMouseEnter={(e) => {
-                                        if (cell.type === 'stall' && cell.stall) {
+                                        if (!paintMode && cell.type === 'stall' && cell.stall) {
                                             setTooltip({ show: true, x: e.clientX, y: e.clientY, data: cell.stall });
                                         }
                                     }}
                                     onMouseMove={(e) => {
-                                        if (tooltip.show) {
+                                        if (!paintMode && tooltip.show) {
                                             setTooltip(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
                                         }
                                     }}
                                     onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, data: null })}
-                                    className={`w-14 h-14 border-2 rounded-md flex items-center justify-center text-xs cursor-pointer transition-all active:scale-95 select-none overflow-hidden ${cellStyle}`}
-                                    style={dbColor ? { backgroundColor: dbColor } : {}}
+                                    className={`w-14 h-14 border-2 rounded-md flex items-center justify-center text-xs transition-all select-none overflow-hidden ${paintMode ? 'hover:ring-4 hover:ring-opacity-50 cursor-crosshair' : 'cursor-pointer active:scale-95 hover:scale-105'} ${cellStyle}`}
+                                    style={{
+                                        backgroundColor: dbColor || undefined,
+                                        ['--tw-ring-color' as any]: paintMode ? paintMode.color : undefined
+                                    }}
                                 >
                                     {content && (
                                         typeof content === 'string' ? (
@@ -278,12 +324,11 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {/* 6. DYNAMIC PORTAL COMMAND TOOLTIP */}
-            {tooltip.show && tooltip.data && createPortal(
+            {!paintMode && tooltip.show && tooltip.data && createPortal(
                 <div
                     className="fixed z-[99999] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl pointer-events-auto border border-slate-700 animate-fade-in-up w-56"
                     style={{ top: tooltip.y + 15, left: tooltip.x + 15 }}
-                    onMouseEnter={() => setTooltip(prev => ({ ...prev, show: true }))} // Keep tooltip open if they hover into it
+                    onMouseEnter={() => setTooltip(prev => ({ ...prev, show: true }))}
                     onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, data: null })}
                 >
                     <div className="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
@@ -312,7 +357,6 @@ export default function InteractiveGrid({
                         <p className="text-xs text-slate-400 italic mb-3">No current occupant.</p>
                     )}
 
-                    {/* Operational Command Links */}
                     <div className="grid grid-cols-2 gap-2 mt-2">
                         <a href={route('contracts.index', { search: tooltip.data.stall_code })} className="flex justify-center items-center gap-1 bg-blue-600 text-white text-center py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold hover:bg-blue-500 transition-colors">
                             <Icon icon="solar:document-text-bold" className="w-3 h-3" /> Contracts
