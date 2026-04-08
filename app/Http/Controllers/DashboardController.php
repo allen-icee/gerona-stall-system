@@ -9,12 +9,17 @@ use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. High-Level KPI Statistics (Kept for your StatCards & Progress Bar)
+        $user = Auth::user();
+        // Spatie provides getRoleNames(), we just grab the first one (e.g., 'admin', 'treasury', 'staff')
+        $userRole = $user->getRoleNames()->first() ?? 'staff';
+
+        // 1. High-Level KPI Statistics
         $totalStalls = Stall::count();
         $vacantStalls = Stall::doesntHave('contracts', 'and', function ($query) {
             $query->where('is_active', true);
@@ -22,15 +27,21 @@ class DashboardController extends Controller
 
         $stats = [
             'total_stalls' => $totalStalls,
-            'occupied' => $totalStalls - $vacantStalls, // Anything not vacant is occupied in some capacity
+            'occupied' => $totalStalls - $vacantStalls,
             'vacant' => $vacantStalls,
             'maintenance' => Stall::whereHas('contracts', function ($q) {
                 $q->where('is_active', true)->where('permit_status', 'Waiting');
-            })->count(), // Repurposed for "Waiting Permit"
+            })->count(),
+
+            // 🔥 NEW: Add Treasury KPIs to global stats so they can be shown if role == treasury
+            'today_collection' => Payment::whereDate('payment_date', Carbon::today())->sum('amount'),
+            'month_collection' => Payment::whereMonth('payment_date', Carbon::now()->month)
+                ->whereYear('payment_date', Carbon::now()->year)
+                ->sum('amount'),
+            'total_ors' => Payment::count()
         ];
 
-        // 2. 🔥 THE EXECUTIVE SUMMARY ENGINE (Grouped by Building) 🔥
-        // We load all buildings and their stalls, then tally the Phase 3 computed statuses.
+        // 2. THE EXECUTIVE SUMMARY ENGINE (Only really needed for Admin, but safe to load)
         $buildings = Building::with([
             'stalls.contracts' => function ($q) {
                 $q->where('is_active', true)->latest();
@@ -39,8 +50,6 @@ class DashboardController extends Controller
 
         $buildingSummary = $buildings->map(function ($building) {
             $stalls = $building->stalls;
-
-            // Initialize our Excel columns
             $tally = [
                 'name' => $building->name,
                 'total' => $stalls->count(),
@@ -56,9 +65,7 @@ class DashboardController extends Controller
             ];
 
             foreach ($stalls as $stall) {
-                // This magically calls the logic we wrote in Stall.php!
                 $label = $stall->computed_status['label'];
-
                 switch ($label) {
                     case 'VACANT':
                         $tally['vacant']++;
@@ -89,11 +96,10 @@ class DashboardController extends Controller
                         break;
                 }
             }
-
             return $tally;
         });
 
-        // 3. Recent Activity (Latest 5 Contracts)
+        // 3. Recent Activity
         $recentActivity = Contract::with(['stall', 'tenant'])
             ->latest()
             ->take(5)
@@ -107,10 +113,24 @@ class DashboardController extends Controller
                 ];
             });
 
+        // 4. Expiring Contracts (Action Required)
+        $expiringContracts = Contract::with('stall')
+            ->where('is_active', true)
+            ->where('end_date', '<=', Carbon::now()->addDays(30))
+            ->get()
+            ->map(function ($contract) {
+                return [
+                    'stall' => $contract->stall->stall_code ?? 'N/A',
+                    'days_left' => Carbon::now()->diffInDays(Carbon::parse($contract->end_date), false)
+                ];
+            });
+
         return inertia('Dashboard', [
             'stats' => $stats,
             'recentActivity' => $recentActivity,
-            'buildingSummary' => $buildingSummary // Passed to React!
+            'buildingSummary' => $buildingSummary,
+            'expiringContracts' => $expiringContracts,
+            'userRole' => strtolower($userRole) // 🔥 Pass the role to React!
         ]);
     }
 }

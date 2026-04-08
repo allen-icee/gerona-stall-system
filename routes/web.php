@@ -94,6 +94,8 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware(['can:view reports'])->group(function () {
+        Route::get('/reports/master-ledger', [ReportController::class, 'masterLedger'])->name('reports.master_ledger');
+        Route::get('/reports/master-ledger/export', [ReportController::class, 'exportLedger'])->name('reports.master_ledger.export');
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/balances', [ReportController::class, 'balances'])->name('balances');
             Route::get('/closures', [ReportController::class, 'closures'])->name('closures');

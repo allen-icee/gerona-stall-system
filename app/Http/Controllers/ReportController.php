@@ -3,23 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
+use App\Models\Payment;
+use App\Models\Building;
+use App\Models\Stall;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ReportController extends Controller
 {
     /**
-     * Generates the "With Balance" Report.
-     * Shows any active tenant who owes Rent or is missing Security Deposit.
+     * Helper function to apply common advanced filters to a Contract query
      */
+    private function applyContractFilters($query, Request $request)
+    {
+        if ($request->filled('building_id')) {
+            $query->whereHas('stall.floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
+            });
+        }
+        if ($request->filled('stall_id')) {
+            $query->where('stall_id', $request->stall_id);
+        }
+        if ($request->filled('month')) {
+            $query->whereMonth('start_date', $request->month);
+        }
+        if ($request->filled('year')) {
+            $query->whereYear('start_date', $request->year);
+        }
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->whereHas('tenant', function ($q) use ($searchTerm) {
+                $q->where('first_name', 'like', $searchTerm)
+                    ->orWhere('last_name', 'like', $searchTerm);
+            });
+        }
+        return $query;
+    }
+
     public function balances(Request $request)
     {
-        // 1. Fetch active contracts, strictly eager-loading payments to prevent DB crashes
-        $contracts = Contract::with(['tenant', 'stall.floor.building', 'payments'])
-            ->where('is_active', true)
-            ->get();
+        $query = Contract::with(['tenant', 'stall.floor.building', 'payments'])->where('is_active', true);
+        $query = $this->applyContractFilters($query, $request);
 
-        // 2. Filter using our Phase 2 Engine: Only keep if total debt > 0
+        $allowedSorts = ['tenant_name', 'stall_code', 'total_outstanding'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'tenant_name';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        $contracts = $query->get();
+
         $withBalance = $contracts->filter(function ($contract) {
             return $contract->total_outstanding > 0;
         })->map(function ($contract) {
@@ -32,32 +63,44 @@ class ReportController extends Controller
                 'deposit_variance' => $contract->deposit_variance,
                 'outstanding_rent' => $contract->outstanding_balance,
                 'total_outstanding' => $contract->total_outstanding,
-                // Check if they've ever made a payment
                 'last_payment_date' => $contract->payments->last() ? $contract->payments->last()->created_at->format('M d, Y') : 'No Payments on Record',
             ];
-        })->values(); // Reset array keys for React
+        });
+
+        // Handle collection sorting manually since it's an accessor-based collection now
+        if ($sortBy === 'total_outstanding') {
+            $withBalance = $direction === 'asc' ? $withBalance->sortBy('total_outstanding') : $withBalance->sortByDesc('total_outstanding');
+        } elseif ($sortBy === 'stall_code') {
+            $withBalance = $direction === 'asc' ? $withBalance->sortBy('stall_code') : $withBalance->sortByDesc('stall_code');
+        } else {
+            $withBalance = $direction === 'asc' ? $withBalance->sortBy('tenant_name') : $withBalance->sortByDesc('tenant_name');
+        }
+
+        $buildings = Building::orderBy('name', 'asc')->get();
+        $stalls = Stall::orderBy('stall_code', 'asc')->get();
 
         return Inertia::render('Reports/Balances', [
-            'balances' => $withBalance
+            'balances' => $withBalance->values(),
+            'buildings' => $buildings,
+            'stalls' => $stalls,
+            'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),
         ]);
     }
 
-    /**
-     * Generates the "For Closure" / Action Required Report.
-     * Shows tenants whose permit is Closed, or debt exceeds ₱10,000.
-     */
     public function closures(Request $request)
     {
-        $contracts = Contract::with(['tenant', 'stall.floor.building', 'payments'])
-            ->where('is_active', true)
-            ->get();
+        $query = Contract::with(['tenant', 'stall.floor.building', 'payments'])->where('is_active', true);
+        $query = $this->applyContractFilters($query, $request);
+
+        $allowedSorts = ['tenant_name', 'stall_code', 'total_outstanding'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'total_outstanding';
+        $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
+
+        $contracts = $query->get();
 
         $closures = $contracts->filter(function ($contract) {
-            // Flag if LGU closed their permit OR if their debt is severely high
             return $contract->permit_status === 'Closed' || $contract->total_outstanding >= 10000;
         })->map(function ($contract) {
-
-            // Determine the primary reason for closure flag
             if ($contract->permit_status === 'Closed') {
                 $reason = 'Permit Revoked / Closed by LGU';
                 $severity = 'critical';
@@ -75,36 +118,110 @@ class ReportController extends Controller
                 'reason' => $reason,
                 'severity' => $severity
             ];
-        })->values();
+        });
+
+        if ($sortBy === 'total_outstanding') {
+            $closures = $direction === 'asc' ? $closures->sortBy('total_outstanding') : $closures->sortByDesc('total_outstanding');
+        } elseif ($sortBy === 'stall_code') {
+            $closures = $direction === 'asc' ? $closures->sortBy('stall_code') : $closures->sortByDesc('stall_code');
+        } else {
+            $closures = $direction === 'asc' ? $closures->sortBy('tenant_name') : $closures->sortByDesc('tenant_name');
+        }
+
+        $buildings = Building::orderBy('name', 'asc')->get();
+        $stalls = Stall::orderBy('stall_code', 'asc')->get();
 
         return Inertia::render('Reports/Closures', [
-            'closures' => $closures
+            'closures' => $closures->values(),
+            'buildings' => $buildings,
+            'stalls' => $stalls,
+            'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),
         ]);
     }
 
     /**
-     * Instantly exports the "With Balance" report to a CSV file.
+     * 🔥 BRAND NEW: The Master Ledger Report
      */
+    public function masterLedger(Request $request)
+    {
+        $query = Payment::with(['contract.stall.floor.building', 'contract.tenant']);
+
+        // Master Ledger Filters
+        if ($request->filled('building_id')) {
+            $query->whereHas('contract.stall.floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
+            });
+        }
+        if ($request->filled('stall_id')) {
+            $query->whereHas('contract', function ($q) use ($request) {
+                $q->where('stall_id', $request->stall_id);
+            });
+        }
+        if ($request->filled('month')) {
+            $query->where('month', $request->month);
+        }
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('or_number', 'like', $searchTerm)
+                ->orWhereHas('contract.tenant', function ($q) use ($searchTerm) {
+                    $q->where('first_name', 'like', $searchTerm)
+                        ->orWhere('last_name', 'like', $searchTerm);
+                });
+        }
+
+        $allowedSorts = ['payment_date', 'or_number', 'amount'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'payment_date';
+        $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
+
+        $ledger = $query->orderBy($sortBy, $direction)->paginate(20)->withQueryString();
+
+        $buildings = Building::orderBy('name', 'asc')->get();
+        $stalls = Stall::orderBy('stall_code', 'asc')->get();
+
+        return Inertia::render('Reports/MasterLedger', [
+            'ledger' => $ledger,
+            'buildings' => $buildings,
+            'stalls' => $stalls,
+            'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),
+        ]);
+    }
+
     public function exportBalances()
     {
-        $contracts = Contract::with(['tenant', 'stall', 'payments'])
-            ->where('is_active', true)
-            ->get()
-            ->filter(fn($c) => $c->total_outstanding > 0);
-
-        // Standardized Excel Headers
+        $contracts = Contract::with(['tenant', 'stall', 'payments'])->where('is_active', true)->get()->filter(fn($c) => $c->total_outstanding > 0);
         $csvData = "Tenant Name,Stall Code,Missing Deposit,Outstanding Rent,Total Debt\n";
-
         foreach ($contracts as $contract) {
             $name = '"' . str_replace('"', '""', $contract->tenant->last_name . ', ' . $contract->tenant->first_name) . '"';
             $stall = '"' . str_replace('"', '""', $contract->stall->stall_code ?? 'N/A') . '"';
             $depVar = $contract->deposit_variance > 0 ? $contract->deposit_variance : 0;
-
             $csvData .= "{$name},{$stall},{$depVar},{$contract->outstanding_balance},{$contract->total_outstanding}\n";
         }
+        return response($csvData)->header('Content-Type', 'text/csv')->header('Content-Disposition', 'attachment; filename="LGU_With_Balances_Report.csv"');
+    }
 
-        return response($csvData)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="LGU_With_Balances_Report.csv"');
+    // Add export logic for Master Ledger
+    public function exportLedger()
+    {
+        $payments = Payment::with(['contract.stall.floor.building', 'contract.tenant'])->orderBy('payment_date', 'desc')->get();
+        $csvData = "MONTH PAID,PRICE,DATE,O.R. NUMBER,NAME,LOCATION,MARKET STALL,RENTAL PENALTY\n";
+
+        foreach ($payments as $p) {
+            $month = '"' . str_replace('"', '""', $p->month . ' ' . $p->year) . '"';
+            $price = '"' . str_replace('"', '""', $p->amount) . '"';
+            $date = '"' . str_replace('"', '""', $p->payment_date) . '"';
+            $or = '"' . str_replace('"', '""', $p->or_number) . '"';
+            $name = '"' . str_replace('"', '""', $p->contract->tenant->last_name . ', ' . $p->contract->tenant->first_name) . '"';
+            $loc = '"' . str_replace('"', '""', $p->contract->stall->floor->building->name ?? 'N/A') . '"';
+            $stall = '"' . str_replace('"', '""', $p->contract->stall->stall_code ?? 'N/A') . '"';
+
+            // Check remarks for 20% penalty
+            $penalty = str_contains($p->contract->remarks ?? '', '20% Late Renewal Penalty') ? '"20% APPLIED"' : '""';
+
+            $csvData .= "{$month},{$price},{$date},{$or},{$name},{$loc},{$stall},{$penalty}\n";
+        }
+        return response($csvData)->header('Content-Type', 'text/csv')->header('Content-Disposition', 'attachment; filename="LGU_Master_Ledger.csv"');
     }
 }

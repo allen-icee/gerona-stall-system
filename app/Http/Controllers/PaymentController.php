@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\Contract;
+use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -16,13 +17,12 @@ class PaymentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Payment::with(['contract.stall.building', 'contract.tenant', 'encoder']);
+        $query = Payment::with(['contract.stall.floor.building', 'contract.tenant', 'encoder']);
 
+        // 1. Text Search
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('or_number', 'like', $searchTerm)
-                ->orWhere('month', 'like', $searchTerm)
-                ->orWhere('year', 'like', $searchTerm)
                 ->orWhereHas('contract.tenant', function ($q) use ($searchTerm) {
                     $q->where('first_name', 'like', $searchTerm)
                         ->orWhere('last_name', 'like', $searchTerm)
@@ -33,23 +33,34 @@ class PaymentController extends Controller
                 });
         }
 
-        $payments = $query->latest('payment_date')->paginate(15)->withQueryString();
-
-        $activeContracts = Contract::with(['stall.building', 'tenant'])
-            ->where('is_active', true)
-            ->get()
-            ->map(function ($contract) {
-                $contract->append([
-                    'total_paid',
-                    'months_active',
-                    'expected_rent',
-                    'outstanding_balance',
-                    'advanced_payment'
-                ]);
-                return $contract;
+        // 2. 🔥 NEW: Advanced Filtering
+        if ($request->filled('building_id')) {
+            $query->whereHas('contract.stall.floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
             });
+        }
+        if ($request->filled('month')) {
+            $query->where('month', $request->month);
+        }
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
 
-        // 🔥 NEW: Treasury KPIs for the Dashboard
+        // 3. 🔥 NEW: Bulletproof Sorting
+        $allowedSorts = ['payment_date', 'or_number', 'amount', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'payment_date';
+        $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $direction);
+
+        $payments = $query->paginate(15)->withQueryString();
+
+        $activeContracts = Contract::with(['stall.floor.building', 'tenant'])
+            ->where('is_active', true)
+            ->get();
+
+        $buildings = Building::orderBy('name', 'asc')->get();
+
         $stats = [
             'today_collection' => Payment::whereDate('payment_date', Carbon::today())->sum('amount'),
             'month_collection' => Payment::whereMonth('payment_date', Carbon::now()->month)
@@ -61,8 +72,9 @@ class PaymentController extends Controller
         return Inertia::render('Payments/Index', [
             'payments' => $payments,
             'activeContracts' => $activeContracts,
-            'filters' => $request->only(['search']),
-            'stats' => $stats // Passing the KPIs to React
+            'buildings' => $buildings,
+            'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
+            'stats' => $stats
         ]);
     }
 
@@ -77,7 +89,7 @@ class PaymentController extends Controller
             'or_number' => 'required|string|unique:payments,or_number',
         ]);
 
-        Payment::create([
+        $payment = Payment::create([
             'contract_id' => $validated['contract_id'],
             'amount' => $validated['amount'],
             'payment_date' => $validated['payment_date'],
@@ -87,7 +99,11 @@ class PaymentController extends Controller
             'encoded_by' => Auth::id(),
         ]);
 
-        return redirect()->back()->with('success', 'Official Receipt (OR) successfully recorded!');
+        // 🔥 THE FIX: Pass the newly created payment ID back to React to trigger Auto-Print
+        return redirect()->back()->with([
+            'success' => 'Official Receipt successfully recorded!',
+            'recent_payment_id' => $payment->id
+        ]);
     }
 
     public function update(Request $request, Payment $payment)
@@ -101,7 +117,6 @@ class PaymentController extends Controller
         ]);
 
         $payment->update($validated);
-
         return redirect()->back()->with('success', 'Payment record successfully updated!');
     }
 
@@ -110,28 +125,56 @@ class PaymentController extends Controller
         DB::transaction(function () use ($payment) {
             $payment->delete();
         });
-
         return redirect()->back()->with('success', 'Payment record successfully deleted.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $payments = Payment::with(['contract.stall', 'contract.tenant', 'encoder'])
-            ->orderBy('payment_date', 'desc')
-            ->get();
+        $query = Payment::with(['contract.stall.floor.building', 'contract.tenant', 'encoder']);
 
-        $csvData = "or_number,tenant_first_name,tenant_last_name,amount,payment_date,month,year\n";
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('or_number', 'like', $searchTerm)
+                ->orWhereHas('contract.tenant', function ($q) use ($searchTerm) {
+                    $q->where('first_name', 'like', $searchTerm)->orWhere('last_name', 'like', $searchTerm);
+                })
+                ->orWhereHas('contract.stall', function ($q) use ($searchTerm) {
+                    $q->where('stall_code', 'like', $searchTerm);
+                });
+        }
+
+        if ($request->filled('building_id')) {
+            $query->whereHas('contract.stall.floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
+            });
+        }
+        if ($request->filled('month')) {
+            $query->where('month', $request->month);
+        }
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+
+        $allowedSorts = ['payment_date', 'or_number', 'amount', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'payment_date';
+        $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $direction);
+
+        $payments = $query->get();
+        $csvData = "or_number,tenant_first_name,tenant_last_name,stall_code,amount,payment_date,month,year\n";
 
         foreach ($payments as $payment) {
             $tenantFirst = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->first_name) . '"' : '""';
             $tenantLast = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->last_name) . '"' : '""';
+            $stallCode = ($payment->contract && $payment->contract->stall) ? '"' . str_replace('"', '""', $payment->contract->stall->stall_code) . '"' : '""';
 
-            $csvData .= "{$payment->or_number},{$tenantFirst},{$tenantLast},{$payment->amount},{$payment->payment_date},{$payment->month},{$payment->year}\n";
+            $csvData .= "{$payment->or_number},{$tenantFirst},{$tenantLast},{$stallCode},{$payment->amount},{$payment->payment_date},{$payment->month},{$payment->year}\n";
         }
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="payments_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="filtered_payments_export.csv"');
     }
 
     public function import(Request $request)
@@ -145,11 +188,10 @@ class PaymentController extends Controller
             return redirect()->back()->with('error', 'Import failed.');
         }
     }
+
     public function print(Payment $payment)
     {
-        // Eager load the required relationships so the React page has the data
-        $payment->load(['contract.tenant', 'contract.stall', 'encoder']);
-
+        $payment->load(['contract.tenant', 'contract.stall.floor.building', 'encoder']);
         return Inertia::render('Payments/Print', [
             'payment' => $payment
         ]);

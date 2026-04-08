@@ -15,7 +15,7 @@ class TenantController extends Controller
     {
         $query = Tenant::query();
 
-        // Debounced Search Logic
+        // Search Filter
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('first_name', 'like', $searchTerm)
@@ -24,12 +24,16 @@ class TenantController extends Controller
                 ->orWhere('contact_number', 'like', $searchTerm);
         }
 
-        // Gold Standard: Alphabetical sorting by last name
-        $tenants = $query->orderBy('last_name', 'asc')->paginate(10)->withQueryString();
+        // 🔥 BULLETPROOF SORTING 🔥
+        $allowedSorts = ['last_name', 'first_name', 'company_name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'last_name';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        $tenants = $query->orderBy($sortBy, $direction)->paginate(15)->withQueryString();
 
         return Inertia::render('Tenants/Index', [
             'tenants' => $tenants,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 
@@ -65,9 +69,7 @@ class TenantController extends Controller
 
     public function destroy(Tenant $tenant)
     {
-        // Gold Standard: Transaction safely deletes children before the parent
         DB::transaction(function () use ($tenant) {
-            // Sweep dependent records (assuming a Tenant has payments and contracts)
             \App\Models\Payment::where('tenant_id', $tenant->id)->delete();
             \App\Models\Contract::where('tenant_id', $tenant->id)->delete();
             $tenant->delete();
@@ -76,15 +78,29 @@ class TenantController extends Controller
         return redirect()->back()->with('success', 'Tenant and all associated records successfully deleted.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $tenants = Tenant::orderBy('last_name', 'asc')->get();
+        $query = Tenant::query();
 
-        // Gold Standard: Exact header match for the smart Import class
+        // Apply filters to Export
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('first_name', 'like', $searchTerm)
+                ->orWhere('last_name', 'like', $searchTerm)
+                ->orWhere('company_name', 'like', $searchTerm)
+                ->orWhere('contact_number', 'like', $searchTerm);
+        }
+
+        // 🔥 BULLETPROOF EXPORT SORTING 🔥
+        $allowedSorts = ['last_name', 'first_name', 'company_name', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'last_name';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        $tenants = $query->orderBy($sortBy, $direction)->get();
+
         $csvData = "first_name,last_name,company_name,contact_number,address\n";
 
         foreach ($tenants as $tenant) {
-            // Escape commas in address/company to prevent CSV breaking
             $first = '"' . str_replace('"', '""', $tenant->first_name) . '"';
             $last = '"' . str_replace('"', '""', $tenant->last_name) . '"';
             $company = '"' . str_replace('"', '""', $tenant->company_name) . '"';
@@ -96,7 +112,7 @@ class TenantController extends Controller
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="tenants_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="filtered_tenants_export.csv"');
     }
 
     public function import(Request $request)

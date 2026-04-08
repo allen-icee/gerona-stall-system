@@ -20,7 +20,6 @@ class LayoutController extends Controller
         $stalls = [];
 
         if ($floor_id) {
-            // THE FIX: Force the database to return cells in exact Row -> Column sequence!
             $layout = Layout::with([
                 'cells' => function ($query) {
                     $query->orderBy('row_number', 'asc')->orderBy('column_number', 'asc');
@@ -72,11 +71,8 @@ class LayoutController extends Controller
             ->with('success', 'Grid generated successfully!');
     }
 
-
-
     public function expand(Request $request, Layout $layout)
     {
-        // THE FIX: Auto-save any unsaved drawing progress BEFORE expanding!
         if ($request->has('cells')) {
             foreach ($request->input('cells') as $cellData) {
                 LayoutCell::where('id', $cellData['id'])->update([
@@ -87,46 +83,52 @@ class LayoutController extends Controller
         }
 
         $direction = $request->input('direction');
+        $amount = (int) $request->input('amount', 1);
 
         if ($direction === 'row') {
-            $layout->increment('total_rows');
+            $startRow = $layout->total_rows + 1;
+            $layout->increment('total_rows', $amount);
             $cells = [];
-            for ($c = 1; $c <= $layout->total_cols; $c++) {
-                $cells[] = [
-                    'layout_id' => $layout->id,
-                    'row_number' => $layout->total_rows,
-                    'column_number' => $c,
-                    'type' => 'vacant',
-                    'stall_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+            for ($r = $startRow; $r <= $layout->total_rows; $r++) {
+                for ($c = 1; $c <= $layout->total_cols; $c++) {
+                    $cells[] = [
+                        'layout_id' => $layout->id,
+                        'row_number' => $r,
+                        'column_number' => $c,
+                        'type' => 'vacant',
+                        'stall_id' => null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
             }
             LayoutCell::insert($cells);
         } elseif ($direction === 'col') {
-            $layout->increment('total_cols');
+            $startCol = $layout->total_cols + 1;
+            $layout->increment('total_cols', $amount);
             $cells = [];
-            for ($r = 1; $r <= $layout->total_rows; $r++) {
-                $cells[] = [
-                    'layout_id' => $layout->id,
-                    'row_number' => $r,
-                    'column_number' => $layout->total_cols,
-                    'type' => 'vacant',
-                    'stall_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+            for ($c = $startCol; $c <= $layout->total_cols; $c++) {
+                for ($r = 1; $r <= $layout->total_rows; $r++) {
+                    $cells[] = [
+                        'layout_id' => $layout->id,
+                        'row_number' => $r,
+                        'column_number' => $c,
+                        'type' => 'vacant',
+                        'stall_id' => null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
             }
             LayoutCell::insert($cells);
         }
 
         return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', 'Grid expanded and progress auto-saved!');
+            ->with('success', "Grid expanded by {$amount} and progress auto-saved!");
     }
 
     public function shrink(Request $request, Layout $layout)
     {
-        // THE FIX: Auto-save any unsaved drawing progress BEFORE shrinking!
         if ($request->has('cells')) {
             foreach ($request->input('cells') as $cellData) {
                 LayoutCell::where('id', $cellData['id'])->update([
@@ -137,18 +139,22 @@ class LayoutController extends Controller
         }
 
         $direction = $request->input('direction');
+        $amount = (int) $request->input('amount', 1);
 
         if ($direction === 'row' && $layout->total_rows > 1) {
-            LayoutCell::where('layout_id', $layout->id)->where('row_number', $layout->total_rows)->delete();
-            $layout->decrement('total_rows');
+            $amount = min($amount, $layout->total_rows - 1);
+            LayoutCell::where('layout_id', $layout->id)->where('row_number', '>', $layout->total_rows - $amount)->delete();
+            $layout->decrement('total_rows', $amount);
         } elseif ($direction === 'col' && $layout->total_cols > 1) {
-            LayoutCell::where('layout_id', $layout->id)->where('column_number', $layout->total_cols)->delete();
-            $layout->decrement('total_cols');
+            $amount = min($amount, $layout->total_cols - 1);
+            LayoutCell::where('layout_id', $layout->id)->where('column_number', '>', $layout->total_cols - $amount)->delete();
+            $layout->decrement('total_cols', $amount);
         }
 
         return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', 'Grid trimmed and progress auto-saved!');
+            ->with('success', "Grid trimmed by {$amount} and progress auto-saved!");
     }
+
     public function saveMap(Request $request, Layout $layout)
     {
         $cells = $request->input('cells');

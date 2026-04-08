@@ -5,29 +5,37 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreateStallModal from "./Partials/CreateStallModal";
 import EditStallModal from "./Partials/EditStallModal";
 import Modal from "@/Components/Modal";
+import CustomSelect from "@/Components/CustomSelect";
 
-export default function StallsIndex({
-    stalls,
-    floors,
-    filters,
-}: any) {
+export default function StallsIndex({ stalls, floors, filters }: any) {
     const [search, setSearch] = useState(filters?.search || "");
+    const [sortFilter, setSortFilter] = useState(filters?.sort ? `${filters.sort}_${filters.direction}` : 'stall_code_asc');
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingStall, setEditingStall] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
+    // Advanced Sorting Options
+    const sortOptions = [
+        { value: 'stall_code_asc', label: 'Stall Code (A-Z)' },
+        { value: 'stall_code_desc', label: 'Stall Code (Z-A)' },
+        { value: 'location_asc', label: 'Location (Building/Floor)' },
+        { value: 'created_at_desc', label: 'Recently Added' },
+    ];
+
+    // Debounced Search & Sort
     useEffect(() => {
         const delay = setTimeout(() => {
+            const [sortBy, filterDirection] = sortFilter.split('_');
             router.get(
                 route("stalls.index"),
-                { search },
+                { search, sort: sortBy, direction: filterDirection },
                 { preserveState: true, replace: true },
             );
         }, 300);
         return () => clearTimeout(delay);
-    }, [search]);
+    }, [search, sortFilter]);
 
     const confirmDelete = (id: number) => setDeletingId(id);
 
@@ -40,6 +48,12 @@ export default function StallsIndex({
         }
     };
 
+    const handleExport = (e: React.MouseEvent) => {
+        e.preventDefault();
+        const [sortBy, filterDirection] = sortFilter.split('_');
+        window.location.href = route('stalls.export', { search, sort: sortBy, direction: filterDirection });
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             router.post(
@@ -48,9 +62,7 @@ export default function StallsIndex({
                 {
                     preserveScroll: true,
                     forceFormData: true,
-                    onSuccess: () => {
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                    },
+                    onSuccess: () => { if (fileInputRef.current) fileInputRef.current.value = ""; },
                     onError: (errors) => {
                         alert(errors.file || "Failed to upload file. Make sure it's a valid Excel/CSV.");
                         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -94,14 +106,25 @@ export default function StallsIndex({
                                 <Icon icon="solar:shop-bold-duotone" className="w-7 h-7 text-blue-700" />
                                 Manage Stalls
                             </h3>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200">
-                                {totalStalls} {totalStalls === 1 ? "Record" : "Records"}
+                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Stalls">
+                                <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
+                                {totalStalls}
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">Manage stall inventory, codes, and physical locations.</p>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
+
+                        <div className="w-56 z-20">
+                            <CustomSelect
+                                value={sortFilter}
+                                onChange={setSortFilter}
+                                options={sortOptions}
+                                theme="blue"
+                            />
+                        </div>
+
                         <div className="relative w-full md:w-64">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Icon icon="solar:magnifer-bold" className="h-5 w-5 text-slate-400" />
@@ -115,9 +138,9 @@ export default function StallsIndex({
                             />
                         </div>
 
-                        <a href={route("stalls.export")} className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0" title="Export to Excel">
+                        <button onClick={handleExport} className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0" title="Export Filtered Stalls">
                             <Icon icon="solar:export-bold-duotone" className="w-5 h-5" />
-                        </a>
+                        </button>
 
                         <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
                         <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors shrink-0" title="Import from Excel">
@@ -134,13 +157,13 @@ export default function StallsIndex({
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
+                            <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center w-16">#</th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">Stall Code</th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">Current Status</th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">Location</th>
-                                    <th className="px-6 py-4 text-center">Actions</th>
+                                    <th className="px-6 py-4 text-center">System Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y-2 divide-slate-200">
@@ -153,10 +176,8 @@ export default function StallsIndex({
                                     </tr>
                                 ) : (
                                     stalls.data.map((stall: any, index: number) => {
-                                        // THE FIX: Parse the backend object safely
                                         const statusObj = stall.computed_status || { label: 'UNKNOWN', color: '#000000' };
 
-                                        // Expanded styling to handle all new LGU Phase 3 statuses
                                         const statusColors: any = {
                                             "VACANT": "bg-emerald-100 border-emerald-300 text-emerald-700",
                                             "FOR CONTRACT": "bg-amber-100 border-amber-300 text-amber-700",
@@ -169,7 +190,6 @@ export default function StallsIndex({
                                             "CLOSED": "bg-red-100 border-red-300 text-red-700",
                                         };
 
-                                        // THE FIX: Use statusObj.label instead of the raw object
                                         const badgeColor = statusColors[statusObj.label] || "bg-slate-100 border-slate-300 text-slate-700";
 
                                         return (

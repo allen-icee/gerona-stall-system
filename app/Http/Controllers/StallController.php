@@ -27,13 +27,30 @@ class StallController extends Controller
                 });
         }
 
-        $stalls = $query->orderBy('stall_code', 'asc')->paginate(10)->withQueryString();
+        // 🔥 BULLETPROOF SORTING 🔥
+        $allowedSorts = ['stall_code', 'location', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        if ($sortBy === 'location') {
+            // Sort by Building -> Floor -> Stall Code
+            $query->join('floors', 'stalls.floor_id', '=', 'floors.id')
+                ->join('buildings', 'floors.building_id', '=', 'buildings.id')
+                ->select('stalls.*')
+                ->orderBy('buildings.name', $direction)
+                ->orderBy('floors.name', $direction)
+                ->orderBy('stalls.stall_code', 'asc');
+        } else {
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $stalls = $query->paginate(15)->withQueryString();
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $stalls,
             'floors' => $floors,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 
@@ -42,7 +59,6 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
-            // --- NEW PHASE 6 FIELDS ---
             'section' => 'nullable|string|max:255',
             'classification' => 'nullable|string|max:255',
             'size_sqm' => 'nullable|numeric|min:0',
@@ -64,7 +80,6 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
-            // --- NEW PHASE 6 FIELDS ---
             'section' => 'nullable|string|max:255',
             'classification' => 'nullable|string|max:255',
             'size_sqm' => 'nullable|numeric|min:0',
@@ -92,10 +107,38 @@ class StallController extends Controller
         return redirect()->back()->with('success', 'Stall and associated records successfully deleted.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $stalls = Stall::with(['floor.building'])->orderBy('stall_code', 'asc')->get();
+        $query = Stall::with(['floor.building']);
 
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('stall_code', 'like', $searchTerm)
+                ->orWhereHas('floor', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm)
+                        ->orWhereHas('building', function ($q2) use ($searchTerm) {
+                            $q2->where('name', 'like', $searchTerm);
+                        });
+                });
+        }
+
+        // 🔥 BULLETPROOF EXPORT SORTING 🔥
+        $allowedSorts = ['stall_code', 'location', 'created_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
+        $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+
+        if ($sortBy === 'location') {
+            $query->join('floors', 'stalls.floor_id', '=', 'floors.id')
+                ->join('buildings', 'floors.building_id', '=', 'buildings.id')
+                ->select('stalls.*')
+                ->orderBy('buildings.name', $direction)
+                ->orderBy('floors.name', $direction)
+                ->orderBy('stalls.stall_code', 'asc');
+        } else {
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $stalls = $query->get();
         $csvData = "stall_code,floor,stall_type,size_sqm,rate_per_sqm,fixed_rate\n";
 
         foreach ($stalls as $stall) {
@@ -113,7 +156,7 @@ class StallController extends Controller
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="stalls_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="filtered_stalls_export.csv"');
     }
 
     public function import(Request $request)

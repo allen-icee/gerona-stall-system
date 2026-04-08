@@ -3,16 +3,18 @@ import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
 export default function InteractiveGrid({
-    layout, gridCells, onCellClick, onClearAll, onRevert,
+    layout, gridCells, activeFloorData, onCellClick, onClearAll, onRevert,
     onExpandRow, onExpandCol, onShrinkRow, onShrinkCol
 }: any) {
     const [zoom, setZoom] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // New State for Floating UI
     const [searchQuery, setSearchQuery] = useState("");
     const [isLegendOpen, setIsLegendOpen] = useState(false);
     const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, data: null as any });
+
+    // 🔥 NEW: Mass Extender Input State
+    const [expandAmount, setExpandAmount] = useState(1);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -53,12 +55,24 @@ export default function InteractiveGrid({
         };
     }, []);
 
+    // Calculate Price for Tooltip
+    const formatPrice = (stall: any) => {
+        if (stall.stall_type === 'sqm_based') return `₱${(Number(stall.size_sqm || 0) * Number(stall.rate_per_sqm || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        if (stall.stall_type === 'class_based') return `₱${Number(stall.fixed_rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        return 'Manual Setup';
+    };
+
     return (
         <div ref={containerRef} className="relative w-full h-full overflow-hidden flex flex-col bg-slate-100">
 
-            {/* 1. FLOATING SEARCH BAR */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-96 max-w-[90%]">
-                <div className="relative shadow-2xl rounded-full">
+            {/* 1. CENTER STAGE HEADER & FLOATING SEARCH BAR */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-96 max-w-[90%] pointer-events-none">
+                <div className="bg-slate-900/80 backdrop-blur-md text-white px-8 py-3 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-700 pointer-events-auto">
+                    <h1 className="text-xl font-black uppercase tracking-widest">{activeFloorData?.building_name || "Unknown Building"}</h1>
+                    <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest">{activeFloorData?.name || "Unknown Floor"}</h2>
+                </div>
+
+                <div className="relative shadow-2xl rounded-full w-full mt-4 pointer-events-auto border-2 border-slate-300">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Icon icon="solar:magnifer-linear" className="h-5 w-5 text-slate-400" />
                     </div>
@@ -67,36 +81,50 @@ export default function InteractiveGrid({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search occupant, company, or stall..."
-                        className="w-full bg-white border-2 border-slate-300 rounded-full pl-11 pr-4 py-3 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                        className="w-full bg-white rounded-full pl-11 pr-4 py-3 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
             </div>
 
-            {/* 2. FLOATING QUICK ACTIONS */}
-            <div className="absolute bottom-6 left-6 z-50 flex items-center gap-1.5 p-1.5 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80">
-                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-1.5">
-                    <button onClick={onExpandRow} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title="Add Row to Bottom">
+            {/* 2. FLOATING QUICK ACTIONS (WITH MASS GENERATOR INPUT) */}
+            <div className="absolute bottom-6 left-6 z-50 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80">
+
+                {/* Mass Extender Input */}
+                <div className="flex flex-col items-center justify-center border-r-2 border-slate-200 pr-2">
+                    <label className="text-[7px] font-black uppercase text-slate-500 mb-1">Add/Del Qty</label>
+                    <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={expandAmount}
+                        onChange={(e) => setExpandAmount(parseInt(e.target.value) || 1)}
+                        className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0"
+                    />
+                </div>
+
+                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
+                    <button onClick={() => onExpandRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title={`Add ${expandAmount} Row(s)`}>
                         <Icon icon="solar:row-bottom-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Add<br />Row</span>
+                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Row</span>
                     </button>
-                    <button onClick={onShrinkRow} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title="Remove Bottom Row">
+                    <button onClick={() => onShrinkRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title={`Remove ${expandAmount} Row(s)`}>
                         <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Del<br />Row</span>
+                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Row</span>
                     </button>
                 </div>
 
-                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-1.5">
-                    <button onClick={onExpandCol} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title="Add Column to Right">
+                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
+                    <button onClick={() => onExpandCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all" title={`Add ${expandAmount} Column(s)`}>
                         <Icon icon="solar:sidebar-right-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Add<br />Col</span>
+                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Col</span>
                     </button>
-                    <button onClick={onShrinkCol} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title="Remove Rightmost Column">
+                    <button onClick={() => onShrinkCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all" title={`Remove ${expandAmount} Column(s)`}>
                         <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Del<br />Col</span>
+                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Col</span>
                     </button>
                 </div>
 
-                <div className="flex gap-1.5 pl-0.5">
+                <div className="flex gap-1.5">
                     <button onClick={onRevert} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all">
                         <Icon icon="solar:history-bold-duotone" className="w-5 h-5" />
                         <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Revert</span>
@@ -109,9 +137,9 @@ export default function InteractiveGrid({
             </div>
 
             {/* 3. UPDATED EXCEL-ALIGNED LEGEND */}
-            <div className="absolute bottom-24 right-6 z-50 flex flex-col items-end">
+            <div className="absolute bottom-24 right-6 z-50 flex flex-col items-end pointer-events-none">
                 {isLegendOpen && (
-                    <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-80 animate-fade-in-up origin-bottom-right">
+                    <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-80 animate-fade-in-up origin-bottom-right pointer-events-auto">
                         <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 border-b-2 border-slate-100 pb-2">Color Legend</h4>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[10px] uppercase font-bold text-slate-600 tracking-tight">
                             <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-md shadow-sm bg-[#00ff00]"></div> Vacant</div>
@@ -127,7 +155,7 @@ export default function InteractiveGrid({
                         </div>
                     </div>
                 )}
-                <button onClick={() => setIsLegendOpen(!isLegendOpen)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl shadow-xl hover:bg-slate-700 transition-colors border-2 border-slate-900">
+                <button onClick={() => setIsLegendOpen(!isLegendOpen)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl shadow-xl hover:bg-slate-700 transition-colors border-2 border-slate-900 pointer-events-auto">
                     <Icon icon="solar:map-point-bold-duotone" className="w-5 h-5" />
                     <span className="text-[11px] font-black uppercase tracking-wider">Legend</span>
                     <Icon icon={isLegendOpen ? "solar:alt-arrow-down-bold" : "solar:alt-arrow-up-bold"} className="w-4 h-4 ml-1" />
@@ -151,7 +179,7 @@ export default function InteractiveGrid({
             </div>
 
             {/* 5. INTERACTIVE SCROLLABLE GRID */}
-            <div className="overflow-auto w-full h-full p-24 custom-scrollbar flex items-start justify-center">
+            <div className="overflow-auto w-full h-full p-32 custom-scrollbar flex items-start justify-center">
                 <div
                     className="bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block origin-center transition-transform duration-200 ease-out"
                     style={{ transform: `scale(${zoom})` }}
@@ -209,7 +237,6 @@ export default function InteractiveGrid({
                                     </div>
                                 );
 
-                                // THE FIX: Pulls the color straight from the backend model!
                                 dbColor = cell.stall.computed_status?.color || '#ffffff';
                             }
 
@@ -251,20 +278,27 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {/* 6. DYNAMIC PORTAL TOOLTIP */}
+            {/* 6. DYNAMIC PORTAL COMMAND TOOLTIP */}
             {tooltip.show && tooltip.data && createPortal(
                 <div
-                    className="fixed z-[99999] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl pointer-events-none border border-slate-700 animate-fade-in-up"
+                    className="fixed z-[99999] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl pointer-events-auto border border-slate-700 animate-fade-in-up w-56"
                     style={{ top: tooltip.y + 15, left: tooltip.x + 15 }}
+                    onMouseEnter={() => setTooltip(prev => ({ ...prev, show: true }))} // Keep tooltip open if they hover into it
+                    onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, data: null })}
                 >
-                    <div className="flex items-center gap-2 mb-2 border-b border-slate-700 pb-2">
-                        <Icon icon="solar:shop-bold-duotone" className="text-amber-400 w-5 h-5" />
-                        <span className="font-black text-amber-400 text-sm tracking-widest">{tooltip.data.stall_code}</span>
+                    <div className="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Icon icon="solar:shop-bold-duotone" className="text-amber-400 w-5 h-5" />
+                            <span className="font-black text-amber-400 text-sm tracking-widest">{tooltip.data.stall_code}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800">
+                            {formatPrice(tooltip.data)}
+                        </span>
                     </div>
 
                     {tooltip.data.active_contract?.tenant ? (
-                        <>
-                            <p className="text-sm font-bold leading-tight">
+                        <div className="mb-3">
+                            <p className="text-sm font-bold leading-tight text-white">
                                 {tooltip.data.active_contract.tenant.first_name} {tooltip.data.active_contract.tenant.last_name}
                             </p>
                             {tooltip.data.active_contract.tenant.company_name && (
@@ -273,24 +307,24 @@ export default function InteractiveGrid({
                                     {tooltip.data.active_contract.tenant.company_name}
                                 </p>
                             )}
-                        </>
+                        </div>
                     ) : (
-                        <p className="text-xs text-slate-400 italic">No current occupant.</p>
+                        <p className="text-xs text-slate-400 italic mb-3">No current occupant.</p>
                     )}
 
-                    <div className="mt-3 pt-2 border-t border-slate-700 flex justify-between items-center gap-4">
-                        <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">Status</span>
-
-                        {/* THE FIX: Dynamic tooltip colors based on backend status object! */}
-                        <span
-                            className="text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded border border-slate-700"
-                            style={{
-                                backgroundColor: tooltip.data.computed_status?.color ? `${tooltip.data.computed_status.color}33` : '#000000',
-                                color: tooltip.data.computed_status?.color || '#ffffff'
-                            }}
-                        >
-                            {tooltip.data.computed_status?.label || 'UNKNOWN'}
-                        </span>
+                    {/* Operational Command Links */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <a href={route('contracts.index', { search: tooltip.data.stall_code })} className="flex justify-center items-center gap-1 bg-blue-600 text-white text-center py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold hover:bg-blue-500 transition-colors">
+                            <Icon icon="solar:document-text-bold" className="w-3 h-3" /> Contracts
+                        </a>
+                        <a href={route('payments.index', { search: tooltip.data.stall_code })} className="flex justify-center items-center gap-1 bg-emerald-600 text-white text-center py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold hover:bg-emerald-500 transition-colors">
+                            <Icon icon="solar:wallet-bold" className="w-3 h-3" /> Ledger
+                        </a>
+                        {tooltip.data.active_contract && (
+                            <a href={route('contracts.index', { search: tooltip.data.stall_code })} className="col-span-2 flex justify-center items-center gap-1 bg-rose-600 text-white text-center py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold hover:bg-rose-500 transition-colors">
+                                <Icon icon="solar:close-circle-bold" className="w-3 h-3" /> Manage Vacancy
+                            </a>
+                        )}
                     </div>
                 </div>,
                 document.body

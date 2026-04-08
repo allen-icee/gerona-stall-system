@@ -2,13 +2,14 @@ import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
+import { useRef } from "react";
+import { useEnterTab } from "@/hooks/useEnterTab";
 
 export default function CreateStallModal({ show, onClose, floors }: any) {
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
             floor_id: "",
             stall_code: "",
-            // --- NEW PHASE 6 FIELDS ---
             section: "",
             classification: "",
             size_sqm: "",
@@ -16,6 +17,10 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
             rate_per_sqm: "",
             fixed_rate: "",
         });
+
+    // 🔥 Added the smart Enter-to-Tab hook
+    const formRef = useRef<HTMLFormElement>(null);
+    useEnterTab(formRef);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +45,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                 </button>
             </div>
 
-            <form onSubmit={submit} className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar">
+            <form ref={formRef} onSubmit={submit} className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar">
 
                 {/* --- 1. PHYSICAL LOCATION --- */}
                 <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-200">
@@ -49,7 +54,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Location (Floor)</label>
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Location (Floor)</label>
                             <SearchableSelect
                                 value={data.floor_id}
                                 onChange={(val: any) => setData("floor_id", val)}
@@ -63,11 +68,12 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                             {errors.floor_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.floor_id}</p>}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Stall Code</label>
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Stall Code</label>
                             <input
                                 type="text"
                                 value={data.stall_code}
                                 onChange={(e) => setData("stall_code", e.target.value.toUpperCase())}
+                                maxLength={255}
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 outline-none transition-colors"
                                 placeholder="e.g. B1, ST-014"
                                 required
@@ -84,7 +90,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block">Section</label>
+                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">Section</label>
                             <input
                                 type="text"
                                 list="section-options"
@@ -102,11 +108,11 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                             </datalist>
                         </div>
                         <div>
-                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block">Class</label>
+                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">Class</label>
                             <select
                                 value={data.classification}
                                 onChange={(e) => setData("classification", e.target.value)}
-                                className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-amber-600 focus:ring-0"
+                                className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-amber-600 focus:ring-0 cursor-pointer"
                             >
                                 <option value="">None</option>
                                 <option value="Class A">Class A</option>
@@ -115,7 +121,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block">Size (SQM)</label>
+                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">Size (SQM)</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -135,7 +141,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block">Computation Type</label>
+                            <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">Computation Type</label>
                             <select
                                 value={data.stall_type}
                                 onChange={(e) => setData("stall_type", e.target.value)}
@@ -150,7 +156,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                         {/* Dynamic Field based on type */}
                         {data.stall_type === 'sqm_based' && (
                             <div className="animate-fade-in">
-                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block">Rate per SQM (₱)</label>
+                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">Rate per SQM (₱)</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -164,7 +170,7 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
 
                         {data.stall_type === 'class_based' && (
                             <div className="animate-fade-in">
-                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block">Fixed Monthly Rate (₱)</label>
+                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">Fixed Monthly Rate (₱)</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -179,10 +185,10 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-slate-100">
-                    <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors">
+                    <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer">
                         Cancel
                     </button>
-                    <button type="submit" disabled={processing} className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm">
+                    <button type="submit" disabled={processing} className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer">
                         Save Stall
                     </button>
                 </div>

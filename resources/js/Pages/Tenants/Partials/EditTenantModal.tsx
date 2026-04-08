@@ -1,19 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
 import SuffixSelect from "@/Components/SuffixSelect";
+import { useEnterTab } from "@/hooks/useEnterTab";
 
-export default function EditTenantModal({
-    show,
-    onClose,
-    tenant,
-}: {
-    show: boolean;
-    onClose: () => void;
-    tenant: any;
-}) {
+export default function EditTenantModal({ show, onClose, tenant }: { show: boolean; onClose: () => void; tenant: any; }) {
     const { data, setData, put, processing, errors, reset, clearErrors, transform } =
         useForm({
             first_name: "",
@@ -28,12 +21,15 @@ export default function EditTenantModal({
             street: "",
         });
 
+    // 🔥 Added the smart Enter-to-Tab hook
+    const formRef = useRef<HTMLFormElement>(null);
+    useEnterTab(formRef);
+
     const [locationData, setLocationData] = useState<any>(null);
     const [provinces, setProvinces] = useState<string[]>([]);
     const [municipalities, setMunicipalities] = useState<string[]>([]);
     const [barangays, setBarangays] = useState<string[]>([]);
 
-    // Load Locations JSON
     useEffect(() => {
         if (show && !locationData) {
             fetch("/data/locations.json")
@@ -50,10 +46,8 @@ export default function EditTenantModal({
         }
     }, [show]);
 
-    // Reverse Parse the Tenant Data on Load
     useEffect(() => {
         if (tenant) {
-            // Extract M.I. (e.g. "Juan C." -> "Juan", "C")
             let fName = tenant.first_name || "";
             let mi = "";
             if (fName.match(/\s[A-Z]\.$/)) {
@@ -61,7 +55,6 @@ export default function EditTenantModal({
                 fName = fName.slice(0, -3).trim();
             }
 
-            // Extract Suffix (e.g. "Yu Jr." -> "Yu", "Jr.")
             let lName = tenant.last_name || "";
             let suf = "";
             const suffixes = ["Jr.", "Sr.", "II", "III", "IV", "V"];
@@ -73,7 +66,6 @@ export default function EditTenantModal({
                 }
             }
 
-            // Extract Address Parts (Street, Brgy, Mun, Prov)
             let st = "", brgy = "", mun = "", prov = "";
             if (tenant.address) {
                 const parts = tenant.address.split(",").map((s: string) => s.trim());
@@ -102,7 +94,6 @@ export default function EditTenantModal({
         }
     }, [tenant]);
 
-    // Auto-populate Municipalities if Province exists
     useEffect(() => {
         if (locationData && data.province) {
             for (const regionKey in locationData) {
@@ -117,7 +108,6 @@ export default function EditTenantModal({
         }
     }, [locationData, data.province]);
 
-    // Auto-populate Barangays if Municipality exists
     useEffect(() => {
         if (locationData && data.province && data.municipality) {
             for (const regionKey in locationData) {
@@ -146,7 +136,6 @@ export default function EditTenantModal({
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Transform data back together for the backend
         transform((currentData: any) => {
             const fullAddress = [currentData.street, currentData.barangay, currentData.municipality, currentData.province]
                 .filter(Boolean)
@@ -186,11 +175,11 @@ export default function EditTenantModal({
                 </button>
             </div>
 
-            <form onSubmit={submit} className="p-6 space-y-5 bg-white rounded-b-2xl overflow-visible">
+            <form ref={formRef} onSubmit={submit} className="p-6 space-y-5 bg-white rounded-b-2xl overflow-visible">
                 <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-12 sm:col-span-4">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">First Name</label>
-                        <input type="text" value={data.first_name} onChange={(e) => setData("first_name", e.target.value.replace(/[^a-zA-ZñÑ\s\-,]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors" placeholder="e.g. Juan" required />
+                        <input type="text" maxLength={255} value={data.first_name} onChange={(e) => setData("first_name", e.target.value.replace(/[^a-zA-ZñÑ\s\-,]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors" placeholder="e.g. Juan" required />
                         {errors.first_name && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.first_name}</p>}
                     </div>
                     <div className="col-span-6 sm:col-span-2">
@@ -199,7 +188,7 @@ export default function EditTenantModal({
                     </div>
                     <div className="col-span-12 sm:col-span-4">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Last Name</label>
-                        <input type="text" value={data.last_name} onChange={(e) => setData("last_name", e.target.value.replace(/[^a-zA-ZñÑ\s\-,]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors" placeholder="e.g. Dela Cruz" required />
+                        <input type="text" maxLength={255} value={data.last_name} onChange={(e) => setData("last_name", e.target.value.replace(/[^a-zA-ZñÑ\s\-,]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors" placeholder="e.g. Dela Cruz" required />
                         {errors.last_name && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.last_name}</p>}
                     </div>
                     <div className="col-span-6 sm:col-span-2 flex flex-col justify-end pb-0.5">
@@ -210,7 +199,7 @@ export default function EditTenantModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Business / Company <span className="text-[10px] text-slate-500 font-normal ml-1">(Optional)</span></label>
-                        <input type="text" value={data.company_name} onChange={(e) => setData("company_name", e.target.value)} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors" placeholder="e.g. Sari-Sari Store" />
+                        <input type="text" maxLength={255} value={data.company_name} onChange={(e) => setData("company_name", e.target.value)} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors" placeholder="e.g. Sari-Sari Store" />
                     </div>
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Contact Number <span className="text-[10px] text-slate-500 font-normal ml-1">(Optional)</span></label>
@@ -235,7 +224,7 @@ export default function EditTenantModal({
 
                 <div>
                     <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block">Street / House No. <span className="text-[10px] text-slate-500 font-normal ml-1">(Optional)</span></label>
-                    <input type="text" value={data.street} onChange={(e) => setData("street", e.target.value.replace(/[^a-zA-Z0-9\s\-\.,#]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors" placeholder="House No. / Street Name" />
+                    <input type="text" maxLength={255} value={data.street} onChange={(e) => setData("street", e.target.value.replace(/[^a-zA-Z0-9\s\-\.,#]/g, ""))} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors" placeholder="House No. / Street Name" />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-slate-100">
