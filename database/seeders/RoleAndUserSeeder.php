@@ -33,7 +33,7 @@ class RoleAndUserSeeder extends Seeder
 
         // 2. Create Roles & Assign Isolated Permissions
 
-        // EEDO / Admin Role (Cannot manage payments)
+        // 🔥 EEDO / System Admin Role (God-Mode: Has everything including payments) 🔥
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->syncPermissions([
             'manage users',
@@ -42,6 +42,7 @@ class RoleAndUserSeeder extends Seeder
             'manage contracts',
             'view contracts',
             'view reports',
+            'manage payments', // ADDED: Admin can now access Treasury & Payments
         ]);
 
         // Treasury Role (Cannot manage facilities, tenants, or draft contracts)

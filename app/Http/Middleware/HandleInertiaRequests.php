@@ -17,7 +17,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Determine the current asset version.
      */
-    public function version(Request $request): ?string
+    public function version(Request $request): string|null
     {
         return parent::version($request);
     }
@@ -33,12 +33,12 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
-                // 🔥 NEW: Pass roles and permissions to the React Frontend
-                'roles' => $request->user() ? $request->user()->getRoleNames() : [],
+                // 🔥 THIS IS THE MISSING LINE: Send permissions to React 🔥
                 'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
             ],
+            // You can also share flash messages here if needed for your ToastListener
             'flash' => [
-                'success' => fn() => $request->session()->get('success'),
+                'message' => fn() => $request->session()->get('message'),
                 'error' => fn() => $request->session()->get('error'),
             ],
         ];

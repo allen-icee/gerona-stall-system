@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function () {
         Route::post('stalls/{stall}/quick-status', [StallController::class, 'quickStatus'])->name('stalls.quick-status');
 
         Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
+        Route::post('stalls/bulk-update', [StallController::class, 'bulkUpdate'])->name('stalls.bulk_update');
+        Route::post('stalls/bulk-destroy', [StallController::class, 'bulkDestroy'])->name('stalls.bulk_destroy');
 
         Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
         Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');

@@ -194,4 +194,38 @@ class StallController extends Controller
 
         return redirect()->back()->with('success', "Stall securely updated to: " . strtoupper($status));
     }
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+
+        $updateData = [];
+        $fields = ['section', 'classification', 'stall_type', 'size_sqm', 'rate_per_sqm', 'fixed_rate'];
+
+        foreach ($fields as $field) {
+            if ($request->filled($field)) {
+                $updateData[$field] = $request->input($field);
+            }
+        }
+
+        if (!empty($updateData)) {
+            Stall::whereIn('id', $request->ids)->update($updateData);
+        }
+
+        // 🔥 Changed 'success' to 'message' here 🔥
+        return redirect()->back()->with('message', count($request->ids) . ' stalls successfully updated.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+
+        DB::transaction(function () use ($request) {
+            \App\Models\Payment::whereIn('stall_id', $request->ids)->delete();
+            \App\Models\Contract::whereIn('stall_id', $request->ids)->delete();
+            Stall::whereIn('id', $request->ids)->delete();
+        });
+
+        // 🔥 Changed 'success' to 'message' here 🔥
+        return redirect()->back()->with('message', 'Selected stalls and associated records deleted.');
+    }
 }
