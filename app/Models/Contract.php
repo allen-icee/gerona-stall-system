@@ -13,28 +13,34 @@ class Contract extends Model
         'start_date',
         'end_date',
         'monthly_rent',
-        'security_deposit',
         'is_active',
 
-        // --- Added Phase 1 Fields ---
+        // Document Statuses
         'permit_status',
         'document_status',
         'remarks',
-        'deposit_paid',
-        'deposit_reference'
+
+        // --- NEW LGU EXCEL FIELDS ---
+        'correct_deposit',
+        'current_deposit',
+        'deposit_name',
+        'payables_with_penalty', // Historical arrears
+        'business_permit_fee',
+        'is_new_owner'
     ];
 
-    // Forces Laravel to send strictly "YYYY-MM-DD" to React
     protected $casts = [
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
-        'deposit_paid' => 'decimal:2',
-        'security_deposit' => 'decimal:2',
+        'is_new_owner' => 'boolean',
         'monthly_rent' => 'decimal:2',
+        'correct_deposit' => 'decimal:2',
+        'current_deposit' => 'decimal:2',
+        'payables_with_penalty' => 'decimal:2',
+        'business_permit_fee' => 'decimal:2',
     ];
 
-    // 🔥 CRUCIAL: This automatically attaches our computed Excel math to the JSON sent to React!
     protected $appends = [
         'total_paid',
         'outstanding_balance',
@@ -62,7 +68,6 @@ class Contract extends Model
         return $this->hasMany(Payment::class);
     }
 
-    // New Phase 1 Relationship
     public function violations()
     {
         return $this->hasMany(Violation::class);
@@ -98,30 +103,24 @@ class Contract extends Model
         return max(0, $this->expected_rent - $this->total_paid);
     }
 
-    public function getAdvancedPaymentAttribute()
-    {
-        return max(0, $this->total_paid - $this->expected_rent);
-    }
-
-    // --- NEW TREASURY LOGIC ---
+    // --- NEW TREASURY EXCEL LOGIC ---
 
     public function getDepositVarianceAttribute()
     {
-        // How much deposit they owe vs what they actually paid
-        $required = $this->security_deposit ?? 0;
-        $paid = $this->deposit_paid ?? 0;
-        return $required - $paid;
+        // Target correctly matches the Excel column logic
+        $required = $this->correct_deposit ?? 0;
+        $paid = $this->current_deposit ?? 0;
+        return max(0, $required - $paid);
     }
 
     public function getTotalOutstandingAttribute()
     {
-        // Rental Debt + Missing Deposit
-        return $this->outstanding_balance + max(0, $this->deposit_variance);
+        // Standard Rent Debt + Missing Deposit + Historical Payables/Penalties
+        return $this->outstanding_balance + $this->deposit_variance + ($this->payables_with_penalty ?? 0);
     }
 
     public function getMonthlyMatrixAttribute()
     {
-        // 12-Month Treasury Grid
         $matrix = [
             'JAN' => 0,
             'FEB' => 0,
@@ -139,10 +138,8 @@ class Contract extends Model
 
         if ($this->relationLoaded('payments') || $this->payments()->exists()) {
             foreach ($this->payments as $payment) {
-                // THE FIX: Grab the first 3 letters of your 'month' string (e.g., "JANUARY" -> "JAN")
                 if (!empty($payment->month)) {
                     $monthIndex = substr(strtoupper($payment->month), 0, 3);
-
                     if (isset($matrix[$monthIndex])) {
                         $matrix[$monthIndex] += $payment->amount;
                     }

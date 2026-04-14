@@ -19,11 +19,14 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingStall, setEditingStall] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Single Delete State
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Bulk Selection States
+    // Bulk Selection & Edit States
     const [selectedStalls, setSelectedStalls] = useState<number[]>([]);
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false); // 🔥 New Bulk Delete State
 
     const sortOptions = [
         { value: "stall_code_asc", label: "Stall Code (A-Z)" },
@@ -48,7 +51,6 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         setSelectedStalls([]);
     }, [stalls.data]);
 
-    // 🔥 Updated to match MTOP toggle logic 🔥
     const handleSelectAll = () => {
         if (
             selectedStalls.length === stalls.data.length &&
@@ -68,21 +70,23 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         );
     };
 
-    const handleBulkDelete = () => {
-        if (
-            confirm(
-                `Are you sure you want to completely remove these ${selectedStalls.length} stalls?`,
-            )
-        ) {
-            router.post(
-                route("stalls.bulk_destroy"),
-                { ids: selectedStalls },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => setSelectedStalls([]),
+    // 🔥 Replaced native confirm() with Premium Modal Triggers 🔥
+    const confirmBulkDelete = () => {
+        setIsBulkDeleteModalOpen(true);
+    };
+
+    const executeBulkDelete = () => {
+        router.post(
+            route("stalls.bulk_destroy"),
+            { ids: selectedStalls },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedStalls([]);
+                    setIsBulkDeleteModalOpen(false);
                 },
-            );
-        }
+            },
+        );
     };
 
     const confirmDelete = (id: number) => setDeletingId(id);
@@ -134,6 +138,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         <AuthenticatedLayout>
             <Head title="Manage Stalls" />
 
+            {/* SINGLE DELETE MODAL */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -156,15 +161,52 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                     <div className="flex justify-center gap-3">
                         <button
                             onClick={() => setDeletingId(null)}
-                            className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-800 font-bold rounded-lg hover:bg-slate-100 transition-colors"
+                            className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-800 font-bold rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleDelete}
-                            className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
+                            className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors cursor-pointer"
                         >
                             Yes, Delete Stall
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* 🔥 NEW BULK DELETE MODAL 🔥 */}
+            <Modal
+                show={isBulkDeleteModalOpen}
+                onClose={() => setIsBulkDeleteModalOpen(false)}
+                maxWidth="sm"
+            >
+                <div className="p-6 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-100 mb-4 border-2 border-rose-300">
+                        <Icon
+                            icon="solar:trash-bin-trash-bold"
+                            className="h-8 w-8 text-rose-600"
+                        />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">
+                        Delete {selectedStalls.length} Stalls?
+                    </h3>
+                    <p className="text-sm text-slate-700 font-medium mb-6">
+                        Are you sure you want to completely remove the <span className="font-black text-rose-600">{selectedStalls.length}</span> selected stalls?
+                        Any payments and active contracts linked to them will also be deleted. This action cannot be undone.
+                    </p>
+                    <div className="flex justify-center gap-3">
+                        <button
+                            onClick={() => setIsBulkDeleteModalOpen(false)}
+                            className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-800 font-bold rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={executeBulkDelete}
+                            className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors cursor-pointer"
+                        >
+                            Yes, Delete All
                         </button>
                     </div>
                 </div>
@@ -185,7 +227,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                     </button>
                     <div className="w-px h-6 bg-slate-700"></div>
                     <button
-                        onClick={handleBulkDelete}
+                        onClick={confirmBulkDelete} // 🔥 Changed to open the new modal 🔥
                         className="flex items-center gap-2 text-rose-400 hover:text-rose-300 font-bold text-sm uppercase transition-colors cursor-pointer"
                     >
                         <Icon
@@ -299,18 +341,16 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center w-14">
-                                        {/* 🔥 CUSTOM SELECT ALL CHECKBOX 🔥 */}
                                         <button
                                             type="button"
                                             onClick={handleSelectAll}
                                             aria-label="Select all records"
-                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                stalls.data.length > 0 &&
+                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${stalls.data.length > 0 &&
                                                 selectedStalls.length ===
-                                                    stalls.data.length
-                                                    ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
-                                                    : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                            }`}
+                                                stalls.data.length
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
+                                                : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                }`}
                                         >
                                             <Icon
                                                 icon="solar:check-read-bold"
@@ -378,7 +418,6 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                             e.stopPropagation()
                                                         }
                                                     >
-                                                        {/* 🔥 CUSTOM INDIVIDUAL CHECKBOX 🔥 */}
                                                         <button
                                                             type="button"
                                                             onClick={() =>
@@ -386,11 +425,10 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                                     stall.id,
                                                                 )
                                                             }
-                                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                                isSelected
-                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
-                                                                    : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                            }`}
+                                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${isSelected
+                                                                ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
+                                                                : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                                }`}
                                                         >
                                                             <Icon
                                                                 icon="solar:check-read-bold"
@@ -414,7 +452,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                                     statusObj.color,
                                                                 color:
                                                                     statusObj.color ===
-                                                                    "#ffffff"
+                                                                        "#ffffff"
                                                                         ? "#000000"
                                                                         : statusObj.color,
                                                             }}
@@ -426,10 +464,10 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                         <div className="font-bold text-slate-800">
                                                             {stall.floor
                                                                 ?.name || (
-                                                                <span className="text-rose-500">
-                                                                    No Floor
-                                                                </span>
-                                                            )}
+                                                                    <span className="text-rose-500">
+                                                                        No Floor
+                                                                    </span>
+                                                                )}
                                                         </div>
                                                         <div className="text-xs text-slate-500">
                                                             {stall.floor

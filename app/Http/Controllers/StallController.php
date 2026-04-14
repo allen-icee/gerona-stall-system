@@ -57,18 +57,19 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
-            'section' => 'nullable|string|max:255',
-            'classification' => 'nullable|string|max:255',
             'size_sqm' => 'nullable|numeric|min:0',
-            'stall_type' => 'required|string|in:sqm_based,class_based,manual',
-            'rate_per_sqm' => 'nullable|numeric|min:0',
-            'fixed_rate' => 'nullable|numeric|min:0',
+            'current_monthly_rental' => 'nullable|numeric|min:0',
+            'current_rate_per_sqm' => 'nullable|numeric|min:0',
+            'proposed_monthly_rental' => 'nullable|numeric|min:0',
+            'proposed_rate_per_sqm' => 'nullable|numeric|min:0',
         ]);
 
-        // 🔥 FIX: Prevent SQL null errors by defaulting empty optional numeric fields to 0 🔥
+        // 🔥 LGU RULE: Round all currency to the nearest whole peso, default to 0
         $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
-        $validated['rate_per_sqm'] = $validated['rate_per_sqm'] ?? 0;
-        $validated['fixed_rate'] = $validated['fixed_rate'] ?? 0;
+        $validated['current_monthly_rental'] = round($validated['current_monthly_rental'] ?? 0);
+        $validated['current_rate_per_sqm'] = round($validated['current_rate_per_sqm'] ?? 0);
+        $validated['proposed_monthly_rental'] = round($validated['proposed_monthly_rental'] ?? 0);
+        $validated['proposed_rate_per_sqm'] = round($validated['proposed_rate_per_sqm'] ?? 0);
 
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
@@ -83,18 +84,19 @@ class StallController extends Controller
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
-            'section' => 'nullable|string|max:255',
-            'classification' => 'nullable|string|max:255',
             'size_sqm' => 'nullable|numeric|min:0',
-            'stall_type' => 'required|string|in:sqm_based,class_based,manual',
-            'rate_per_sqm' => 'nullable|numeric|min:0',
-            'fixed_rate' => 'nullable|numeric|min:0',
+            'current_monthly_rental' => 'nullable|numeric|min:0',
+            'current_rate_per_sqm' => 'nullable|numeric|min:0',
+            'proposed_monthly_rental' => 'nullable|numeric|min:0',
+            'proposed_rate_per_sqm' => 'nullable|numeric|min:0',
         ]);
 
-        // 🔥 FIX: Prevent SQL null errors by defaulting empty optional numeric fields to 0 🔥
+        // 🔥 LGU RULE: Round all currency to the nearest whole peso
         $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
-        $validated['rate_per_sqm'] = $validated['rate_per_sqm'] ?? 0;
-        $validated['fixed_rate'] = $validated['fixed_rate'] ?? 0;
+        $validated['current_monthly_rental'] = round($validated['current_monthly_rental'] ?? 0);
+        $validated['current_rate_per_sqm'] = round($validated['current_rate_per_sqm'] ?? 0);
+        $validated['proposed_monthly_rental'] = round($validated['proposed_monthly_rental'] ?? 0);
+        $validated['proposed_rate_per_sqm'] = round($validated['proposed_rate_per_sqm'] ?? 0);
 
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
@@ -107,8 +109,18 @@ class StallController extends Controller
     public function destroy(Stall $stall)
     {
         DB::transaction(function () use ($stall) {
-            \App\Models\Payment::where('stall_id', $stall->id)->delete();
+            // 1. Get all contract IDs for this stall
+            $contractIds = \App\Models\Contract::where('stall_id', $stall->id)->pluck('id');
+
+            // 2. Delete all payments linked to those contracts
+            if ($contractIds->isNotEmpty()) {
+                \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
+            }
+
+            // 3. Delete the contracts
             \App\Models\Contract::where('stall_id', $stall->id)->delete();
+
+            // 4. Finally, delete the physical stall
             $stall->delete();
         });
 
@@ -146,19 +158,22 @@ class StallController extends Controller
         }
 
         $stalls = $query->get();
-        $csvData = "stall_code,floor,stall_type,size_sqm,rate_per_sqm,fixed_rate\n";
+
+        // Updated CSV Headers for the LGU data
+        $csvData = "stall_code,floor,size_sqm,current_monthly_rental,current_rate_per_sqm,proposed_monthly_rental,proposed_rate_per_sqm\n";
 
         foreach ($stalls as $stall) {
             $floorName = $stall->floor ? $stall->floor->name : '';
 
             $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
             $floor = '"' . str_replace('"', '""', $floorName) . '"';
-            $type = '"' . str_replace('"', '""', $stall->stall_type) . '"';
             $size = '"' . str_replace('"', '""', $stall->size_sqm ?? 0) . '"';
-            $rate = '"' . str_replace('"', '""', $stall->rate_per_sqm ?? 0) . '"';
-            $fixed = '"' . str_replace('"', '""', $stall->fixed_rate ?? 0) . '"';
+            $curr_rent = '"' . str_replace('"', '""', $stall->current_monthly_rental ?? 0) . '"';
+            $curr_rate = '"' . str_replace('"', '""', $stall->current_rate_per_sqm ?? 0) . '"';
+            $prop_rent = '"' . str_replace('"', '""', $stall->proposed_monthly_rental ?? 0) . '"';
+            $prop_rate = '"' . str_replace('"', '""', $stall->proposed_rate_per_sqm ?? 0) . '"';
 
-            $csvData .= "{$code},{$floor},{$type},{$size},{$rate},{$fixed}\n";
+            $csvData .= "{$code},{$floor},{$size},{$curr_rent},{$curr_rate},{$prop_rent},{$prop_rate}\n";
         }
 
         return response($csvData)
@@ -178,7 +193,6 @@ class StallController extends Controller
         }
     }
 
-    // 🔥 ADDED QUICK STATUS ROUTE LOGIC 🔥
     public function quickStatus(Request $request, Stall $stall)
     {
         $status = $request->input('status');
@@ -210,11 +224,16 @@ class StallController extends Controller
         $request->validate(['ids' => 'required|array']);
 
         $updateData = [];
-        $fields = ['section', 'classification', 'stall_type', 'size_sqm', 'rate_per_sqm', 'fixed_rate'];
+        $fields = ['size_sqm', 'current_monthly_rental', 'current_rate_per_sqm', 'proposed_monthly_rental', 'proposed_rate_per_sqm'];
 
         foreach ($fields as $field) {
             if ($request->filled($field)) {
-                $updateData[$field] = $request->input($field);
+                // If it's a currency field, apply the LGU rounding rule during bulk update
+                if ($field !== 'size_sqm') {
+                    $updateData[$field] = round($request->input($field));
+                } else {
+                    $updateData[$field] = $request->input($field);
+                }
             }
         }
 
@@ -230,8 +249,18 @@ class StallController extends Controller
         $request->validate(['ids' => 'required|array']);
 
         DB::transaction(function () use ($request) {
-            \App\Models\Payment::whereIn('stall_id', $request->ids)->delete();
+            // 1. Get all contract IDs for ALL selected stalls
+            $contractIds = \App\Models\Contract::whereIn('stall_id', $request->ids)->pluck('id');
+
+            // 2. Delete all payments linked to those contracts
+            if ($contractIds->isNotEmpty()) {
+                \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
+            }
+
+            // 3. Delete the contracts
             \App\Models\Contract::whereIn('stall_id', $request->ids)->delete();
+
+            // 4. Finally, mass delete the physical stalls
             Stall::whereIn('id', $request->ids)->delete();
         });
 
