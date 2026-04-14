@@ -65,12 +65,17 @@ class StallController extends Controller
             'fixed_rate' => 'nullable|numeric|min:0',
         ]);
 
+        // 🔥 FIX: Prevent SQL null errors by defaulting empty optional numeric fields to 0 🔥
+        $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
+        $validated['rate_per_sqm'] = $validated['rate_per_sqm'] ?? 0;
+        $validated['fixed_rate'] = $validated['fixed_rate'] ?? 0;
+
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
         Stall::create($validated);
 
-        return redirect()->back()->with('success', 'Stall successfully registered!');
+        return redirect()->back()->with('message', 'Stall successfully registered!');
     }
 
     public function update(Request $request, Stall $stall)
@@ -86,12 +91,17 @@ class StallController extends Controller
             'fixed_rate' => 'nullable|numeric|min:0',
         ]);
 
+        // 🔥 FIX: Prevent SQL null errors by defaulting empty optional numeric fields to 0 🔥
+        $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
+        $validated['rate_per_sqm'] = $validated['rate_per_sqm'] ?? 0;
+        $validated['fixed_rate'] = $validated['fixed_rate'] ?? 0;
+
         $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
         $stall->update($validated);
 
-        return redirect()->back()->with('success', 'Stall details updated!');
+        return redirect()->back()->with('message', 'Stall details updated!');
     }
 
     public function destroy(Stall $stall)
@@ -102,7 +112,7 @@ class StallController extends Controller
             $stall->delete();
         });
 
-        return redirect()->back()->with('success', 'Stall and associated records successfully deleted.');
+        return redirect()->back()->with('message', 'Stall and associated records successfully deleted.');
     }
 
     public function export(Request $request)
@@ -162,7 +172,7 @@ class StallController extends Controller
 
         try {
             Excel::import(new StallsImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Stalls synced successfully!');
+            return redirect()->back()->with('message', 'Stalls synced successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Import failed. Check column headers.');
         }
@@ -192,8 +202,9 @@ class StallController extends Controller
             }
         });
 
-        return redirect()->back()->with('success', "Stall securely updated to: " . strtoupper($status));
+        return redirect()->back()->with('message', "Stall securely updated to: " . strtoupper($status));
     }
+
     public function bulkUpdate(Request $request)
     {
         $request->validate(['ids' => 'required|array']);
@@ -211,7 +222,6 @@ class StallController extends Controller
             Stall::whereIn('id', $request->ids)->update($updateData);
         }
 
-        // 🔥 Changed 'success' to 'message' here 🔥
         return redirect()->back()->with('message', count($request->ids) . ' stalls successfully updated.');
     }
 
@@ -225,7 +235,6 @@ class StallController extends Controller
             Stall::whereIn('id', $request->ids)->delete();
         });
 
-        // 🔥 Changed 'success' to 'message' here 🔥
         return redirect()->back()->with('message', 'Selected stalls and associated records deleted.');
     }
 }
