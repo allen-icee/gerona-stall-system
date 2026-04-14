@@ -4,7 +4,8 @@ import SearchableSelect from '@/Components/SearchableSelect';
 export default function MapSidebar({
     buildings, selectedFloor, onFloorChange, layout,
     activeTool, setActiveTool, selectedStallId, setSelectedStallId, stalls,
-    onSave
+    onSave,
+    customText, setCustomText // ADDED THESE PROPS FOR THE TEXT TOOL
 }: any) {
 
     const floorOptions = buildings?.flatMap((b: any) =>
@@ -27,15 +28,14 @@ export default function MapSidebar({
     const stallOptions = stalls?.map((stall: any) => {
         let dbColor = stall.computed_status?.color || '#94a3b8';
 
-        // 🔥 THE FIX: Color Inverter for White Statuses
         let textColor = dbColor;
         let bgColor = `${dbColor}22`;
         let borderColor = `${dbColor}55`;
 
         if (dbColor.toLowerCase() === '#ffffff' || dbColor.toLowerCase() === '#fff') {
-            textColor = '#475569'; // Slate-600
-            bgColor = '#f1f5f9';   // Slate-100
-            borderColor = '#cbd5e1'; // Slate-300
+            textColor = '#475569';
+            bgColor = '#f1f5f9';
+            borderColor = '#cbd5e1';
         }
 
         return {
@@ -106,7 +106,10 @@ export default function MapSidebar({
                             <button onClick={() => setActiveTool('wall')} className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === 'wall' ? 'border-slate-900 bg-slate-800 text-white shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                                 <Icon icon="solar:minus-square-bold" className="w-6 h-6" /> Wall / Block
                             </button>
-                            <button onClick={() => setActiveTool('vacant')} className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === 'vacant' ? 'border-rose-600 bg-rose-50 text-rose-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => setActiveTool('text')} className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === 'text' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                <Icon icon="solar:text-field-bold-duotone" className="w-6 h-6" /> Text / Label
+                            </button>
+                            <button onClick={() => setActiveTool('vacant')} className={`col-span-2 p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === 'vacant' ? 'border-rose-600 bg-rose-50 text-rose-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                                 <Icon icon="solar:eraser-bold-duotone" className="w-6 h-6" /> Eraser
                             </button>
                         </div>
@@ -116,6 +119,21 @@ export default function MapSidebar({
                                 <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-2 block cursor-pointer">Which Stall?</label>
                                 <SearchableSelect value={selectedStallId} onChange={(val: any) => setSelectedStallId(val)} options={stallOptions} placeholder="Search stall code..." theme="blue" />
                                 <p className="text-[10px] text-blue-600 font-bold mt-2 leading-tight">Select a stall, then click on the grid to place it.</p>
+                            </div>
+                        )}
+
+                        {/* NEW TEXT TOOL INPUT */}
+                        {activeTool === 'text' && (
+                            <div className="mb-6 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl animate-fade-in">
+                                <label className="text-xs font-black text-indigo-900 uppercase tracking-wide mb-2 block cursor-pointer">What Text?</label>
+                                <input
+                                    type="text"
+                                    value={customText || ''}
+                                    onChange={(e) => setCustomText && setCustomText(e.target.value)}
+                                    placeholder="e.g. Entrance, Gate 1..."
+                                    className="w-full text-sm font-bold border-2 border-indigo-200 rounded-lg p-2 focus:ring-0 focus:border-indigo-500 outline-none text-indigo-900"
+                                />
+                                <p className="text-[10px] text-indigo-600 font-bold mt-2 leading-tight">Type your text, then click on the grid to place it.</p>
                             </div>
                         )}
                     </div>

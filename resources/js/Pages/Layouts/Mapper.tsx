@@ -12,6 +12,10 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
     const [selectedFloor, setSelectedFloor] = useState(current_floor_id || '');
     const [activeTool, setActiveTool] = useState('stall');
     const [selectedStallId, setSelectedStallId] = useState('');
+
+    // 🔥 NEW STATE FOR TEXT TOOL
+    const [customText, setCustomText] = useState('');
+
     const [gridCells, setGridCells] = useState<any[]>([]);
 
     const [dialog, setDialog] = useState({
@@ -47,6 +51,7 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
     const closeDialog = () => setDialog(prev => ({ ...prev, isOpen: false }));
 
     const handleCellClick = (cellIndex: number) => {
+        // Stall Validation
         if (activeTool === 'stall' && !selectedStallId) {
             setDialog({
                 isOpen: true,
@@ -62,16 +67,38 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
             return;
         }
 
+        // 🔥 NEW TEXT TOOL VALIDATION
+        if (activeTool === 'text' && !customText.trim()) {
+            setDialog({
+                isOpen: true,
+                type: 'alert',
+                title: 'Text Required',
+                message: 'Please type the text you want to place on the map in the sidebar input box.',
+                confirmText: 'Got it',
+                confirmColor: 'bg-indigo-500 hover:bg-indigo-600 text-white',
+                icon: 'solar:text-field-bold-duotone',
+                iconColor: 'text-indigo-500',
+                onConfirm: closeDialog
+            });
+            return;
+        }
+
         const newCells = [...gridCells];
         const cell = newCells[cellIndex];
 
         cell.type = activeTool;
         cell.stall_id = activeTool === 'stall' ? selectedStallId : null;
 
+        // 🔥 UPDATE CELL CONTENT BASED ON TOOL
         if (activeTool === 'stall') {
             cell.stall = stalls.find((s: any) => s.id == selectedStallId);
+            cell.text = null;
+        } else if (activeTool === 'text') {
+            cell.stall = null;
+            cell.text = customText; // Save the typed text into the cell
         } else {
             cell.stall = null;
+            cell.text = null;
         }
 
         setGridCells(newCells);
@@ -88,7 +115,7 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
             icon: 'solar:eraser-bold-duotone',
             iconColor: 'text-rose-500',
             onConfirm: () => {
-                setGridCells(prev => prev.map(c => ({ ...c, type: 'vacant', stall_id: null, stall: null })));
+                setGridCells(prev => prev.map(c => ({ ...c, type: 'vacant', stall_id: null, stall: null, text: null })));
                 closeDialog();
             }
         });
@@ -111,7 +138,13 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
         });
     };
 
-    // 🔥 MASS EXPAND / SHRINK FUNCTIONS
+    // Quick Paint Handler Placeholder
+    const handleQuickPaint = (stallId: string, statusId: string) => {
+        // You can link this up to an Inertia router.post to update the stall status quickly!
+        console.log(`Painting Stall ID: ${stallId} with Status: ${statusId}`);
+    };
+
+    // MASS EXPAND / SHRINK FUNCTIONS
     const expandRow = (amount: number) => {
         router.post(route('layouts.expand', layout.id), { direction: 'row', amount, cells: gridCells }, { preserveScroll: true, preserveState: false });
     };
@@ -173,6 +206,10 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
                     setSelectedStallId={setSelectedStallId}
                     stalls={stalls}
                     onSave={saveLayout}
+
+                    // 🔥 Pass Text Tool State to Sidebar
+                    customText={customText}
+                    setCustomText={setCustomText}
                 />
 
                 <div className="flex-1 bg-slate-100 overflow-hidden relative flex items-center justify-center">
@@ -188,7 +225,7 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
                         <InteractiveGrid
                             layout={layout}
                             gridCells={gridCells}
-                            activeFloorData={activeFloorData} // 🔥 Pass active floor info here
+                            activeFloorData={activeFloorData}
                             onCellClick={handleCellClick}
                             onClearAll={handleClearAll}
                             onRevert={handleRevert}
@@ -196,6 +233,7 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
                             onExpandCol={expandCol}
                             onShrinkRow={shrinkRow}
                             onShrinkCol={shrinkCol}
+                            onQuickPaint={handleQuickPaint} // 🔥 Added the Quick Paint Hook
                         />
                     )}
                 </div>

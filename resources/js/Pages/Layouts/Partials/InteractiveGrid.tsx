@@ -14,14 +14,21 @@ export default function InteractiveGrid({
     const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, data: null as any });
 
     const [expandAmount, setExpandAmount] = useState(1);
+    const [isControlsOpen, setIsControlsOpen] = useState(false); // NEW STATE FOR COLLAPSIBLE MENU
 
     // Phase 3: Quick Paint State
     const [paintMode, setPaintMode] = useState<{ id: string, color: string, label: string } | null>(null);
 
-    // Predefined LGU Quick Paint Statuses
+    // 🔥 FIX: I added all the statuses from your Legend into the Quick Paint tool
     const paintStatuses = [
-        { id: 'vacant', color: '#00ff00', label: 'Vacant (Wipe Data)', icon: 'solar:check-circle-bold' },
-        { id: 'maintenance', color: '#ff9900', label: 'Under Maintenance', icon: 'solar:danger-triangle-bold' },
+        { id: 'vacant', color: '#00ff00', label: 'Vacant', icon: 'solar:check-circle-bold' },
+        { id: 'signed', color: '#ffffff', label: 'Signed', icon: 'solar:pen-new-square-bold' },
+        { id: 'for_contract', color: '#ffff00', label: 'For Contract', icon: 'solar:document-text-bold' },
+        { id: 'for_signing', color: '#00ffff', label: 'For Signing', icon: 'solar:pen-bold' },
+        { id: 'waiting_permit', color: '#ff00ff', label: 'Waiting Permit', icon: 'solar:clock-circle-bold' },
+        { id: 'on_process', color: '#999999', label: 'On Process', icon: 'solar:settings-bold' },
+        { id: 'confirm_permit', color: '#9900ff', label: 'Confirm Permit', icon: 'solar:verified-check-bold' },
+        { id: 'unpaid', color: '#ff0000', label: 'Unpaid', icon: 'solar:danger-triangle-bold' },
         { id: 'closed', color: '#f4cccc', label: 'Closed / Locked', icon: 'solar:lock-bold' }
     ];
 
@@ -102,23 +109,18 @@ export default function InteractiveGrid({
                         className="w-full bg-white rounded-full pl-11 pr-4 py-3 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
-                <div className="bg-slate-900/80 backdrop-blur-md text-white px-8 py-3 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-700 pointer-events-auto">
-                    <h1 className="text-xl font-black uppercase tracking-widest">{activeFloorData?.building_name || "Unknown Building"}</h1>
-                    <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest">{activeFloorData?.name || "Unknown Floor"}</h2>
-                </div>
             </div>
 
             {/* FLOATING QUICK PAINT PALETTE */}
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border-2 border-slate-200 flex flex-col gap-2 items-center pointer-events-auto">
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border-2 border-slate-200 flex flex-col gap-2 items-center pointer-events-auto max-h-[80vh] overflow-y-auto custom-scrollbar">
                 <div className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 border-b-2 border-slate-200 pb-1 w-full text-center">Paint</div>
                 {paintStatuses.map((status) => (
                     <button
                         key={status.id}
                         onClick={() => setPaintMode(paintMode?.id === status.id ? null : status)}
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer border-2 ${paintMode?.id === status.id ? 'scale-110 shadow-lg ring-4 ring-offset-2' : 'hover:scale-105 border-transparent shadow-sm'}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer border-2 shrink-0 ${paintMode?.id === status.id ? 'scale-110 shadow-lg ring-4 ring-offset-2' : 'hover:scale-105 border-transparent shadow-sm'}`}
                         style={{
                             backgroundColor: status.color,
-                            // 🔥 FIX: Replaced ringColor with dynamic Tailwind CSS variable
                             ['--tw-ring-color' as any]: status.color
                         }}
                         title={`Paint as ${status.label}`}
@@ -128,50 +130,74 @@ export default function InteractiveGrid({
                 ))}
             </div>
 
-            <div className="absolute bottom-6 left-6 z-50 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80 pointer-events-auto">
-                <div className="flex flex-col items-center justify-center border-r-2 border-slate-200 pr-2">
-                    <label className="text-[7px] font-black uppercase text-slate-500 mb-1">Add/Del Qty</label>
-                    <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={expandAmount}
-                        onChange={(e) => setExpandAmount(parseInt(e.target.value) || 1)}
-                        className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0 cursor-pointer"
-                    />
-                </div>
+            {/* 🔥 NEW COLLAPSIBLE CONTROLS AND COMPACT TITLE */}
+            <div className="absolute bottom-6 left-6 z-50 flex flex-col items-start gap-2 pointer-events-auto">
 
-                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                    <button onClick={() => onExpandRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
-                        <Icon icon="solar:row-bottom-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Row</span>
-                    </button>
-                    <button onClick={() => onShrinkRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
-                        <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Row</span>
-                    </button>
-                </div>
+                {/* Collapsible Panel */}
+                {isControlsOpen && (
+                    <div className="flex flex-wrap items-center gap-2 p-2 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80 animate-fade-in-up origin-bottom-left">
+                        <div className="flex flex-col items-center justify-center border-r-2 border-slate-200 pr-2">
+                            <label className="text-[7px] font-black uppercase text-slate-500 mb-1">Add/Del Qty</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={expandAmount}
+                                onChange={(e) => setExpandAmount(parseInt(e.target.value) || 1)}
+                                className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0 cursor-pointer"
+                            />
+                        </div>
 
-                <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                    <button onClick={() => onExpandCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
-                        <Icon icon="solar:sidebar-right-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Col</span>
-                    </button>
-                    <button onClick={() => onShrinkCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
-                        <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Col</span>
-                    </button>
-                </div>
+                        <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
+                            <button onClick={() => onExpandRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
+                                <Icon icon="solar:row-bottom-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Row</span>
+                            </button>
+                            <button onClick={() => onShrinkRow(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
+                                <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Row</span>
+                            </button>
+                        </div>
 
-                <div className="flex gap-1.5">
-                    <button onClick={onRevert} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all cursor-pointer">
-                        <Icon icon="solar:history-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Revert</span>
+                        <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
+                            <button onClick={() => onExpandCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer">
+                                <Icon icon="solar:sidebar-right-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">+ Col</span>
+                            </button>
+                            <button onClick={() => onShrinkCol(expandAmount)} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
+                                <Icon icon="solar:trash-bin-minimalistic-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">- Col</span>
+                            </button>
+                        </div>
+
+                        <div className="flex gap-1.5">
+                            <button onClick={onRevert} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all cursor-pointer">
+                                <Icon icon="solar:history-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Revert</span>
+                            </button>
+                            <button onClick={onClearAll} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
+                                <Icon icon="solar:eraser-bold-duotone" className="w-5 h-5" />
+                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Clear</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                    {/* Toggle Controls Button */}
+                    <button
+                        onClick={() => setIsControlsOpen(!isControlsOpen)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-xl transition-colors border-2 pointer-events-auto cursor-pointer ${isControlsOpen ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-800' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-900'}`}
+                    >
+                        <Icon icon={isControlsOpen ? "solar:close-circle-bold" : "solar:settings-minimalistic-bold-duotone"} className="w-5 h-5" />
+                        <span className="text-[11px] font-black uppercase tracking-wider">{isControlsOpen ? 'Close Tools' : 'Grid Tools'}</span>
                     </button>
-                    <button onClick={onClearAll} className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer">
-                        <Icon icon="solar:eraser-bold-duotone" className="w-5 h-5" />
-                        <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">Clear</span>
-                    </button>
+
+                    {/* Small Title Header */}
+                    <div className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-2 rounded-xl shadow-2xl flex flex-col justify-center border border-slate-700">
+                        <h1 className="text-[11px] font-black uppercase tracking-widest leading-none mb-0.5">{activeFloorData?.building_name || "Unknown"}</h1>
+                        <h2 className="text-[9px] font-bold text-amber-400 uppercase tracking-widest leading-none">{activeFloorData?.name || "Unknown"}</h2>
+                    </div>
                 </div>
             </div>
 
@@ -262,6 +288,10 @@ export default function InteractiveGrid({
                                 content = <Icon icon="solar:double-alt-arrow-up-bold-duotone" className="w-6 h-6 opacity-70" />;
                             } else if (cell.type === 'wall') {
                                 cellStyle = "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner";
+                            } else if (cell.type === 'text') {
+                                // 🔥 NEW TEXT RENDERER
+                                cellStyle = "bg-transparent border-transparent text-indigo-900 font-black flex items-center justify-center overflow-visible z-10 whitespace-nowrap";
+                                content = <span className="text-sm drop-shadow-md">{cell.text || "Text"}</span>;
                             } else if (cell.type === 'stall' && cell.stall) {
                                 cellStyle = "border-solid border-slate-800 shadow-sm text-slate-800 font-black";
                                 const tenant = cell.stall.active_contract?.tenant;
@@ -304,7 +334,7 @@ export default function InteractiveGrid({
                                         }
                                     }}
                                     onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, data: null })}
-                                    className={`w-14 h-14 border-2 rounded-md flex items-center justify-center text-xs transition-all select-none overflow-hidden ${paintMode ? 'hover:ring-4 hover:ring-opacity-50 cursor-crosshair' : 'cursor-pointer active:scale-95 hover:scale-105'} ${cellStyle}`}
+                                    className={`w-14 h-14 border-2 rounded-md flex items-center justify-center text-xs transition-all select-none ${paintMode ? 'hover:ring-4 hover:ring-opacity-50 cursor-crosshair' : 'cursor-pointer active:scale-95 hover:scale-105'} ${cellStyle}`}
                                     style={{
                                         backgroundColor: dbColor || undefined,
                                         ['--tw-ring-color' as any]: paintMode ? paintMode.color : undefined
@@ -331,6 +361,7 @@ export default function InteractiveGrid({
                     onMouseEnter={() => setTooltip(prev => ({ ...prev, show: true }))}
                     onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, data: null })}
                 >
+                    {/* Tooltip Content omitted for brevity, you keep your original! */}
                     <div className="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:shop-bold-duotone" className="text-amber-400 w-5 h-5" />

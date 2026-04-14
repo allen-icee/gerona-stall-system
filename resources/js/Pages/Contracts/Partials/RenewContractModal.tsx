@@ -107,6 +107,14 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                     </div>
                 </div>
 
+                {/* General Form Error Alert */}
+                {Object.keys(errors).length > 0 && (
+                    <div className="bg-rose-50 border-2 border-rose-200 p-3 rounded-lg flex items-center gap-2">
+                        <Icon icon="solar:danger-circle-bold" className="text-rose-500 w-5 h-5" />
+                        <span className="text-sm font-bold text-rose-700">Please fix the errors below before submitting.</span>
+                    </div>
+                )}
+
                 <div className="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-200">
                     <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <Icon icon="solar:calendar-date-bold-duotone" className="w-4 h-4" /> New Terms & Fees
@@ -114,19 +122,23 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">New Start Date</label>
-                            <input type="date" value={data.start_date} onChange={(e) => setData("start_date", e.target.value)} className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-emerald-600 focus:ring-0" required />
+                            <input type="date" value={data.start_date} onChange={(e) => setData("start_date", e.target.value)} className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-bold focus:ring-0 ${errors.start_date ? 'border-rose-500 focus:border-rose-600' : 'border-emerald-300 focus:border-emerald-600'}`} required />
+                            {errors.start_date && <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase">{errors.start_date}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">New End Date</label>
-                            <input type="date" value={data.end_date} onChange={(e) => setData("end_date", e.target.value)} className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-emerald-600 focus:ring-0" required />
+                            <input type="date" value={data.end_date} onChange={(e) => setData("end_date", e.target.value)} className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-bold focus:ring-0 ${errors.end_date ? 'border-rose-500 focus:border-rose-600' : 'border-emerald-300 focus:border-emerald-600'}`} required />
+                            {errors.end_date && <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase">{errors.end_date}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">Base Monthly Rent (₱)</label>
-                            <input type="number" step="0.01" value={data.monthly_rent} onChange={(e) => setData("monthly_rent", e.target.value)} className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-black focus:border-emerald-600 focus:ring-0" required />
+                            <input type="number" step="0.01" value={data.monthly_rent} onChange={(e) => setData("monthly_rent", e.target.value)} className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-black focus:ring-0 ${errors.monthly_rent ? 'border-rose-500 focus:border-rose-600' : 'border-emerald-300 focus:border-emerald-600'}`} required />
+                            {errors.monthly_rent && <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase">{errors.monthly_rent}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">Security Deposit (Bond)</label>
-                            <input type="number" step="0.01" value={data.security_deposit} onChange={(e) => setData("security_deposit", e.target.value)} className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-black focus:border-emerald-600 focus:ring-0" placeholder="₱ 0.00" />
+                            <input type="number" step="0.01" value={data.security_deposit} onChange={(e) => setData("security_deposit", e.target.value)} className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-black focus:ring-0 ${errors.security_deposit ? 'border-rose-500 focus:border-rose-600' : 'border-emerald-300 focus:border-emerald-600'}`} placeholder="₱ 0.00" />
+                            {errors.security_deposit && <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase">{errors.security_deposit}</p>}
                         </div>
                     </div>
                 </div>
