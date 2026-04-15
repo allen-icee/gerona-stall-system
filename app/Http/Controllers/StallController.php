@@ -9,6 +9,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use App\Imports\StallsImport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class StallController extends Controller
 {
@@ -30,23 +32,54 @@ class StallController extends Controller
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+        $isDesc = $direction === 'desc';
 
-        if ($sortBy === 'location') {
-            $query->join('floors', 'stalls.floor_id', '=', 'floors.id')
-                ->join('buildings', 'floors.building_id', '=', 'buildings.id')
-                ->select('stalls.*')
-                ->orderBy('buildings.name', $direction)
-                ->orderBy('floors.name', $direction)
-                ->orderBy('stalls.stall_code', 'asc');
-        } else {
-            $query->orderBy($sortBy, $direction);
+        // Only sort by created_at in SQL. The rest will be naturally sorted in PHP.
+        if ($sortBy === 'created_at') {
+            $query->orderBy('created_at', $direction);
         }
 
-        $stalls = $query->paginate(15)->withQueryString();
+        $stallsCollection = $query->get();
+
+        // 🔥 PHP NATURAL SORTING: Fixes the B1 -> B10 -> B2 issue into B1 -> B2 -> B10
+        if ($sortBy === 'stall_code') {
+            $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
+                $cmp = strnatcasecmp($a->stall_code, $b->stall_code);
+                return $isDesc ? -$cmp : $cmp;
+            })->values();
+        } elseif ($sortBy === 'location') {
+            $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
+                $locA = ($a->floor->building->name ?? '') . ($a->floor->name ?? '');
+                $locB = ($b->floor->building->name ?? '') . ($b->floor->name ?? '');
+
+                if ($locA === $locB) {
+                    // Secondary sort naturally by stall code if in same floor
+                    return strnatcasecmp($a->stall_code, $b->stall_code);
+                }
+
+                $cmp = strcmp($locA, $locB);
+                return $isDesc ? -$cmp : $cmp;
+            })->values();
+        }
+
+        // Manually Paginate the Naturally Sorted Collection
+        $page = Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 15;
+        $paginatedStalls = new LengthAwarePaginator(
+            $stallsCollection->forPage($page, $perPage),
+            $stallsCollection->count(),
+            $perPage,
+            $page,
+            [
+                'path' => Paginator::resolveCurrentPath(),
+                'query' => $request->query() // Keep the search/sort URLs intact
+            ]
+        );
+
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
 
         return Inertia::render('Stalls/Index', [
-            'stalls' => $stalls,
+            'stalls' => $paginatedStalls,
             'floors' => $floors,
             'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
@@ -64,7 +97,6 @@ class StallController extends Controller
             'proposed_rate_per_sqm' => 'nullable|numeric|min:0',
         ]);
 
-        // 🔥 LGU RULE: Round all currency to the nearest whole peso, default to 0
         $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
         $validated['current_monthly_rental'] = round($validated['current_monthly_rental'] ?? 0);
         $validated['current_rate_per_sqm'] = round($validated['current_rate_per_sqm'] ?? 0);
@@ -91,7 +123,6 @@ class StallController extends Controller
             'proposed_rate_per_sqm' => 'nullable|numeric|min:0',
         ]);
 
-        // 🔥 LGU RULE: Round all currency to the nearest whole peso
         $validated['size_sqm'] = $validated['size_sqm'] ?? 0;
         $validated['current_monthly_rental'] = round($validated['current_monthly_rental'] ?? 0);
         $validated['current_rate_per_sqm'] = round($validated['current_rate_per_sqm'] ?? 0);
@@ -109,18 +140,11 @@ class StallController extends Controller
     public function destroy(Stall $stall)
     {
         DB::transaction(function () use ($stall) {
-            // 1. Get all contract IDs for this stall
             $contractIds = \App\Models\Contract::where('stall_id', $stall->id)->pluck('id');
-
-            // 2. Delete all payments linked to those contracts
             if ($contractIds->isNotEmpty()) {
                 \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
             }
-
-            // 3. Delete the contracts
             \App\Models\Contract::where('stall_id', $stall->id)->delete();
-
-            // 4. Finally, delete the physical stall
             $stall->delete();
         });
 
@@ -145,24 +169,37 @@ class StallController extends Controller
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
+        $isDesc = $direction === 'desc';
 
-        if ($sortBy === 'location') {
-            $query->join('floors', 'stalls.floor_id', '=', 'floors.id')
-                ->join('buildings', 'floors.building_id', '=', 'buildings.id')
-                ->select('stalls.*')
-                ->orderBy('buildings.name', $direction)
-                ->orderBy('floors.name', $direction)
-                ->orderBy('stalls.stall_code', 'asc');
-        } else {
-            $query->orderBy($sortBy, $direction);
+        if ($sortBy === 'created_at') {
+            $query->orderBy('created_at', $direction);
         }
 
-        $stalls = $query->get();
+        $stallsCollection = $query->get();
 
-        // Updated CSV Headers for the LGU data
+        // 🔥 Apply the exact same Natural Sorting to the Excel Export!
+        if ($sortBy === 'stall_code') {
+            $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
+                $cmp = strnatcasecmp($a->stall_code, $b->stall_code);
+                return $isDesc ? -$cmp : $cmp;
+            })->values();
+        } elseif ($sortBy === 'location') {
+            $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
+                $locA = ($a->floor->building->name ?? '') . ($a->floor->name ?? '');
+                $locB = ($b->floor->building->name ?? '') . ($b->floor->name ?? '');
+
+                if ($locA === $locB) {
+                    return strnatcasecmp($a->stall_code, $b->stall_code);
+                }
+
+                $cmp = strcmp($locA, $locB);
+                return $isDesc ? -$cmp : $cmp;
+            })->values();
+        }
+
         $csvData = "stall_code,floor,size_sqm,current_monthly_rental,current_rate_per_sqm,proposed_monthly_rental,proposed_rate_per_sqm\n";
 
-        foreach ($stalls as $stall) {
+        foreach ($stallsCollection as $stall) {
             $floorName = $stall->floor ? $stall->floor->name : '';
 
             $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
@@ -198,25 +235,47 @@ class StallController extends Controller
         $status = $request->input('status');
 
         DB::transaction(function () use ($stall, $status) {
+            $activeContract = \App\Models\Contract::where('stall_id', $stall->id)->where('is_active', true)->first();
+
             if ($status === 'vacant') {
-                // Wipe tenant data / Deactivate contract
-                \App\Models\Contract::where('stall_id', $stall->id)
-                    ->where('is_active', true)
-                    ->update([
+                if ($activeContract) {
+                    $activeContract->update([
                         'is_active' => false,
                         'remarks' => 'System Auto-Closed: Marked Vacant via Quick Paint Map Tool'
                     ]);
-
-                // Clear the stall's internal status
+                }
                 $stall->update(['status' => 'Vacant']);
-            } else {
-                // Apply 'Under Maintenance' or 'Closed'
-                $formattedStatus = $status === 'maintenance' ? 'Under Maintenance' : ucfirst($status);
-                $stall->update(['status' => $formattedStatus]);
+            } elseif ($status === 'closed') {
+                $stall->update(['status' => 'Closed']);
+            } elseif ($status === 'maintenance') {
+                $stall->update(['status' => 'Under Maintenance']);
+            } elseif ($activeContract) {
+                $stall->update(['status' => 'Occupied']);
+
+                switch ($status) {
+                    case 'signed':
+                        $activeContract->update(['document_status' => 'Signed']);
+                        break;
+                    case 'for_contract':
+                        $activeContract->update(['document_status' => 'For Contract']);
+                        break;
+                    case 'for_signing':
+                        $activeContract->update(['document_status' => 'For Signing']);
+                        break;
+                    case 'waiting_permit':
+                        $activeContract->update(['permit_status' => 'Waiting']);
+                        break;
+                    case 'on_process':
+                        $activeContract->update(['permit_status' => 'On Process']);
+                        break;
+                    case 'confirm_permit':
+                        $activeContract->update(['permit_status' => 'Issued']);
+                        break;
+                }
             }
         });
 
-        return redirect()->back()->with('message', "Stall securely updated to: " . strtoupper($status));
+        return redirect()->back()->with('success', "Status successfully updated via Quick Paint!");
     }
 
     public function bulkUpdate(Request $request)
@@ -228,7 +287,6 @@ class StallController extends Controller
 
         foreach ($fields as $field) {
             if ($request->filled($field)) {
-                // If it's a currency field, apply the LGU rounding rule during bulk update
                 if ($field !== 'size_sqm') {
                     $updateData[$field] = round($request->input($field));
                 } else {
@@ -249,18 +307,11 @@ class StallController extends Controller
         $request->validate(['ids' => 'required|array']);
 
         DB::transaction(function () use ($request) {
-            // 1. Get all contract IDs for ALL selected stalls
             $contractIds = \App\Models\Contract::whereIn('stall_id', $request->ids)->pluck('id');
-
-            // 2. Delete all payments linked to those contracts
             if ($contractIds->isNotEmpty()) {
                 \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
             }
-
-            // 3. Delete the contracts
             \App\Models\Contract::whereIn('stall_id', $request->ids)->delete();
-
-            // 4. Finally, mass delete the physical stalls
             Stall::whereIn('id', $request->ids)->delete();
         });
 

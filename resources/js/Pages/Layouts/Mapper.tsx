@@ -138,10 +138,14 @@ export default function Mapper({ buildings, current_floor_id, layout, stalls }: 
         });
     };
 
-    // Quick Paint Handler Placeholder
+    // 🔥 Actual Quick Paint Handler
     const handleQuickPaint = (stallId: string, statusId: string) => {
-        // You can link this up to an Inertia router.post to update the stall status quickly!
-        console.log(`Painting Stall ID: ${stallId} with Status: ${statusId}`);
+        router.post(route('stalls.quick-status', stallId), {
+            status: statusId
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+        });
     };
 
     // MASS EXPAND / SHRINK FUNCTIONS

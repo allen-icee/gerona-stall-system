@@ -7,39 +7,36 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that is loaded on the first page visit.
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determine the current asset version.
-     */
     public function version(Request $request): string|null
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
         return [
             ...parent::share($request),
+
             'auth' => [
                 'user' => $request->user(),
-                // 🔥 THIS IS THE MISSING LINE: Send permissions to React 🔥
-                'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
+
+                'permissions' => $request->user()
+                    ? $request->user()
+                        ->getAllPermissions()
+                        ->pluck('name')
+                        ->values()
+                    : [],
             ],
-            // You can also share flash messages here if needed for your ToastListener
+
+            // 🔥 FIXED FLASH (COMPATIBLE)
             'flash' => [
-                'message' => fn() => $request->session()->get('message'),
+                'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
+
+                // fallback support (IMPORTANT)
+                'message' => fn() => $request->session()->get('message'),
             ],
         ];
     }

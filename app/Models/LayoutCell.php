@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LayoutCell extends Model
 {
-    protected $fillable = ['layout_id', 'row_number', 'column_number', 'type', 'stall_id'];
+    protected $fillable = ['layout_id', 'row_number', 'column_number', 'type', 'stall_id', 'text'];
 
     public function layout()
     {

@@ -78,6 +78,7 @@ class LayoutController extends Controller
                 LayoutCell::where('id', $cellData['id'])->update([
                     'type' => $cellData['type'],
                     'stall_id' => $cellData['stall_id'],
+                    'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
                 ]);
             }
         }
@@ -137,6 +138,7 @@ class LayoutController extends Controller
                 LayoutCell::where('id', $cellData['id'])->update([
                     'type' => $cellData['type'],
                     'stall_id' => $cellData['stall_id'],
+                    'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
                 ]);
             }
         }
@@ -178,6 +180,7 @@ class LayoutController extends Controller
             LayoutCell::where('id', $cellData['id'])->update([
                 'type' => $cellData['type'],
                 'stall_id' => $cellData['stall_id'],
+                'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
             ]);
         }
         return redirect()->back()->with('success', 'Map layout updated successfully!');
