@@ -73,9 +73,8 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
 
             {/* SIDEBAR */}
             <aside
-                className={`fixed inset-y-0 left-0 z-30 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-2xl border-r-2 border-slate-800 ${
-                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                }`}
+                className={`fixed inset-y-0 left-0 z-30 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-2xl border-r-2 border-slate-800 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
             >
                 {/* Brand with Easter Egg Trigger */}
                 <div className="flex items-center gap-3 px-5 py-6 border-b-2 border-slate-800 bg-slate-950 shrink-0 select-none">
@@ -104,11 +103,10 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                     {/* Dashboard */}
                     <Link
                         href={route("dashboard")}
-                        className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
-                            route().current("dashboard")
+                        className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${route().current("dashboard")
                                 ? "bg-blue-700 text-white border-blue-900 shadow-sm"
                                 : "hover:bg-slate-800 hover:text-white border-transparent"
-                        }`}
+                            }`}
                     >
                         <Icon
                             icon="solar:pie-chart-2-bold-duotone"
@@ -124,11 +122,10 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                                 onClick={() =>
                                     setFacilityMenuOpen(!facilityMenuOpen)
                                 }
-                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
-                                    isFacilityRoute
+                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${isFacilityRoute
                                         ? "bg-slate-800 text-white border-slate-700"
                                         : "hover:bg-slate-800 hover:text-white border-transparent"
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon
@@ -156,7 +153,7 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                                         href={route("floors.index")}
                                         className={`flex items-center gap-3 px-10 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wide transition-colors ${route().current("floors.*") ? "bg-blue-700 text-white shadow-sm" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
                                     >
-                                        Floors
+                                        Floors/Sections
                                     </Link>
                                     <Link
                                         href={route("stalls.index")}
@@ -176,11 +173,10 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                                 onClick={() =>
                                     setReportsMenuOpen(!reportsMenuOpen)
                                 }
-                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
-                                    isReportRoute
+                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${isReportRoute
                                         ? "bg-slate-800 text-white border-slate-700"
                                         : "hover:bg-slate-800 hover:text-white border-transparent"
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon

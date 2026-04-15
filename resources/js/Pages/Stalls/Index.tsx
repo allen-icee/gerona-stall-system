@@ -262,8 +262,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">
-                            Manage stall inventory, codes, and physical
-                            locations.
+                            Manage stalls for each floors or sections
                         </p>
                     </div>
 

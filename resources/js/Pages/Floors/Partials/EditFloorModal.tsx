@@ -58,7 +58,7 @@ export default function EditFloorModal({
                         icon="solar:pen-bold-duotone"
                         className="w-6 h-6 text-amber-500"
                     />
-                    Edit Floor
+                    Edit Floor/Section
                 </h2>
                 <button
                     onClick={closeModal}
@@ -78,7 +78,7 @@ export default function EditFloorModal({
             >
                 <div>
                     <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Parent Building
+                        Building Designation
                     </label>
                     <SearchableSelect
                         value={data.building_id}
@@ -99,14 +99,19 @@ export default function EditFloorModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Floor Name
-                    </label>
+                    <div className="flex justify-between items-end mb-1">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
+                            Floor/Section Name
+                        </label>
+                        <span className={`text-[10px] font-bold ${data.name.length >= 50 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            {data.name.length}/50
+                        </span>
+                    </div>
                     <input
                         type="text"
                         value={data.name}
                         onChange={(e) => setData("name", e.target.value)}
-                        maxLength={50} // 🔥 Added character restriction
+                        maxLength={50}
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors"
                         required
                     />
@@ -118,12 +123,18 @@ export default function EditFloorModal({
                 </div>
 
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Description (Optional)
-                    </label>
+                    <div className="flex justify-between items-end mb-1">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
+                            Description (Optional)
+                        </label>
+                        <span className={`text-[10px] font-bold ${data.description.length >= 255 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            {data.description.length}/255
+                        </span>
+                    </div>
                     <textarea
                         value={data.description}
                         onChange={(e) => setData("description", e.target.value)}
+                        maxLength={255}
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors"
                         rows={3}
                     />
@@ -147,7 +158,7 @@ export default function EditFloorModal({
                         disabled={processing}
                         className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
-                        Update Floor
+                        Update Floor/Section
                     </button>
                 </div>
             </form>

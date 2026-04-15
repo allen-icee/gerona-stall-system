@@ -102,7 +102,10 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                         </div>
                         <div>
                             <p className="text-[10px] text-emerald-400 uppercase font-bold">Stall Code</p>
-                            <p className="text-sm font-black text-white">{contract?.stall?.stall_code}</p>
+                            {/* 🔥 Forces the stall code to be uppercase */}
+                            <p className="text-sm font-black text-white">
+                                {String(contract?.stall?.stall_code || "").toUpperCase()}
+                            </p>
                         </div>
                     </div>
                 </div>

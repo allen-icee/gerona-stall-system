@@ -52,6 +52,23 @@ export default function EditStallModal({ show, onClose, stall, floors }: any) {
         }
     };
 
+    // 🔥 Added: Formatted floor options to match MapSideBar
+    const floorOptions = floors?.map((f: any) => ({
+        value: f.id,
+        searchString: `${f.building?.name || "No Building"} - ${f.name}`,
+        label: (
+            <div className="flex flex-col justify-center w-full overflow-hidden text-left">
+                {/* Change text-slate-400 to text-slate-500 or text-slate-600 here 👇 */}
+                <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest leading-none mb-0.5 truncate">
+                    {f.building?.name || "No Building"}
+                </span>
+                <span className="text-sm font-black text-blue-700 uppercase leading-none truncate">
+                    {f.name}
+                </span>
+            </div>
+        )
+    })) || [];
+
     return (
         <Modal show={show} onClose={closeModal} maxWidth="2xl">
             <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
@@ -76,22 +93,28 @@ export default function EditStallModal({ show, onClose, stall, floors }: any) {
                             <SearchableSelect
                                 value={data.floor_id}
                                 onChange={(val: any) => setData("floor_id", val)}
-                                options={floors.map((f: any) => ({
-                                    value: f.id,
-                                    label: `${f.name} (${f.building?.name || "No Building"})`,
-                                }))}
-                                theme="amber"
+                                options={floorOptions}
+                                placeholder="Search locations..."
                                 error={errors.floor_id}
+                                theme="amber"
                             />
                             {errors.floor_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.floor_id}</p>}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Stall Code</label>
+                            <div className="flex justify-between items-end mb-1">
+                                <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
+                                    Stall Code
+                                </label>
+                                <span className={`text-[10px] font-bold ${data.stall_code.length >= 50 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                    {data.stall_code.length}/50
+                                </span>
+                            </div>
                             <input
                                 type="text"
                                 value={data.stall_code}
                                 onChange={(e) => setData("stall_code", e.target.value.toUpperCase())}
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors"
+                                maxLength={50}
+                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors outline-none"
                                 required
                             />
                             {errors.stall_code && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.stall_code}</p>}

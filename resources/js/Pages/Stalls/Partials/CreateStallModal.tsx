@@ -30,12 +30,27 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
         reset();
     };
 
-    // 🔥 Frontend LGU Rounding Visuals 🔥
     const handleRound = (field: any) => {
         if (data[field as keyof typeof data]) {
             setData(field, Math.round(parseFloat(data[field as keyof typeof data] as string)).toFixed(2));
         }
     };
+
+    // 🔥 Added: Formatted floor options to match MapSideBar
+    const floorOptions = floors?.map((f: any) => ({
+        value: f.id,
+        searchString: `${f.building?.name || "No Building"} - ${f.name}`,
+        label: (
+            <div className="flex flex-col justify-center w-full overflow-hidden text-left">
+                <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest leading-none mb-0.5 truncate">
+                    {f.building?.name || "No Building"}
+                </span>
+                <span className="text-sm font-black text-blue-700 uppercase leading-none truncate">
+                    {f.name}
+                </span>
+            </div>
+        )
+    })) || [];
 
     return (
         <Modal show={show} onClose={closeModal} maxWidth="2xl">
@@ -62,22 +77,28 @@ export default function CreateStallModal({ show, onClose, floors }: any) {
                             <SearchableSelect
                                 value={data.floor_id}
                                 onChange={(val: any) => setData("floor_id", val)}
-                                options={floors.map((f: any) => ({
-                                    value: f.id,
-                                    label: `${f.name} (${f.building?.name || "No Building"})`,
-                                }))}
+                                options={floorOptions}
                                 placeholder="Search locations..."
                                 error={errors.floor_id}
+                                theme="blue"
                             />
                             {errors.floor_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.floor_id}</p>}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Stall Code</label>
+                            <div className="flex justify-between items-end mb-1">
+                                <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
+                                    Stall Code
+                                </label>
+                                <span className={`text-[10px] font-bold ${data.stall_code.length >= 50 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                    {data.stall_code.length}/50
+                                </span>
+                            </div>
                             <input
                                 type="text"
                                 value={data.stall_code}
                                 onChange={(e) => setData("stall_code", e.target.value.toUpperCase())}
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 transition-colors"
+                                maxLength={50}
+                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-700 focus:ring-0 transition-colors outline-none"
                                 placeholder="e.g. B1, ST-014"
                                 required
                             />

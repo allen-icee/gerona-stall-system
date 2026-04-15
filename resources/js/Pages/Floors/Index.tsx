@@ -23,7 +23,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
     // Advanced Sorting Options
     const sortOptions = [
         { value: 'building_asc', label: 'Building Name (A-Z)' },
-        { value: 'name_asc', label: 'Floor Name (A-Z)' },
+        { value: 'name_asc', label: 'Floor/Section Name (A-Z)' },
         { value: 'created_at_desc', label: 'Recently Added' },
         { value: 'created_at_asc', label: 'Oldest Added' },
     ];
@@ -111,7 +111,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                         />
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-2">
-                        Delete Floor?
+                        Delete Floor/Section?
                     </h3>
                     <p className="text-sm text-slate-700 font-medium mb-6">
                         Are you sure you want to completely remove this
@@ -129,7 +129,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                             onClick={handleDelete}
                             className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700 transition-colors"
                         >
-                            Yes, Delete Floor
+                            Yes, Delete Floor/Section
                         </button>
                     </div>
                 </div>
@@ -146,13 +146,13 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                 />
                                 Floors & Sections
                             </h3>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Floors">
+                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Floors/Sections">
                                 <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
                                 {totalFloors}
                             </span>
                         </div>
-                        <p className="text-sm font-bold text-slate-500">
-                            Organize levels and areas within the facility buildings.
+                        <p className="text-xs font-bold text-slate-500">
+                            Organize floors and sections within the existing buildings.
                         </p>
                     </div>
 
@@ -180,7 +180,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
-                                placeholder="Search floors..."
+                                placeholder="Search floors/sections..."
                             />
                         </div>
 
@@ -222,7 +222,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                 icon="solar:add-square-bold-duotone"
                                 className="w-5 h-5"
                             />
-                            <span className="hidden sm:inline">Add Floor</span>
+                            <span className="hidden sm:inline">Add Floor/Section</span>
                         </button>
                     </div>
                 </div>
@@ -240,7 +240,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                         Floor / Section
                                     </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
-                                        Parent Building
+                                        Building Designation
                                     </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
                                         Stall Count
@@ -261,7 +261,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                 icon="solar:layers-minimalistic-broken"
                                                 className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
                                             />
-                                            No floors found.
+                                            No floors/sections found.
                                         </td>
                                     </tr>
                                 ) : (
@@ -298,25 +298,26 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center gap-2">
+                                                        {/* 🔥 Added text to action buttons */}
                                                         <button
                                                             onClick={() => setEditingFloor(floor)}
-                                                            className="p-1.5 bg-blue-100 border-2 border-blue-200 text-blue-700 hover:bg-blue-200 hover:border-blue-400 rounded transition-colors"
-                                                            title="Edit Floor"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600  rounded transition-colors text-xs font-bold uppercase tracking-wide"
+                                                            title="Edit Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:pen-bold"
                                                                 className="w-4 h-4"
-                                                            />
+                                                            /> Edit
                                                         </button>
                                                         <button
                                                             onClick={() => confirmDelete(floor.id)}
-                                                            className="p-1.5 bg-rose-100 border-2 border-rose-200 text-rose-700 hover:bg-rose-200 hover:border-rose-400 rounded transition-colors"
-                                                            title="Delete Floor"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-200 text-rose-700 hover:bg-rose-200 hover:border-rose-400 rounded transition-colors text-xs font-bold uppercase tracking-wide"
+                                                            title="Delete Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:trash-bin-trash-bold"
                                                                 className="w-4 h-4"
-                                                            />
+                                                            /> Delete
                                                         </button>
                                                     </div>
                                                 </td>

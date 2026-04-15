@@ -81,11 +81,13 @@ class FloorController extends Controller
 
     public function export(Request $request)
     {
-        $query = Floor::with('building');
+        // 🔥 Added withCount('stalls') to get the number of stalls efficiently
+        $query = Floor::with('building')->withCount('stalls');
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
                 ->orWhereHas('building', function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%");
                 });
@@ -103,18 +105,29 @@ class FloorController extends Controller
         }
 
         $floors = $query->get();
-        $csvData = "building_name,name,description\n";
+
+        // 🔥 Updated CSV Headers to include stall_count and format naming
+        $csvData = "building_name,floor_or_section_name,stall_count,description\n";
 
         foreach ($floors as $floor) {
             $bName = '"' . str_replace('"', '""', $floor->building->name ?? '') . '"';
             $fName = '"' . str_replace('"', '""', $floor->name) . '"';
+
+            // Grab the stall count
+            $stallCount = $floor->stalls_count ?? 0;
+
             $desc = '"' . str_replace('"', '""', $floor->description ?? '') . '"';
-            $csvData .= "{$bName},{$fName},{$desc}\n";
+
+            // Add all 4 variables to the row
+            $csvData .= "{$bName},{$fName},{$stallCount},{$desc}\n";
         }
+
+        // 🔥 Dynamic Filename
+        $filename = 'floors_sections_' . now()->format('Y-m-d') . '.csv';
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="filtered_floors_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function import(Request $request)

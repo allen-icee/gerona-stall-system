@@ -72,10 +72,11 @@ class BuildingController extends Controller
         $query = Building::query();
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%' . $request->search . '%')
+                ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // 🔥 BULLETPROOF EXPORT SORTING 🔥
+        // 櫨 BULLETPROOF EXPORT SORTING 櫨
         $allowedSorts = ['name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'name';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -83,15 +84,26 @@ class BuildingController extends Controller
         $query->orderBy($sortBy, $direction);
 
         $buildings = $query->get();
-        $csvData = "name\n";
+
+        // 1. Add description to the CSV headers
+        $csvData = "name,description\n";
 
         foreach ($buildings as $building) {
-            $name = '"' . str_replace('"', '""', $building->name) . '"';
-            $csvData .= "{$name}\n";
+            // Escape quotes for CSV formatting
+            $name = '"' . str_replace('"', '""', $building->name ?? '') . '"';
+
+            // 2. Format the description for the CSV
+            $description = '"' . str_replace('"', '""', $building->description ?? '') . '"';
+
+            $csvData .= "{$name},{$description}\n";
         }
+
+        // 3. Create a dynamic filename with the current date
+        $filename = 'buildings_' . now()->format('Y-m-d') . '.csv';
+
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="filtered_buildings_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function import(Request $request)

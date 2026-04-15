@@ -25,7 +25,37 @@ export default function CreateContractModal({ show, onClose, tenants, availableS
     useEnterTab(formRef);
 
     const [isRentLocked, setIsRentLocked] = useState(true);
+    // 🔥 Formatted Tenant Options
+    const tenantOptions = tenants?.map((t: any) => ({
+        value: t.id,
+        searchString: `${t.first_name} ${t.last_name} ${t.company_name || ""}`,
+        label: (
+            <div className="flex flex-col justify-center w-full overflow-hidden text-left py-0.5">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-0.5 truncate">
+                    {t.company_name || "Individual/Personal"}
+                </span>
+                <span className="text-sm font-black text-blue-700 uppercase leading-none truncate">
+                    {t.first_name} {t.last_name}
+                </span>
+            </div>
+        )
+    })) || [];
 
+    // 🔥 Formatted Stall Options (forces UPPERCASE for stall codes)
+    const stallOptions = availableStalls?.map((s: any) => ({
+        value: s.id,
+        searchString: `${s.stall_code} ${s.floor?.building?.name || ""}`,
+        label: (
+            <div className="flex flex-col justify-center w-full overflow-hidden text-left py-0.5">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-0.5 truncate">
+                    {s.floor?.building?.name || "No Building"} - {s.floor?.name || "No Floor"}
+                </span>
+                <span className="text-sm font-black text-amber-600 uppercase leading-none truncate">
+                    {String(s.stall_code || "").toUpperCase()}
+                </span>
+            </div>
+        )
+    })) || [];
     useEffect(() => {
         if (data.stall_id) {
             const selectedStall = availableStalls.find((s: any) => s.id === data.stall_id);
@@ -68,29 +98,26 @@ export default function CreateContractModal({ show, onClose, tenants, availableS
             <form ref={formRef} onSubmit={submit} className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar">
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Tenant Select */}
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Assign to Tenant</label>
                         <SearchableSelect
                             value={data.tenant_id}
                             onChange={(val: any) => setData("tenant_id", val)}
-                            options={tenants.map((t: any) => ({
-                                value: t.id,
-                                label: `${t.first_name} ${t.last_name} ${t.company_name ? `(${t.company_name})` : ""}`,
-                            }))}
+                            options={tenantOptions}
                             placeholder="Search registered tenants..."
                             error={errors.tenant_id}
                         />
                         {errors.tenant_id && <p className="text-rose-600 text-xs font-bold mt-1.5">{errors.tenant_id}</p>}
                     </div>
+
+                    {/* Stall Select */}
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Available Stall</label>
                         <SearchableSelect
                             value={data.stall_id}
                             onChange={(val: any) => setData("stall_id", val)}
-                            options={availableStalls.map((s: any) => ({
-                                value: s.id,
-                                label: `${s.stall_code} - ${s.floor?.building?.name || "No Building"}`,
-                            }))}
+                            options={stallOptions}
                             placeholder="Search vacant stalls..."
                             error={errors.stall_id}
                             theme="amber"
