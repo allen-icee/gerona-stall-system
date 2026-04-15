@@ -70,8 +70,18 @@ class TenantController extends Controller
     public function destroy(Tenant $tenant)
     {
         DB::transaction(function () use ($tenant) {
-            \App\Models\Payment::where('tenant_id', $tenant->id)->delete();
+            // 1. Find all contracts linked to this tenant
+            $contractIds = \App\Models\Contract::where('tenant_id', $tenant->id)->pluck('id');
+
+            // 2. Delete all payments linked to those contracts
+            if ($contractIds->isNotEmpty()) {
+                \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
+            }
+
+            // 3. Delete the contracts
             \App\Models\Contract::where('tenant_id', $tenant->id)->delete();
+
+            // 4. Delete the tenant
             $tenant->delete();
         });
 
@@ -91,28 +101,55 @@ class TenantController extends Controller
                 ->orWhere('contact_number', 'like', $searchTerm);
         }
 
-        // 🔥 BULLETPROOF EXPORT SORTING 🔥
         $allowedSorts = ['last_name', 'first_name', 'company_name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'last_name';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
 
         $tenants = $query->orderBy($sortBy, $direction)->get();
 
-        $csvData = "first_name,last_name,company_name,contact_number,address\n";
+        // 🔥 Updated CSV Headers
+        $csvData = "first_name,middle_initial,last_name,suffix,business_name,contact_number,address\n";
 
         foreach ($tenants as $tenant) {
-            $first = '"' . str_replace('"', '""', $tenant->first_name) . '"';
-            $last = '"' . str_replace('"', '""', $tenant->last_name) . '"';
-            $company = '"' . str_replace('"', '""', $tenant->company_name) . '"';
-            $contact = '"' . str_replace('"', '""', $tenant->contact_number) . '"';
-            $address = '"' . str_replace('"', '""', $tenant->address) . '"';
+            // 1. Parse First Name & Middle Initial
+            $fName = $tenant->first_name ?? '';
+            $mi = '';
+            if (preg_match('/ ([a-zA-Z])\.$/i', $fName, $matches)) {
+                $mi = strtoupper($matches[1]);
+                $fName = trim(preg_replace('/ [a-zA-Z]\.$/i', '', $fName));
+            }
 
-            $csvData .= "{$first},{$last},{$company},{$contact},{$address}\n";
+            // 2. Parse Last Name & Suffix
+            $lName = $tenant->last_name ?? '';
+            $suf = '';
+            $suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+            foreach ($suffixes as $s) {
+                if (str_ends_with($lName, ' ' . $s)) {
+                    $suf = $s;
+                    $lName = trim(substr($lName, 0, -strlen(' ' . $s)));
+                    break;
+                }
+            }
+
+            // 3. Escape all fields for CSV safety
+            $first = '"' . str_replace('"', '""', $fName) . '"';
+            $middle = '"' . str_replace('"', '""', $mi) . '"';
+            $last = '"' . str_replace('"', '""', $lName) . '"';
+            $suffix = '"' . str_replace('"', '""', $suf) . '"';
+            $business = '"' . str_replace('"', '""', $tenant->company_name ?? '') . '"';
+            $contact = '"' . str_replace('"', '""', $tenant->contact_number ?? '') . '"';
+            $address = '"' . str_replace('"', '""', $tenant->address ?? '') . '"';
+
+            // 4. Combine Row
+            $csvData .= "{$first},{$middle},{$last},{$suffix},{$business},{$contact},{$address}\n";
         }
+
+        // 🔥 Dynamic Filename
+        $filename = 'tenants_' . now()->format('Y-m-d') . '.csv';
 
         return response($csvData)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="filtered_tenants_export.csv"');
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function import(Request $request)
@@ -125,7 +162,7 @@ class TenantController extends Controller
             Excel::import(new TenantsImport, $request->file('file'));
             return redirect()->back()->with('success', 'Tenants synced successfully! New entries created and existing ones updated.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Ensure your columns are exactly: "first_name", "last_name", "company_name", "contact_number", "address".');
+            return redirect()->back()->with('error', 'Import failed. Ensure your columns match the export format.');
         }
     }
 }

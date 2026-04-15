@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Stall;
 use App\Models\Floor;
+use App\Models\Building;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,19 @@ class StallController extends Controller
 {
     public function index(Request $request)
     {
+        // 🔥 CHECK THE GLOBAL PRICING FEATURE FLAG
+        $pricingFlag = DB::table('feature_flags')->where('name', 'use_proposed_pricing')->first();
+        if (!$pricingFlag) {
+            DB::table('feature_flags')->insert([
+                'name' => 'use_proposed_pricing',
+                'is_enabled' => false,
+                'description' => 'Toggle between Current Rates (false) and Proposed Rates (true)'
+            ]);
+            $useProposedPricing = false;
+        } else {
+            $useProposedPricing = (bool) $pricingFlag->is_enabled;
+        }
+
         $query = Stall::with(['floor.building', 'activeContract']);
 
         if ($request->filled('search')) {
@@ -29,19 +43,23 @@ class StallController extends Controller
                 });
         }
 
+        if ($request->filled('building_id')) {
+            $query->whereHas('floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
+            });
+        }
+
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
         $isDesc = $direction === 'desc';
 
-        // Only sort by created_at in SQL. The rest will be naturally sorted in PHP.
         if ($sortBy === 'created_at') {
             $query->orderBy('created_at', $direction);
         }
 
         $stallsCollection = $query->get();
 
-        // 🔥 PHP NATURAL SORTING: Fixes the B1 -> B10 -> B2 issue into B1 -> B2 -> B10
         if ($sortBy === 'stall_code') {
             $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
                 $cmp = strnatcasecmp($a->stall_code, $b->stall_code);
@@ -53,7 +71,6 @@ class StallController extends Controller
                 $locB = ($b->floor->building->name ?? '') . ($b->floor->name ?? '');
 
                 if ($locA === $locB) {
-                    // Secondary sort naturally by stall code if in same floor
                     return strnatcasecmp($a->stall_code, $b->stall_code);
                 }
 
@@ -62,7 +79,6 @@ class StallController extends Controller
             })->values();
         }
 
-        // Manually Paginate the Naturally Sorted Collection
         $page = Paginator::resolveCurrentPage() ?: 1;
         $perPage = 15;
         $paginatedStalls = new LengthAwarePaginator(
@@ -72,16 +88,19 @@ class StallController extends Controller
             $page,
             [
                 'path' => Paginator::resolveCurrentPath(),
-                'query' => $request->query() // Keep the search/sort URLs intact
+                'query' => $request->query()
             ]
         );
 
         $floors = Floor::with('building')->orderBy('name', 'asc')->get();
+        $buildings = Building::orderBy('name')->get();
 
         return Inertia::render('Stalls/Index', [
             'stalls' => $paginatedStalls,
             'floors' => $floors,
-            'filters' => $request->only(['search', 'sort', 'direction']),
+            'buildings' => $buildings,
+            'filters' => $request->only(['search', 'sort', 'direction', 'building_id']),
+            'useProposedPricing' => $useProposedPricing,
         ]);
     }
 
@@ -166,6 +185,12 @@ class StallController extends Controller
                 });
         }
 
+        if ($request->filled('building_id')) {
+            $query->whereHas('floor', function ($q) use ($request) {
+                $q->where('building_id', $request->building_id);
+            });
+        }
+
         $allowedSorts = ['stall_code', 'location', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'stall_code';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -177,7 +202,6 @@ class StallController extends Controller
 
         $stallsCollection = $query->get();
 
-        // 🔥 Apply the exact same Natural Sorting to the Excel Export!
         if ($sortBy === 'stall_code') {
             $stallsCollection = $stallsCollection->sort(function ($a, $b) use ($isDesc) {
                 $cmp = strnatcasecmp($a->stall_code, $b->stall_code);
@@ -197,25 +221,50 @@ class StallController extends Controller
             })->values();
         }
 
-        $csvData = "stall_code,floor,size_sqm,current_monthly_rental,current_rate_per_sqm,proposed_monthly_rental,proposed_rate_per_sqm\n";
-
+        // Prepare the Data Array
+        $exportData = [];
         foreach ($stallsCollection as $stall) {
-            $floorName = $stall->floor ? $stall->floor->name : '';
-
-            $code = '"' . str_replace('"', '""', $stall->stall_code) . '"';
-            $floor = '"' . str_replace('"', '""', $floorName) . '"';
-            $size = '"' . str_replace('"', '""', $stall->size_sqm ?? 0) . '"';
-            $curr_rent = '"' . str_replace('"', '""', $stall->current_monthly_rental ?? 0) . '"';
-            $curr_rate = '"' . str_replace('"', '""', $stall->current_rate_per_sqm ?? 0) . '"';
-            $prop_rent = '"' . str_replace('"', '""', $stall->proposed_monthly_rental ?? 0) . '"';
-            $prop_rate = '"' . str_replace('"', '""', $stall->proposed_rate_per_sqm ?? 0) . '"';
-
-            $csvData .= "{$code},{$floor},{$size},{$curr_rent},{$curr_rate},{$prop_rent},{$prop_rate}\n";
+            $exportData[] = [
+                'building_name' => $stall->floor && $stall->floor->building ? $stall->floor->building->name : 'Unassigned',
+                'floor_or_section_name' => $stall->floor ? $stall->floor->name : 'Unassigned',
+                'stall_code' => $stall->stall_code,
+                'size_sqm' => $stall->size_sqm ?? 0,
+                'current_monthly_rental' => $stall->current_monthly_rental ?? 0,
+                'current_rate_per_sqm' => $stall->current_rate_per_sqm ?? 0,
+                'proposed_monthly_rental' => $stall->proposed_monthly_rental ?? 0,
+                'proposed_rate_per_sqm' => $stall->proposed_rate_per_sqm ?? 0,
+            ];
         }
 
-        return response($csvData)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="filtered_stalls_export.csv"');
+        // 🔥 Generate an on-the-fly Laravel Excel class
+        $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
+            protected $data;
+            public function __construct($data)
+            {
+                $this->data = $data;
+            }
+            public function array(): array
+            {
+                return $this->data;
+            }
+            public function headings(): array
+            {
+                return [
+                    'building_name',
+                    'floor_or_section_name',
+                    'stall_code',
+                    'size_sqm',
+                    'current_monthly_rental',
+                    'current_rate_per_sqm',
+                    'proposed_monthly_rental',
+                    'proposed_rate_per_sqm'
+                ];
+            }
+        };
+
+        // Export directly to .xlsx
+        $filename = 'stalls_' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download($export, $filename);
     }
 
     public function import(Request $request)
@@ -316,5 +365,24 @@ class StallController extends Controller
         });
 
         return redirect()->back()->with('message', 'Selected stalls and associated records deleted.');
+    }
+
+    public function togglePricing()
+    {
+        $flag = DB::table('feature_flags')->where('name', 'use_proposed_pricing')->first();
+
+        if ($flag) {
+            DB::table('feature_flags')
+                ->where('name', 'use_proposed_pricing')
+                ->update(['is_enabled' => !$flag->is_enabled]);
+        } else {
+            DB::table('feature_flags')->insert([
+                'name' => 'use_proposed_pricing',
+                'is_enabled' => true,
+                'description' => 'Toggle between Current Rates (false) and Proposed Rates (true)'
+            ]);
+        }
+
+        return redirect()->back()->with('message', 'Global Pricing Rule Updated!');
     }
 }

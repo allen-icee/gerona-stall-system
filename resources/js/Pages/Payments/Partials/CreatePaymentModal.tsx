@@ -6,20 +6,38 @@ import SearchableSelect from "@/Components/SearchableSelect";
 import CustomSelect from "@/Components/CustomSelect";
 import { useEnterTab } from "@/hooks/useEnterTab";
 
-export default function CreatePaymentModal({ show, onClose, activeContracts }: any) {
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-        contract_id: "",
-        amount: "",
-        payment_date: new Date().toISOString().split("T")[0],
-        month: "",
-        year: new Date().getFullYear(),
-        or_number: "",
-    });
+export default function CreatePaymentModal({
+    show,
+    onClose,
+    activeContracts,
+}: any) {
+    const { data, setData, post, processing, errors, reset, clearErrors } =
+        useForm({
+            contract_id: "",
+            amount: "",
+            payment_date: new Date().toISOString().split("T")[0],
+            month: "",
+            year: new Date().getFullYear(),
+            or_number: "",
+        });
 
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 
-    const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    const months = [
+        "JANUARY",
+        "FEBRUARY",
+        "MARCH",
+        "APRIL",
+        "MAY",
+        "JUNE",
+        "JULY",
+        "AUGUST",
+        "SEPTEMBER",
+        "OCTOBER",
+        "NOVEMBER",
+        "DECEMBER",
+    ];
 
     // 🔥 THE FIX: Stacked HTML for beautiful Payer Selection
     const contractOptions = activeContracts.map((c: any) => ({
@@ -31,16 +49,20 @@ export default function CreatePaymentModal({ show, onClose, activeContracts }: a
                     {c.tenant?.first_name} {c.tenant?.last_name}
                 </span>
                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none truncate">
-                    Stall: {c.stall?.stall_code} | {c.stall?.floor?.building?.name}
+                    Stall: {c.stall?.stall_code} |{" "}
+                    {c.stall?.floor?.building?.name}
                 </span>
             </div>
-        )
+        ),
     }));
 
     useEffect(() => {
         if (data.contract_id) {
-            const selectedContract = activeContracts.find((c: any) => c.id == data.contract_id);
-            if (selectedContract) setData("amount", selectedContract.monthly_rent);
+            const selectedContract = activeContracts.find(
+                (c: any) => c.id == data.contract_id,
+            );
+            if (selectedContract)
+                setData("amount", selectedContract.monthly_rent);
         }
     }, [data.contract_id, activeContracts]);
 
@@ -59,17 +81,32 @@ export default function CreatePaymentModal({ show, onClose, activeContracts }: a
         <Modal show={show} onClose={closeModal} maxWidth="2xl">
             <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
                 <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-                    <Icon icon="solar:wallet-money-bold-duotone" className="w-6 h-6 text-emerald-600" />
+                    <Icon
+                        icon="solar:wallet-money-bold-duotone"
+                        className="w-6 h-6 text-emerald-600"
+                    />
                     Issue Official Receipt
                 </h2>
-                <button onClick={closeModal} className="text-slate-500 hover:text-slate-800 transition-colors">
-                    <Icon icon="solar:close-circle-bold-duotone" className="w-6 h-6" />
+                <button
+                    onClick={closeModal}
+                    className="text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                    <Icon
+                        icon="solar:close-circle-bold-duotone"
+                        className="w-6 h-6"
+                    />
                 </button>
             </div>
 
-            <form ref={formRef} onSubmit={submit} className="p-6 space-y-5 bg-white rounded-b-2xl">
+            <form
+                ref={formRef}
+                onSubmit={submit}
+                className="p-6 space-y-5 bg-white rounded-b-2xl"
+            >
                 <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Find Active Contract / Tenant</label>
+                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                        Find Active Contract / Tenant
+                    </label>
                     <SearchableSelect
                         value={data.contract_id}
                         onChange={(val: any) => setData("contract_id", val)}
@@ -78,40 +115,123 @@ export default function CreatePaymentModal({ show, onClose, activeContracts }: a
                         error={errors.contract_id}
                         theme="emerald"
                     />
-                    {errors.contract_id && <p className="text-rose-500 text-xs font-bold mt-1">{errors.contract_id}</p>}
+                    {errors.contract_id && (
+                        <p className="text-rose-500 text-xs font-bold mt-1">
+                            {errors.contract_id}
+                        </p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">OR Number</label>
-                        <input type="text" value={data.or_number} onChange={(e) => setData("or_number", e.target.value)} className="w-full bg-amber-50 border-2 border-amber-300 rounded-lg px-4 py-2.5 text-sm font-black text-amber-900 focus:border-amber-600 focus:ring-0 placeholder:font-normal placeholder:text-amber-300 transition-colors" placeholder="Enter Receipt Number" required />
-                        {errors.or_number && <p className="text-rose-500 text-xs font-bold mt-1">{errors.or_number}</p>}
+                        <div className="flex justify-between items-end mb-1">
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
+                                OR Number
+                            </label>
+                            <span
+                                className={`text-[10px] font-bold ${data.or_number?.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                            >
+                                {data.or_number?.length || 0}/255
+                            </span>
+                        </div>
+                        <input
+                            type="text"
+                            maxLength={255}
+                            value={data.or_number}
+                            onChange={(e) =>
+                                setData("or_number", e.target.value)
+                            }
+                            className="w-full bg-amber-50 border-2 border-amber-300 rounded-lg px-4 py-2.5 text-sm font-black text-amber-900 focus:border-amber-600 focus:ring-0 placeholder:font-normal placeholder:text-amber-300 transition-colors"
+                            placeholder="Enter Receipt Number"
+                            required
+                        />
+                        {errors.or_number && (
+                            <p className="text-rose-500 text-xs font-bold mt-1">
+                                {errors.or_number}
+                            </p>
+                        )}
                     </div>
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Amount Paid (₱)</label>
-                        <input type="number" step="0.01" value={data.amount} onChange={(e) => setData("amount", e.target.value)} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors" required />
-                        {errors.amount && <p className="text-rose-500 text-xs font-bold mt-1">{errors.amount}</p>}
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Amount Paid (₱)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={data.amount}
+                            onChange={(e) => setData("amount", e.target.value)}
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
+                            required
+                        />
+                        {errors.amount && (
+                            <p className="text-rose-500 text-xs font-bold mt-1">
+                                {errors.amount}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 relative z-20">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">Date of Payment</label>
-                        <input type="date" value={data.payment_date} onChange={(e) => setData("payment_date", e.target.value)} className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors cursor-pointer" required />
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Date of Payment
+                        </label>
+                        <input
+                            type="date"
+                            value={data.payment_date}
+                            onChange={(e) =>
+                                setData("payment_date", e.target.value)
+                            }
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors cursor-pointer"
+                            required
+                        />
                     </div>
                     <div className="z-30">
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">For Month</label>
-                        <CustomSelect value={data.month} onChange={(val: any) => setData("month", val)} options={months.map(m => ({ value: m, label: m }))} placeholder="Select Month" theme="emerald" />
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            For Month
+                        </label>
+                        <CustomSelect
+                            value={data.month}
+                            onChange={(val: any) => setData("month", val)}
+                            options={months.map((m) => ({
+                                value: m,
+                                label: m,
+                            }))}
+                            placeholder="Select Month"
+                            theme="emerald"
+                        />
                     </div>
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">For Year</label>
-                        <input type="number" value={data.year} onChange={(e) => setData("year", parseInt(e.target.value))} className="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors" required />
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            For Year
+                        </label>
+                        <input
+                            type="number"
+                            value={data.year}
+                            onChange={(e) =>
+                                setData("year", parseInt(e.target.value))
+                            }
+                            className="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
+                            required
+                        />
                     </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-slate-100">
-                    <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer">Cancel</button>
-                    <button type="submit" disabled={processing} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer">Save Official Receipt</button>
+                    <button
+                        type="button"
+                        onClick={closeModal}
+                        className="px-5 py-2.5 rounded-lg font-black uppercase text-xs text-slate-700 border-2 border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+                    >
+                        Save Official Receipt
+                    </button>
                 </div>
             </form>
         </Modal>

@@ -14,16 +14,12 @@ class BuildingController extends Controller
     {
         $query = Building::withCount('floors');
 
-        // Search Filter
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 🔥 BULLETPROOF SORTING 🔥
         $allowedSorts = ['name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'name';
-
-        // Force direction to be exactly 'desc' or 'asc' (ignores "undefined")
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
 
         $query->orderBy($sortBy, $direction);
@@ -48,7 +44,7 @@ class BuildingController extends Controller
 
     public function update(Request $request, Building $building)
     {
-        $validated = $request->request->add(['name' => strtoupper($request->name)]); // Force uppercase
+        $validated = $request->request->add(['name' => strtoupper($request->name)]);
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:buildings,name,' . $building->id
         ]);
@@ -76,34 +72,42 @@ class BuildingController extends Controller
                 ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // 櫨 BULLETPROOF EXPORT SORTING 櫨
         $allowedSorts = ['name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'name';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
 
         $query->orderBy($sortBy, $direction);
-
         $buildings = $query->get();
 
-        // 1. Add description to the CSV headers
-        $csvData = "name,description\n";
-
+        // Prepare the Data Array
+        $exportData = [];
         foreach ($buildings as $building) {
-            // Escape quotes for CSV formatting
-            $name = '"' . str_replace('"', '""', $building->name ?? '') . '"';
-
-            // 2. Format the description for the CSV
-            $description = '"' . str_replace('"', '""', $building->description ?? '') . '"';
-
-            $csvData .= "{$name},{$description}\n";
+            $exportData[] = [
+                'name' => $building->name,
+                'description' => $building->description,
+            ];
         }
 
-        // 3. Create a dynamic filename with the current date
-        $filename = 'buildings_' . now()->format('Y-m-d') . '.csv';
+        // 🔥 Generate an on-the-fly Laravel Excel class
+        $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
+            protected $data;
+            public function __construct($data)
+            {
+                $this->data = $data;
+            }
+            public function array(): array
+            {
+                return $this->data;
+            }
+            public function headings(): array
+            {
+                return ['name', 'description'];
+            }
+        };
 
-        return response($csvData)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        // Export directly to .xlsx
+        $filename = 'buildings_' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download($export, $filename);
     }
 
     public function import(Request $request)

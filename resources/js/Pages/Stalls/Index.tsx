@@ -8,7 +8,13 @@ import BulkEditStallsModal from "./Partials/BulkEditStallsModal";
 import Modal from "@/Components/Modal";
 import CustomSelect from "@/Components/CustomSelect";
 
-export default function StallsIndex({ stalls, floors, filters }: any) {
+export default function StallsIndex({
+    stalls,
+    floors,
+    buildings, // 🔥 Destructured buildings from props
+    filters,
+    useProposedPricing,
+}: any) {
     const [search, setSearch] = useState(filters?.search || "");
     const [sortFilter, setSortFilter] = useState(
         filters?.sort
@@ -16,17 +22,19 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
             : "stall_code_asc",
     );
 
+    // 🔥 New Building Filter State
+    const [filterBuilding, setFilterBuilding] = useState(
+        filters?.building_id || "",
+    );
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingStall, setEditingStall] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Single Delete State
     const [deletingId, setDeletingId] = useState<number | null>(null);
-
-    // Bulk Selection & Edit States
     const [selectedStalls, setSelectedStalls] = useState<number[]>([]);
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
-    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false); // 🔥 New Bulk Delete State
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
     const sortOptions = [
         { value: "stall_code_asc", label: "Stall Code (A-Z)" },
@@ -35,17 +43,28 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         { value: "created_at_desc", label: "Recently Added" },
     ];
 
+    // 🔥 Generate Building Options
+    const buildingOptions = [
+        { value: "", label: "All Buildings" },
+        ...buildings.map((b: any) => ({ value: b.id, label: b.name })),
+    ];
+
     useEffect(() => {
         const delay = setTimeout(() => {
             const [sortBy, filterDirection] = sortFilter.split("_");
             router.get(
                 route("stalls.index"),
-                { search, sort: sortBy, direction: filterDirection },
+                {
+                    search,
+                    sort: sortBy,
+                    direction: filterDirection,
+                    building_id: filterBuilding,
+                },
                 { preserveState: true, replace: true },
             );
         }, 300);
         return () => clearTimeout(delay);
-    }, [search, sortFilter]);
+    }, [search, sortFilter, filterBuilding]); // 🔥 Watched filterBuilding
 
     useEffect(() => {
         setSelectedStalls([]);
@@ -70,7 +89,6 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         );
     };
 
-    // 🔥 Replaced native confirm() with Premium Modal Triggers 🔥
     const confirmBulkDelete = () => {
         setIsBulkDeleteModalOpen(true);
     };
@@ -107,6 +125,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
             search,
             sort: sortBy,
             direction: filterDirection,
+            building_id: filterBuilding,
         });
     };
 
@@ -132,13 +151,20 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
         }
     };
 
+    const handleTogglePricing = () => {
+        router.post(
+            route("system.toggle_pricing"),
+            {},
+            { preserveScroll: true },
+        );
+    };
+
     const totalStalls = stalls.total || stalls.data.length;
 
     return (
         <AuthenticatedLayout>
             <Head title="Manage Stalls" />
 
-            {/* SINGLE DELETE MODAL */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -175,7 +201,6 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                 </div>
             </Modal>
 
-            {/* 🔥 NEW BULK DELETE MODAL 🔥 */}
             <Modal
                 show={isBulkDeleteModalOpen}
                 onClose={() => setIsBulkDeleteModalOpen(false)}
@@ -192,8 +217,13 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                         Delete {selectedStalls.length} Stalls?
                     </h3>
                     <p className="text-sm text-slate-700 font-medium mb-6">
-                        Are you sure you want to completely remove the <span className="font-black text-rose-600">{selectedStalls.length}</span> selected stalls?
-                        Any payments and active contracts linked to them will also be deleted. This action cannot be undone.
+                        Are you sure you want to completely remove the{" "}
+                        <span className="font-black text-rose-600">
+                            {selectedStalls.length}
+                        </span>{" "}
+                        selected stalls? Any payments and active contracts
+                        linked to them will also be deleted. This action cannot
+                        be undone.
                     </p>
                     <div className="flex justify-center gap-3">
                         <button
@@ -212,7 +242,6 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                 </div>
             </Modal>
 
-            {/* FLOATING BULK ACTION BAR */}
             {selectedStalls.length > 0 && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-50 animate-[slide-up_0.3s_ease-out]">
                     <span className="font-black text-sm bg-blue-600 px-3 py-1 rounded-full border-2 border-blue-400">
@@ -227,7 +256,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                     </button>
                     <div className="w-px h-6 bg-slate-700"></div>
                     <button
-                        onClick={confirmBulkDelete} // 🔥 Changed to open the new modal 🔥
+                        onClick={confirmBulkDelete}
                         className="flex items-center gap-2 text-rose-400 hover:text-rose-300 font-bold text-sm uppercase transition-colors cursor-pointer"
                     >
                         <Icon
@@ -239,7 +268,8 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                 </div>
             )}
 
-            <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6 pb-24">
+            <div className="py-12 max-w-[95%] mx-auto space-y-6 pb-24">
+                {/* ROW 1: HEADER & ACTIONS */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
@@ -267,59 +297,35 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="w-56 z-20">
-                            <CustomSelect
-                                value={sortFilter}
-                                onChange={setSortFilter}
-                                options={sortOptions}
-                                theme="blue"
-                            />
-                        </div>
-
-                        <div className="relative w-full md:w-64">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        {/* 🔥 NEW COMPACT PRICING TOGGLE 🔥 */}
+                        <div className="flex bg-slate-200 p-1 rounded-lg border-2 border-slate-300 shrink-0">
+                            <button
+                                onClick={() => {
+                                    if (useProposedPricing)
+                                        handleTogglePricing();
+                                }}
+                                className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${!useProposedPricing ? "bg-white shadow-sm text-emerald-700" : "text-slate-500 hover:text-slate-700 cursor-pointer"}`}
+                            >
                                 <Icon
-                                    icon="solar:magnifer-bold"
-                                    className="h-5 w-5 text-slate-400"
-                                />
-                            </div>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
-                                placeholder="Search stalls..."
-                            />
+                                    icon="solar:wallet-money-bold-duotone"
+                                    className="w-4 h-4 inline mr-1"
+                                />{" "}
+                                Current Rates
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!useProposedPricing)
+                                        handleTogglePricing();
+                                }}
+                                className={`px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-wide transition-all ${useProposedPricing ? "bg-white shadow-sm text-amber-600" : "text-slate-500 hover:text-slate-700 cursor-pointer"}`}
+                            >
+                                <Icon
+                                    icon="solar:calculator-minimalistic-bold-duotone"
+                                    className="w-4 h-4 inline mr-1"
+                                />{" "}
+                                Proposed Rates
+                            </button>
                         </div>
-
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0 cursor-pointer"
-                            title="Export Filtered Stalls"
-                        >
-                            <Icon
-                                icon="solar:export-bold-duotone"
-                                className="w-5 h-5"
-                            />
-                        </button>
-
-                        <input
-                            type="file"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                        />
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center justify-center p-2.5 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 transition-colors shrink-0 cursor-pointer"
-                            title="Import from Excel"
-                        >
-                            <Icon
-                                icon="solar:import-bold-duotone"
-                                className="w-5 h-5"
-                            />
-                        </button>
 
                         <button
                             onClick={() => setIsCreateOpen(true)}
@@ -334,8 +340,78 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                     </div>
                 </div>
 
-                <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
-                    <div className="overflow-x-auto">
+                {/* ROW 2: SEARCH AND FILTERS */}
+                <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border-2 border-slate-300 shadow-sm z-40">
+                    <div className="w-48 z-40">
+                        <CustomSelect
+                            value={sortFilter}
+                            onChange={setSortFilter}
+                            options={sortOptions}
+                            theme="blue"
+                        />
+                    </div>
+
+                    {/* 🔥 NEW BUILDING FILTER */}
+                    <div className="w-48 z-30">
+                        <CustomSelect
+                            value={filterBuilding}
+                            onChange={setFilterBuilding}
+                            options={buildingOptions}
+                            placeholder="Filter Building"
+                            theme="blue"
+                        />
+                    </div>
+
+                    <div className="relative flex-1 min-w-[200px]">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Icon
+                                icon="solar:magnifer-bold"
+                                className="h-5 w-5 text-slate-400"
+                            />
+                        </div>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="block w-full pl-10 pr-3 py-2 border-2 border-slate-300 rounded-lg text-sm font-bold text-slate-900 placeholder-slate-400 focus:ring-0 focus:border-blue-700 transition-colors"
+                            placeholder="Search stalls..."
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center justify-center p-2 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 shrink-0 cursor-pointer"
+                        title="Export Filtered Stalls"
+                    >
+                        <Icon
+                            icon="solar:export-bold-duotone"
+                            className="w-5 h-5"
+                        />
+                    </button>
+
+                    <input
+                        type="file"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                    />
+
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center justify-center p-2 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 shrink-0 cursor-pointer"
+                        title="Import from Excel"
+                    >
+                        <Icon
+                            icon="solar:import-bold-duotone"
+                            className="w-5 h-5"
+                        />
+                    </button>
+                </div>
+
+                {/* THE TABLE */}
+                <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col mt-4 relative z-10">
+                    <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
@@ -344,12 +420,13 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                             type="button"
                                             onClick={handleSelectAll}
                                             aria-label="Select all records"
-                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${stalls.data.length > 0 &&
+                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
+                                                stalls.data.length > 0 &&
                                                 selectedStalls.length ===
-                                                stalls.data.length
-                                                ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
-                                                : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                }`}
+                                                    stalls.data.length
+                                                    ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
+                                                    : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                            }`}
                                         >
                                             <Icon
                                                 icon="solar:check-read-bold"
@@ -362,6 +439,12 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                     </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
                                         Stall Code
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Size (SQM)
+                                    </th>
+                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                        Active Pricing
                                     </th>
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
                                         Current Status
@@ -378,7 +461,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                 {stalls.data.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={8}
                                             className="px-6 py-12 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
@@ -400,6 +483,15 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                 selectedStalls.includes(
                                                     stall.id,
                                                 );
+
+                                            const activeMonthly =
+                                                useProposedPricing
+                                                    ? stall.proposed_monthly_rental
+                                                    : stall.current_monthly_rental;
+                                            const activePerSqm =
+                                                useProposedPricing
+                                                    ? stall.proposed_rate_per_sqm
+                                                    : stall.current_rate_per_sqm;
 
                                             return (
                                                 <tr
@@ -424,10 +516,11 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                                     stall.id,
                                                                 )
                                                             }
-                                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${isSelected
-                                                                ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
-                                                                : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                                }`}
+                                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
+                                                                isSelected
+                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
+                                                                    : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                            }`}
                                                         >
                                                             <Icon
                                                                 icon="solar:check-read-bold"
@@ -442,6 +535,37 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                     <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center text-base">
                                                         {stall.stall_code}
                                                     </td>
+
+                                                    <td className="px-6 py-4 font-black text-slate-700 text-center border-r border-slate-200">
+                                                        {stall.size_sqm ? (
+                                                            <span className="bg-slate-100 border border-slate-300 px-2 py-1 rounded text-xs">
+                                                                {stall.size_sqm}{" "}
+                                                                sqm
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 text-xs italic">
+                                                                N/A
+                                                            </span>
+                                                        )}
+                                                    </td>
+
+                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                        <div
+                                                            className={`text-sm font-black ${useProposedPricing ? "text-amber-600" : "text-emerald-700"}`}
+                                                        >
+                                                            ₱{" "}
+                                                            {activeMonthly ||
+                                                                "0.00"}{" "}
+                                                            / mo
+                                                        </div>
+                                                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                                                            ₱{" "}
+                                                            {activePerSqm ||
+                                                                "0.00"}{" "}
+                                                            / sqm
+                                                        </div>
+                                                    </td>
+
                                                     <td className="px-6 py-4 text-center border-r border-slate-200">
                                                         <span
                                                             className="inline-block px-3 py-1 rounded border-2 font-black text-[10px] uppercase tracking-wider shadow-sm"
@@ -451,7 +575,7 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                                     statusObj.color,
                                                                 color:
                                                                     statusObj.color ===
-                                                                        "#ffffff"
+                                                                    "#ffffff"
                                                                         ? "#000000"
                                                                         : statusObj.color,
                                                             }}
@@ -463,10 +587,10 @@ export default function StallsIndex({ stalls, floors, filters }: any) {
                                                         <div className="font-bold text-slate-800">
                                                             {stall.floor
                                                                 ?.name || (
-                                                                    <span className="text-rose-500">
-                                                                        No Floor
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-rose-500">
+                                                                    No Floor
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="text-xs text-slate-500">
                                                             {stall.floor

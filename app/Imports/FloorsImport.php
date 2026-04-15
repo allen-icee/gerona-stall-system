@@ -11,19 +11,20 @@ class FloorsImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        if (empty($row['name']) || empty($row['building'])) {
+        // Check for the exact headers we defined in FloorController@export
+        if (empty($row['floor_or_section_name']) || empty($row['building_name'])) {
             return null;
         }
 
-        $building = Building::where('name', $row['building'])->first();
+        // 🔥 Cascading Creation: Create the building if it doesn't exist!
+        $building = Building::firstOrCreate(
+            ['name' => trim($row['building_name'])]
+        );
 
-        if (!$building) {
-            return null;
-        }
-
+        // Update or create the Floor and attach it to the Building
         return Floor::updateOrCreate(
             [
-                'name' => $row['name'],
+                'name' => trim($row['floor_or_section_name']),
                 'building_id' => $building->id
             ],
             [

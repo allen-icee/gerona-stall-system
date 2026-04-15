@@ -57,6 +57,9 @@ Route::middleware('auth')->group(function () {
         Route::post('stalls/bulk-update', [StallController::class, 'bulkUpdate'])->name('stalls.bulk_update');
         Route::post('stalls/bulk-destroy', [StallController::class, 'bulkDestroy'])->name('stalls.bulk_destroy');
 
+        // 🔥 ADDED GLOBAL PRICING TOGGLE ROUTE HERE 🔥
+        Route::post('/system/toggle-pricing', [StallController::class, 'togglePricing'])->name('system.toggle_pricing');
+
         Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
         Route::post('/mapper/generate', [LayoutController::class, 'generate'])->name('layouts.generate');
         Route::post('/mapper/{layout}/expand', [LayoutController::class, 'expand'])->name('layouts.expand');

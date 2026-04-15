@@ -65,13 +65,17 @@ class Contract extends Model
 
     public function payments()
     {
-        return $this->hasMany(Payment::class);
+        // 🔥 FIXED: Explicitly define the foreign key to prevent the 1054 SQL error
+        return $this->hasMany(Payment::class, 'contract_id', 'id');
     }
 
+    // 🔥 Commented out until Phase 2 when the Violations Engine is built
+    /*
     public function violations()
     {
         return $this->hasMany(Violation::class);
     }
+    */
 
     // ==========================================
     // 🔥 THE FINANCIAL ENGINE (COMPUTED LOGIC)
@@ -79,6 +83,10 @@ class Contract extends Model
 
     public function getTotalPaidAttribute()
     {
+        // Check if relationship exists before querying to save DB calls if already loaded
+        if ($this->relationLoaded('payments')) {
+            return $this->payments->sum('amount');
+        }
         return $this->payments()->sum('amount');
     }
 
@@ -136,6 +144,7 @@ class Contract extends Model
             'DEC' => 0
         ];
 
+        // Ensure payments are loaded to prevent N+1 queries if iterating through many contracts
         if ($this->relationLoaded('payments') || $this->payments()->exists()) {
             foreach ($this->payments as $payment) {
                 if (!empty($payment->month)) {

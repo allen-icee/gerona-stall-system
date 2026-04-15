@@ -9,3 +9,13 @@ select,
 [type="submit"] {
     cursor: pointer !important;
 }
+
+/* Hide scrollbar globally for all elements */
+* {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari and Opera */
+}

@@ -15,7 +15,6 @@ class FloorController extends Controller
     {
         $query = Floor::with('building')->withCount('stalls');
 
-        // Search Filter
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%")
@@ -24,8 +23,6 @@ class FloorController extends Controller
                 });
         }
 
-        // 🔥 100% BULLETPROOF SORTING 🔥
-        // Only allow these exact strings. If it's anything else (like "[native code]"), fallback to 'building'
         $allowedSorts = ['building', 'name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'building';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -81,7 +78,6 @@ class FloorController extends Controller
 
     public function export(Request $request)
     {
-        // 🔥 Added withCount('stalls') to get the number of stalls efficiently
         $query = Floor::with('building')->withCount('stalls');
 
         if ($request->filled('search')) {
@@ -93,7 +89,6 @@ class FloorController extends Controller
                 });
         }
 
-        // 🔥 BULLETPROOF EXPORT SORTING 🔥
         $allowedSorts = ['building', 'name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'building';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -106,28 +101,37 @@ class FloorController extends Controller
 
         $floors = $query->get();
 
-        // 🔥 Updated CSV Headers to include stall_count and format naming
-        $csvData = "building_name,floor_or_section_name,stall_count,description\n";
-
+        // Prepare the Data Array
+        $exportData = [];
         foreach ($floors as $floor) {
-            $bName = '"' . str_replace('"', '""', $floor->building->name ?? '') . '"';
-            $fName = '"' . str_replace('"', '""', $floor->name) . '"';
-
-            // Grab the stall count
-            $stallCount = $floor->stalls_count ?? 0;
-
-            $desc = '"' . str_replace('"', '""', $floor->description ?? '') . '"';
-
-            // Add all 4 variables to the row
-            $csvData .= "{$bName},{$fName},{$stallCount},{$desc}\n";
+            $exportData[] = [
+                'building_name' => $floor->building->name ?? 'Unassigned',
+                'floor_or_section_name' => $floor->name,
+                'stall_count' => $floor->stalls_count ?? 0,
+                'description' => $floor->description,
+            ];
         }
 
-        // 🔥 Dynamic Filename
-        $filename = 'floors_sections_' . now()->format('Y-m-d') . '.csv';
+        // 🔥 Generate an on-the-fly Laravel Excel class
+        $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
+            protected $data;
+            public function __construct($data)
+            {
+                $this->data = $data;
+            }
+            public function array(): array
+            {
+                return $this->data;
+            }
+            public function headings(): array
+            {
+                return ['building_name', 'floor_or_section_name', 'stall_count', 'description'];
+            }
+        };
 
-        return response($csvData)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        // Export directly to .xlsx
+        $filename = 'floors_sections_' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download($export, $filename);
     }
 
     public function import(Request $request)
