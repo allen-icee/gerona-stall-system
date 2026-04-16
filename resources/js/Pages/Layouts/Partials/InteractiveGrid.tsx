@@ -1,19 +1,19 @@
-//resources\js\Pages\Layouts\Partials\InteractiveGrid.tsx
-import { useState, useEffect, useRef } from "react";
+//resources/js/Pages/Layouts/Partials/InteractiveGrid.tsx
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
 export default function InteractiveGrid({
-    layout,
     gridCells,
+    gridDims,
     activeFloorData,
     onCellClick,
     onClearAll,
     onRevert,
-    onExpandRow,
-    onExpandCol,
-    onShrinkRow,
-    onShrinkCol,
+    onInsertRow,
+    onDeleteRow,
+    onInsertCol,
+    onDeleteCol,
     onQuickPaint,
 }: any) {
     const [zoom, setZoom] = useState(1);
@@ -28,9 +28,7 @@ export default function InteractiveGrid({
         data: null as any,
     });
 
-    const [expandAmount, setExpandAmount] = useState(1);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
-
     const [paintMode, setPaintMode] = useState<{
         id: string;
         color: string;
@@ -104,7 +102,7 @@ export default function InteractiveGrid({
                 if (e.deltaY < 0) {
                     setZoom((z) => Math.min(3, z + 0.1));
                 } else {
-                    setZoom((z) => Math.max(0.2, z - 0.1));
+                    setZoom((z) => Math.max(0.4, z - 0.1));
                 }
             }
         };
@@ -116,15 +114,13 @@ export default function InteractiveGrid({
                     setZoom((z) => Math.min(3, z + 0.1));
                 } else if (e.key === "-") {
                     e.preventDefault();
-                    setZoom((z) => Math.max(0.2, z - 0.1));
+                    setZoom((z) => Math.max(0.4, z - 0.1));
                 } else if (e.key === "0") {
                     e.preventDefault();
                     setZoom(1);
                 }
             }
-            if (e.key === "Escape") {
-                setPaintMode(null);
-            }
+            if (e.key === "Escape") setPaintMode(null);
         };
 
         container.addEventListener("wheel", handleWheel, { passive: false });
@@ -144,11 +140,11 @@ export default function InteractiveGrid({
         return "Manual Setup";
     };
 
+    const cellSize = 56 * zoom;
+    const headerSize = 30;
+
     return (
-        <div
-            ref={containerRef}
-            className="relative w-full h-full overflow-hidden flex flex-col bg-slate-100"
-        >
+        <div className="relative w-full h-full overflow-hidden flex flex-col bg-slate-200/50">
             {paintMode && (
                 <div
                     className="absolute top-0 left-0 w-full bg-slate-900 text-white py-2 z-[60] flex items-center justify-center gap-4 animate-fade-in-down shadow-lg border-b-4"
@@ -227,101 +223,29 @@ export default function InteractiveGrid({
             <div className="absolute bottom-6 left-6 z-50 flex flex-col items-start gap-2 pointer-events-auto">
                 {isControlsOpen && (
                     <div className="flex flex-wrap items-center gap-2 p-2 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-slate-200/80 animate-fade-in-up origin-bottom-left">
-                        <div className="flex flex-col items-center justify-center border-r-2 border-slate-200 pr-2">
-                            <label className="text-[7px] font-black uppercase text-slate-500 mb-1">
-                                Add/Del Qty
-                            </label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="20"
-                                value={expandAmount}
-                                onChange={(e) =>
-                                    setExpandAmount(
-                                        parseInt(e.target.value) || 1,
-                                    )
-                                }
-                                className="w-12 h-10 text-center text-sm font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:ring-0 cursor-pointer"
-                            />
-                        </div>
-
-                        <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                            <button
-                                onClick={() => onExpandRow(expandAmount)}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer"
-                            >
-                                <Icon
-                                    icon="solar:row-bottom-bold-duotone"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
-                                    + Row
-                                </span>
-                            </button>
-                            <button
-                                onClick={() => onShrinkRow(expandAmount)}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
-                            >
-                                <Icon
-                                    icon="solar:trash-bin-minimalistic-bold-duotone"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
-                                    - Row
-                                </span>
-                            </button>
-                        </div>
-
-                        <div className="flex gap-1.5 border-r-2 border-slate-200 pr-2">
-                            <button
-                                onClick={() => onExpandCol(expandAmount)}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 text-slate-500 hover:text-blue-600 transition-all cursor-pointer"
-                            >
-                                <Icon
-                                    icon="solar:sidebar-right-bold-duotone"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
-                                    + Col
-                                </span>
-                            </button>
-                            <button
-                                onClick={() => onShrinkCol(expandAmount)}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
-                            >
-                                <Icon
-                                    icon="solar:trash-bin-minimalistic-bold-duotone"
-                                    className="w-5 h-5"
-                                />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
-                                    - Col
-                                </span>
-                            </button>
-                        </div>
-
                         <div className="flex gap-1.5">
                             <button
                                 onClick={onRevert}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all cursor-pointer"
+                                className="flex flex-col items-center justify-center p-2 w-16 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 text-slate-500 hover:text-amber-600 transition-all cursor-pointer"
                             >
                                 <Icon
                                     icon="solar:history-bold-duotone"
                                     className="w-5 h-5"
                                 />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
+                                <span className="text-[8px] font-black uppercase mt-1 text-center leading-tight">
                                     Revert
                                 </span>
                             </button>
                             <button
                                 onClick={onClearAll}
-                                className="flex flex-col items-center justify-center p-2 w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
+                                className="flex flex-col items-center justify-center p-2 w-16 h-14 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-rose-400 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
                             >
                                 <Icon
                                     icon="solar:eraser-bold-duotone"
                                     className="w-5 h-5"
                                 />
-                                <span className="text-[7px] font-black uppercase mt-1 text-center leading-tight">
-                                    Clear
+                                <span className="text-[8px] font-black uppercase mt-1 text-center leading-tight">
+                                    Clear All
                                 </span>
                             </button>
                         </div>
@@ -342,10 +266,9 @@ export default function InteractiveGrid({
                             className="w-5 h-5"
                         />
                         <span className="text-[11px] font-black uppercase tracking-wider">
-                            {isControlsOpen ? "Close Tools" : "Grid Tools"}
+                            {isControlsOpen ? "Close Tools" : "Map Options"}
                         </span>
                     </button>
-
                     <div className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-2 rounded-xl shadow-2xl flex flex-col justify-center border border-slate-700">
                         <h1 className="text-[11px] font-black uppercase tracking-widest leading-none mb-0.5">
                             {activeFloorData?.building_name || "Unknown"}
@@ -431,7 +354,7 @@ export default function InteractiveGrid({
 
             <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300 pointer-events-auto">
                 <button
-                    onClick={() => setZoom((z) => Math.max(0.2, z - 0.1))}
+                    onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
                     className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer"
                 >
                     <Icon
@@ -459,183 +382,369 @@ export default function InteractiveGrid({
                 </button>
             </div>
 
+            {/* 👇 FIX APPLIED HERE: Replaced justify-start with m-auto on the inner wrapper 👇 */}
             <div
-                className={`overflow-auto w-full h-full p-32 custom-scrollbar flex items-start justify-center transition-all ${paintMode ? "cursor-crosshair" : "cursor-default"}`}
+                ref={containerRef}
+                className={`w-full h-full p-12 overflow-auto flex transition-all ${paintMode ? "cursor-crosshair" : "cursor-default"}`}
             >
-                <div
-                    className="bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block origin-center transition-transform duration-200 ease-out pointer-events-auto"
-                    style={{ transform: `scale(${zoom})` }}
-                >
-                    <div
-                        className="grid gap-1"
-                        style={{
-                            gridTemplateColumns: `repeat(${layout.total_cols}, 56px)`,
-                            gridAutoRows: "56px",
-                        }}
-                    >
-                        {gridCells.map((cell: any, index: number) => {
-                            let cellStyle =
-                                "bg-slate-50 border-slate-200 border-dashed hover:border-slate-400";
-                            let content: any = "";
-                            let dbColor = "";
+                {gridDims.cols > 0 && gridDims.rows > 0 && (
+                    <div className="m-auto bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block transition-all duration-300 ease-out">
+                        <div
+                            className="grid gap-1"
+                            style={{
+                                gridTemplateColumns: `${headerSize}px repeat(${gridDims.cols}, ${cellSize}px) ${headerSize}px`,
+                            }}
+                        >
+                            {/* Top Left Empty Cell */}
+                            <div style={{ height: headerSize }}></div>
 
-                            let isHighlighted = false;
-                            let isDimmed = false;
-
-                            if (searchQuery.trim() !== "") {
-                                const searchLower = searchQuery.toLowerCase();
-                                if (cell.type === "stall" && cell.stall) {
-                                    const tenantName =
-                                        `${cell.stall.active_contract?.tenant?.first_name || ""} ${cell.stall.active_contract?.tenant?.last_name || ""}`.toLowerCase();
-                                    const companyName = (
-                                        cell.stall.active_contract?.tenant
-                                            ?.company_name || ""
-                                    ).toLowerCase();
-                                    const stallCode = (
-                                        cell.stall.stall_code || ""
-                                    ).toLowerCase();
-
-                                    if (
-                                        tenantName.includes(searchLower) ||
-                                        companyName.includes(searchLower) ||
-                                        stallCode.includes(searchLower)
-                                    ) {
-                                        isHighlighted = true;
-                                    } else {
-                                        isDimmed = true;
-                                    }
-                                } else {
-                                    isDimmed = true;
-                                }
-                            }
-
-                            if (cell.type === "walkway") {
-                                cellStyle =
-                                    "bg-slate-300 border-slate-400 border-solid text-slate-600";
-                            } else if (cell.type === "restroom") {
-                                cellStyle =
-                                    "bg-cyan-100 border-cyan-300 border-solid text-cyan-700";
-                                content = "CR";
-                            } else if (cell.type === "stairs") {
-                                cellStyle =
-                                    "bg-purple-100 border-purple-300 border-solid text-purple-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZjNmNGY2Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjZTllY2Y1IiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]";
-                                content = (
-                                    <Icon
-                                        icon="solar:double-alt-arrow-up-bold-duotone"
-                                        className="w-6 h-6 opacity-70"
-                                    />
-                                );
-                            } else if (cell.type === "wall") {
-                                cellStyle =
-                                    "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner";
-                            } else if (cell.type === "text") {
-                                cellStyle =
-                                    "bg-transparent border-transparent text-indigo-900 font-black flex items-center justify-center overflow-visible z-10 whitespace-nowrap";
-                                content = (
-                                    <span className="text-sm drop-shadow-md">
-                                        {cell.text || "Text"}
-                                    </span>
-                                );
-                            } else if (cell.type === "stall" && cell.stall) {
-                                cellStyle =
-                                    "border-solid border-slate-800 shadow-sm text-slate-800 font-black";
-                                const tenant =
-                                    cell.stall.active_contract?.tenant;
-
-                                content = (
-                                    <div className="flex flex-col items-center justify-center leading-none text-center w-full px-1">
-                                        <span className="text-[10px] opacity-80">
-                                            {cell.stall.stall_code}
-                                        </span>
-                                        {tenant && (
-                                            <span className="text-[9px] truncate w-full mt-1 tracking-tight">
-                                                {tenant.last_name}
-                                            </span>
-                                        )}
+                            {/* Column Add/Delete Headers */}
+                            {Array.from({ length: gridDims.cols }).map(
+                                (_, c) => (
+                                    <div
+                                        key={`col-ctrl-${c}`}
+                                        className="group relative flex justify-center items-end pb-1"
+                                        style={{ height: headerSize }}
+                                    >
+                                        <div className="hidden group-hover:flex items-center justify-center gap-1 bg-white rounded-t-lg shadow-md border border-b-0 border-slate-300 px-1 py-1 absolute bottom-0 z-20">
+                                            <button
+                                                onClick={() => onInsertCol(c)}
+                                                title="Insert Column Before"
+                                                className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
+                                            >
+                                                <Icon
+                                                    icon="solar:add-square-bold"
+                                                    className="w-4 h-4"
+                                                />
+                                            </button>
+                                            <button
+                                                onClick={() => onDeleteCol(c)}
+                                                title="Delete Column"
+                                                className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
+                                            >
+                                                <Icon
+                                                    icon="solar:trash-bin-trash-bold"
+                                                    className="w-4 h-4"
+                                                />
+                                            </button>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-200 rounded-t-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     </div>
-                                );
-                                dbColor =
-                                    cell.stall.computed_status?.color ||
-                                    "#ffffff";
-                            }
+                                ),
+                            )}
 
-                            if (isHighlighted) {
-                                cellStyle +=
-                                    " ring-4 ring-amber-400 scale-110 z-10 shadow-2xl";
-                            } else if (isDimmed) {
-                                cellStyle += " opacity-25 grayscale";
-                            }
-
-                            return (
-                                <div
-                                    key={cell.id}
-                                    onClick={() => {
-                                        if (paintMode) {
-                                            if (
-                                                cell.type === "stall" &&
-                                                cell.stall
-                                            ) {
-                                                onQuickPaint(
-                                                    cell.stall.id,
-                                                    paintMode.id,
-                                                );
-                                            }
-                                        } else {
-                                            onCellClick(index);
-                                        }
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (
-                                            !paintMode &&
-                                            cell.type === "stall" &&
-                                            cell.stall
-                                        ) {
-                                            setTooltip({
-                                                show: true,
-                                                x: e.clientX,
-                                                y: e.clientY,
-                                                data: cell.stall,
-                                            });
-                                        }
-                                    }}
-                                    onMouseMove={(e) => {
-                                        if (!paintMode && tooltip.show) {
-                                            setTooltip((prev) => ({
-                                                ...prev,
-                                                x: e.clientX,
-                                                y: e.clientY,
-                                            }));
-                                        }
-                                    }}
-                                    onMouseLeave={() =>
-                                        setTooltip({
-                                            show: false,
-                                            x: 0,
-                                            y: 0,
-                                            data: null,
-                                        })
-                                    }
-                                    className={`w-14 h-14 border-2 rounded-md flex items-center justify-center text-xs transition-all select-none ${paintMode ? "hover:ring-4 hover:ring-opacity-50 cursor-crosshair" : "cursor-pointer active:scale-95 hover:scale-105"} ${cellStyle}`}
-                                    style={{
-                                        backgroundColor: dbColor || undefined,
-                                        ["--tw-ring-color" as any]: paintMode
-                                            ? paintMode.color
-                                            : undefined,
-                                    }}
+                            {/* Top Right Add Column Button */}
+                            <div className="flex items-end justify-start pl-1 pb-1">
+                                <button
+                                    onClick={() => onInsertCol(gridDims.cols)}
+                                    className="text-slate-400 hover:text-white hover:bg-blue-500 bg-slate-50 border border-slate-200 shadow-sm rounded p-1 transition-all cursor-pointer"
+                                    title="Add Column at End"
                                 >
-                                    {content &&
-                                        (typeof content === "string" ? (
-                                            <span className="drop-shadow-md bg-white/50 px-1 rounded truncate max-w-full">
-                                                {content}
-                                            </span>
-                                        ) : (
-                                            content
-                                        ))}
-                                </div>
-                            );
-                        })}
+                                    <Icon
+                                        icon="solar:add-square-bold"
+                                        className="w-4 h-4"
+                                    />
+                                </button>
+                            </div>
+
+                            {/* Rows generation */}
+                            {Array.from({ length: gridDims.rows }).map(
+                                (_, r) => (
+                                    <React.Fragment key={`row-${r}`}>
+                                        {/* Row Add/Delete Left Headers */}
+                                        <div className="group relative flex items-center justify-end pr-1">
+                                            <div className="hidden group-hover:flex flex-col items-center justify-center gap-1 bg-white rounded-l-lg shadow-md border border-r-0 border-slate-300 px-1 py-1 absolute right-0 z-20">
+                                                <button
+                                                    onClick={() =>
+                                                        onInsertRow(r)
+                                                    }
+                                                    title="Insert Row Above"
+                                                    className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
+                                                >
+                                                    <Icon
+                                                        icon="solar:add-square-bold"
+                                                        className="w-4 h-4"
+                                                    />
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        onDeleteRow(r)
+                                                    }
+                                                    title="Delete Row"
+                                                    className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
+                                                >
+                                                    <Icon
+                                                        icon="solar:trash-bin-trash-bold"
+                                                        className="w-4 h-4"
+                                                    />
+                                                </button>
+                                            </div>
+                                            <div className="h-full w-2 bg-slate-200 rounded-l-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        </div>
+
+                                        {/* The actual map cells */}
+                                        {gridCells
+                                            .slice(
+                                                r * gridDims.cols,
+                                                (r + 1) * gridDims.cols,
+                                            )
+                                            .map((cell: any, c: number) => {
+                                                const globalIndex =
+                                                    r * gridDims.cols + c;
+                                                let cellStyle =
+                                                    "bg-slate-50 border-slate-200 border-dashed hover:border-slate-400";
+                                                let content: any = "";
+                                                let dbColor = "";
+                                                let isHighlighted = false;
+                                                let isDimmed = false;
+
+                                                if (searchQuery.trim() !== "") {
+                                                    const searchLower =
+                                                        searchQuery.toLowerCase();
+                                                    if (
+                                                        cell.type === "stall" &&
+                                                        cell.stall
+                                                    ) {
+                                                        const tenantName =
+                                                            `${cell.stall.active_contract?.tenant?.first_name || ""} ${cell.stall.active_contract?.tenant?.last_name || ""}`.toLowerCase();
+                                                        const companyName = (
+                                                            cell.stall
+                                                                .active_contract
+                                                                ?.tenant
+                                                                ?.company_name ||
+                                                            ""
+                                                        ).toLowerCase();
+                                                        const stallCode = (
+                                                            cell.stall
+                                                                .stall_code ||
+                                                            ""
+                                                        ).toLowerCase();
+                                                        if (
+                                                            tenantName.includes(
+                                                                searchLower,
+                                                            ) ||
+                                                            companyName.includes(
+                                                                searchLower,
+                                                            ) ||
+                                                            stallCode.includes(
+                                                                searchLower,
+                                                            )
+                                                        ) {
+                                                            isHighlighted = true;
+                                                        } else {
+                                                            isDimmed = true;
+                                                        }
+                                                    } else {
+                                                        isDimmed = true;
+                                                    }
+                                                }
+
+                                                if (cell.type === "walkway") {
+                                                    cellStyle =
+                                                        "bg-slate-300 border-slate-400 border-solid text-slate-600";
+                                                } else if (
+                                                    cell.type === "restroom"
+                                                ) {
+                                                    cellStyle =
+                                                        "bg-cyan-100 border-cyan-300 border-solid text-cyan-700";
+                                                    content = "CR";
+                                                } else if (
+                                                    cell.type === "stairs"
+                                                ) {
+                                                    cellStyle =
+                                                        "bg-purple-100 border-purple-300 border-solid text-purple-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZjNmNGY2Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjZTllY2Y1IiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]";
+                                                    content = (
+                                                        <Icon
+                                                            icon="solar:double-alt-arrow-up-bold-duotone"
+                                                            className="w-full h-full opacity-30 p-1"
+                                                        />
+                                                    );
+                                                } else if (
+                                                    cell.type === "wall"
+                                                ) {
+                                                    cellStyle =
+                                                        "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner";
+                                                } else if (
+                                                    cell.type === "text"
+                                                ) {
+                                                    cellStyle =
+                                                        "bg-transparent border-transparent text-indigo-900 font-black flex items-center justify-center overflow-visible z-10 whitespace-nowrap";
+                                                    content = (
+                                                        <span
+                                                            className="drop-shadow-md"
+                                                            style={{
+                                                                fontSize: `${Math.max(10, 14 * zoom)}px`,
+                                                            }}
+                                                        >
+                                                            {cell.text ||
+                                                                "Text"}
+                                                        </span>
+                                                    );
+                                                } else if (
+                                                    cell.type === "stall" &&
+                                                    cell.stall
+                                                ) {
+                                                    cellStyle =
+                                                        "border-solid border-slate-800 shadow-sm text-slate-800 font-black";
+                                                    const tenant =
+                                                        cell.stall
+                                                            .active_contract
+                                                            ?.tenant;
+                                                    content = (
+                                                        <div className="flex flex-col items-center justify-center leading-none text-center w-full px-1">
+                                                            <span
+                                                                className="opacity-80"
+                                                                style={{
+                                                                    fontSize: `${Math.max(8, 10 * zoom)}px`,
+                                                                }}
+                                                            >
+                                                                {
+                                                                    cell.stall
+                                                                        .stall_code
+                                                                }
+                                                            </span>
+                                                            {tenant && (
+                                                                <span
+                                                                    className="truncate w-full mt-1 tracking-tight"
+                                                                    style={{
+                                                                        fontSize: `${Math.max(7, 9 * zoom)}px`,
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        tenant.last_name
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                    dbColor =
+                                                        cell.stall
+                                                            .computed_status
+                                                            ?.color ||
+                                                        "#ffffff";
+                                                }
+
+                                                if (isHighlighted)
+                                                    cellStyle +=
+                                                        " ring-4 ring-amber-400 scale-110 z-10 shadow-2xl";
+                                                else if (isDimmed)
+                                                    cellStyle +=
+                                                        " opacity-25 grayscale";
+
+                                                return (
+                                                    <div
+                                                        key={
+                                                            cell.id ||
+                                                            `${r}-${c}`
+                                                        }
+                                                        onClick={() => {
+                                                            if (paintMode) {
+                                                                if (
+                                                                    cell.type ===
+                                                                        "stall" &&
+                                                                    cell.stall
+                                                                )
+                                                                    onQuickPaint(
+                                                                        cell
+                                                                            .stall
+                                                                            .id,
+                                                                        paintMode.id,
+                                                                    );
+                                                            } else {
+                                                                onCellClick(
+                                                                    globalIndex,
+                                                                );
+                                                            }
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (
+                                                                !paintMode &&
+                                                                cell.type ===
+                                                                    "stall" &&
+                                                                cell.stall
+                                                            )
+                                                                setTooltip({
+                                                                    show: true,
+                                                                    x: e.clientX,
+                                                                    y: e.clientY,
+                                                                    data: cell.stall,
+                                                                });
+                                                        }}
+                                                        onMouseMove={(e) => {
+                                                            if (
+                                                                !paintMode &&
+                                                                tooltip.show
+                                                            )
+                                                                setTooltip(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        x: e.clientX,
+                                                                        y: e.clientY,
+                                                                    }),
+                                                                );
+                                                        }}
+                                                        onMouseLeave={() =>
+                                                            setTooltip({
+                                                                show: false,
+                                                                x: 0,
+                                                                y: 0,
+                                                                data: null,
+                                                            })
+                                                        }
+                                                        className={`border-2 rounded-md flex items-center justify-center transition-all select-none ${paintMode ? "hover:ring-4 hover:ring-opacity-50 cursor-crosshair" : "cursor-pointer active:scale-95 hover:scale-105"} ${cellStyle}`}
+                                                        style={{
+                                                            width: cellSize,
+                                                            height: cellSize,
+                                                            backgroundColor:
+                                                                dbColor ||
+                                                                undefined,
+                                                            ["--tw-ring-color" as any]:
+                                                                paintMode
+                                                                    ? paintMode.color
+                                                                    : undefined,
+                                                        }}
+                                                    >
+                                                        {content &&
+                                                            (typeof content ===
+                                                            "string" ? (
+                                                                <span className="drop-shadow-md bg-white/50 px-1 rounded truncate max-w-full">
+                                                                    {content}
+                                                                </span>
+                                                            ) : (
+                                                                content
+                                                            ))}
+                                                    </div>
+                                                );
+                                            })}
+
+                                        {/* Right Empty Spacing */}
+                                        <div></div>
+                                    </React.Fragment>
+                                ),
+                            )}
+
+                            {/* Bottom Add Row Button */}
+                            <div></div>
+                            <div
+                                className="col-span-full pt-1 flex justify-center pb-2"
+                                style={{
+                                    gridColumn: `2 / span ${gridDims.cols}`,
+                                }}
+                            >
+                                <button
+                                    onClick={() => onInsertRow(gridDims.rows)}
+                                    className="flex items-center gap-1 text-[10px] uppercase font-black text-slate-500 bg-white px-4 py-1.5 border border-slate-200 shadow-sm hover:bg-blue-500 hover:border-blue-600 hover:text-white rounded-full transition-colors cursor-pointer"
+                                >
+                                    <Icon
+                                        icon="solar:add-square-bold"
+                                        className="w-4 h-4"
+                                    />{" "}
+                                    Add Row
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {!paintMode &&
@@ -666,7 +775,6 @@ export default function InteractiveGrid({
                                 {formatPrice(tooltip.data)}
                             </span>
                         </div>
-
                         {tooltip.data.active_contract?.tenant ? (
                             <div className="mb-3">
                                 <p className="text-sm font-bold leading-tight text-white">
@@ -698,7 +806,6 @@ export default function InteractiveGrid({
                                 No current occupant.
                             </p>
                         )}
-
                         <div className="grid grid-cols-2 gap-2 mt-2">
                             <a
                                 href={route("contracts.index", {
@@ -724,20 +831,6 @@ export default function InteractiveGrid({
                                 />{" "}
                                 Ledger
                             </a>
-                            {tooltip.data.active_contract && (
-                                <a
-                                    href={route("contracts.index", {
-                                        search: tooltip.data.stall_code,
-                                    })}
-                                    className="col-span-2 flex justify-center items-center gap-1 bg-rose-600 text-white text-center py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold hover:bg-rose-500 transition-colors"
-                                >
-                                    <Icon
-                                        icon="solar:close-circle-bold"
-                                        className="w-3 h-3"
-                                    />{" "}
-                                    Manage Vacancy
-                                </a>
-                            )}
                         </div>
                     </div>,
                     document.body,

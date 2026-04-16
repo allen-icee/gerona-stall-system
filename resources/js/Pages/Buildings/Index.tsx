@@ -7,6 +7,7 @@ import CreateBuildingModal from "./Partials/CreateBuildingModal";
 import EditBuildingModal from "./Partials/EditBuildingModal";
 import ConfirmDeleteModal from "@/Components/ConfirmDeleteModal";
 import CustomSelect from "@/Components/CustomSelect";
+import Pagination from "@/Components/Pagination";
 
 export default function BuildingsIndex({ buildings, filters }: any) {
     const [search, setSearch] = useState(filters?.search || "");
@@ -297,6 +298,9 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="p-4 border-t border-gray-200">
+                        <Pagination links={buildings.links} />
                     </div>
                 </div>
             </div>

@@ -81,7 +81,7 @@ class StallController extends Controller
         $page = Paginator::resolveCurrentPage() ?: 1;
         $perPage = 15;
         $paginatedStalls = new LengthAwarePaginator(
-            $stallsCollection->forPage($page, $perPage),
+            $stallsCollection->forPage($page, $perPage)->values(), // <-- Added .values() here
             $stallsCollection->count(),
             $perPage,
             $page,

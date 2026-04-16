@@ -9,6 +9,7 @@ use App\Models\LayoutCell;
 use App\Models\Stall;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class LayoutController extends Controller
 {
@@ -52,6 +53,7 @@ class LayoutController extends Controller
         $layout = Layout::create($request->only('floor_id', 'name', 'total_rows', 'total_cols'));
 
         $cells = [];
+        $now = now();
         for ($r = 1; $r <= $layout->total_rows; $r++) {
             for ($c = 1; $c <= $layout->total_cols; $c++) {
                 $cells[] = [
@@ -60,8 +62,8 @@ class LayoutController extends Controller
                     'column_number' => $c,
                     'type' => 'vacant',
                     'stall_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ];
             }
         }
@@ -71,116 +73,49 @@ class LayoutController extends Controller
             ->with('success', 'Grid generated successfully!');
     }
 
-    public function expand(Request $request, Layout $layout)
-    {
-        if ($request->has('cells')) {
-            foreach ($request->input('cells') as $cellData) {
-                LayoutCell::where('id', $cellData['id'])->update([
-                    'type' => $cellData['type'],
-                    'stall_id' => $cellData['stall_id'],
-                    'text' => $cellData['text'] ?? null,
-                ]);
-            }
-        }
-
-        $direction = $request->input('direction');
-
-        $amount = max(1, (int) $request->input('amount', 1));
-
-        if ($direction === 'row') {
-            $cells = [];
-            for ($i = 0; $i < $amount; $i++) {
-                $newRow = $layout->total_rows + 1 + $i;
-                for ($c = 1; $c <= $layout->total_cols; $c++) {
-                    $cells[] = [
-                        'layout_id' => $layout->id,
-                        'row_number' => $newRow,
-                        'column_number' => $c,
-                        'type' => 'vacant',
-                        'stall_id' => null,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-            $layout->total_rows += $amount;
-            $layout->save();
-            LayoutCell::insert($cells);
-        } elseif ($direction === 'col') {
-            $cells = [];
-            for ($i = 0; $i < $amount; $i++) {
-                $newCol = $layout->total_cols + 1 + $i;
-                for ($r = 1; $r <= $layout->total_rows; $r++) {
-                    $cells[] = [
-                        'layout_id' => $layout->id,
-                        'row_number' => $r,
-                        'column_number' => $newCol,
-                        'type' => 'vacant',
-                        'stall_id' => null,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-            $layout->total_cols += $amount;
-            $layout->save();
-            LayoutCell::insert($cells);
-        }
-
-        return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', "Grid expanded by {$amount} {$direction}(s) and progress auto-saved!");
-    }
-
-    public function shrink(Request $request, Layout $layout)
-    {
-        if ($request->has('cells')) {
-            foreach ($request->input('cells') as $cellData) {
-                LayoutCell::where('id', $cellData['id'])->update([
-                    'type' => $cellData['type'],
-                    'stall_id' => $cellData['stall_id'],
-                    'text' => $cellData['text'] ?? null,
-                ]);
-            }
-        }
-
-        $direction = $request->input('direction');
-
-        $amount = max(1, (int) $request->input('amount', 1));
-
-        if ($direction === 'row') {
-            $amount = min($amount, $layout->total_rows - 1);
-            if ($amount > 0) {
-                LayoutCell::where('layout_id', $layout->id)
-                    ->where('row_number', '>', $layout->total_rows - $amount)
-                    ->delete();
-                $layout->total_rows -= $amount;
-                $layout->save();
-            }
-        } elseif ($direction === 'col') {
-            $amount = min($amount, $layout->total_cols - 1);
-            if ($amount > 0) {
-                LayoutCell::where('layout_id', $layout->id)
-                    ->where('column_number', '>', $layout->total_cols - $amount)
-                    ->delete();
-                $layout->total_cols -= $amount;
-                $layout->save();
-            }
-        }
-
-        return redirect()->route('layouts.mapper', ['floor_id' => $layout->floor_id])
-            ->with('success', "Grid trimmed by {$amount} {$direction}(s) and progress auto-saved!");
-    }
-
+    // Completely revamped save method. It dynamically re-calculates row/col based on the frontend array.
     public function saveMap(Request $request, Layout $layout)
     {
-        $cells = $request->input('cells');
-        foreach ($cells as $cellData) {
-            LayoutCell::where('id', $cellData['id'])->update([
-                'type' => $cellData['type'],
-                'stall_id' => $cellData['stall_id'],
-                'text' => $cellData['text'] ?? null,
+        $request->validate([
+            'total_rows' => 'required|integer|min:1',
+            'total_cols' => 'required|integer|min:1',
+            'cells' => 'required|array'
+        ]);
+
+        DB::transaction(function () use ($request, $layout) {
+            // 1. Update the dimensions
+            $layout->update([
+                'total_rows' => $request->total_rows,
+                'total_cols' => $request->total_cols,
             ]);
-        }
+
+            // 2. Wipe the old map cells
+            $layout->cells()->delete();
+
+            // 3. Insert the new ones exactly as the frontend arranged them
+            $newCells = [];
+            $now = now();
+            $cols = $request->total_cols;
+
+            foreach ($request->cells as $index => $cell) {
+                $newCells[] = [
+                    'layout_id' => $layout->id,
+                    'row_number' => floor($index / $cols) + 1, // Auto-calculate Row
+                    'column_number' => ($index % $cols) + 1,   // Auto-calculate Col
+                    'type' => $cell['type'] ?? 'vacant',
+                    'stall_id' => $cell['stall_id'] ?? null,
+                    'text' => $cell['text'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            // Insert in chunks to prevent database memory overload if the grid is massive
+            foreach (array_chunk($newCells, 500) as $chunk) {
+                LayoutCell::insert($chunk);
+            }
+        });
+
         return redirect()->back()->with('success', 'Map layout updated successfully!');
     }
 }

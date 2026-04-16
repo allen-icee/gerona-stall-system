@@ -1,4 +1,4 @@
-//resources\js\Pages\Layouts\Mapper.tsx
+//resources/js/Pages/Layouts/Mapper.tsx
 import { useState, useEffect } from "react";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -18,10 +18,11 @@ export default function Mapper({
     const [selectedFloor, setSelectedFloor] = useState(current_floor_id || "");
     const [activeTool, setActiveTool] = useState("stall");
     const [selectedStallId, setSelectedStallId] = useState("");
-
     const [customText, setCustomText] = useState("");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true); // <-- Added Sidebar State
 
     const [gridCells, setGridCells] = useState<any[]>([]);
+    const [gridDims, setGridDims] = useState({ rows: 0, cols: 0 });
 
     const [dialog, setDialog] = useState({
         isOpen: false,
@@ -38,6 +39,10 @@ export default function Mapper({
     useEffect(() => {
         if (layout && layout.cells) {
             setGridCells(layout.cells);
+            setGridDims({
+                rows: layout.total_rows,
+                cols: layout.total_cols,
+            });
         }
     }, [layout]);
 
@@ -106,6 +111,7 @@ export default function Mapper({
         if (activeTool === "stall") {
             cell.stall = stalls.find((s: any) => s.id == selectedStallId);
             cell.text = null;
+            setSelectedStallId(""); // Clears selection so they don't accidentally duplicate
         } else if (activeTool === "text") {
             cell.stall = null;
             cell.text = customText;
@@ -156,6 +162,10 @@ export default function Mapper({
             iconColor: "text-amber-500",
             onConfirm: () => {
                 setGridCells([...layout.cells]);
+                setGridDims({
+                    rows: layout.total_rows,
+                    cols: layout.total_cols,
+                });
                 closeDialog();
             },
         });
@@ -164,49 +174,67 @@ export default function Mapper({
     const handleQuickPaint = (stallId: string, statusId: string) => {
         router.post(
             route("stalls.quick-status", stallId),
-            {
-                status: statusId,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-            },
+            { status: statusId },
+            { preserveScroll: true, preserveState: true },
         );
     };
 
-    const expandRow = (amount: number) => {
-        router.post(
-            route("layouts.expand", layout.id),
-            { direction: "row", amount, cells: gridCells },
-            { preserveScroll: true, preserveState: false },
-        );
+    // --- INSTANT FRONTEND GRID RESIZING ---
+    const insertRow = (rowIndex: number) => {
+        const newCells = [...gridCells];
+        const blankRow = Array.from({ length: gridDims.cols }, () => ({
+            id: `temp-${Date.now()}-${Math.random()}`,
+            type: "vacant",
+            text: null,
+            stall_id: null,
+            stall: null,
+        }));
+        newCells.splice(rowIndex * gridDims.cols, 0, ...blankRow);
+        setGridCells(newCells);
+        setGridDims((prev) => ({ ...prev, rows: prev.rows + 1 }));
     };
-    const expandCol = (amount: number) => {
-        router.post(
-            route("layouts.expand", layout.id),
-            { direction: "col", amount, cells: gridCells },
-            { preserveScroll: true, preserveState: false },
-        );
+
+    const deleteRow = (rowIndex: number) => {
+        if (gridDims.rows <= 1) return;
+        const newCells = [...gridCells];
+        newCells.splice(rowIndex * gridDims.cols, gridDims.cols);
+        setGridCells(newCells);
+        setGridDims((prev) => ({ ...prev, rows: prev.rows - 1 }));
     };
-    const shrinkRow = (amount: number) => {
-        router.post(
-            route("layouts.shrink", layout.id),
-            { direction: "row", amount, cells: gridCells },
-            { preserveScroll: true, preserveState: false },
-        );
+
+    const insertCol = (colIndex: number) => {
+        const newCells = [...gridCells];
+        for (let r = gridDims.rows - 1; r >= 0; r--) {
+            newCells.splice(r * gridDims.cols + colIndex, 0, {
+                id: `temp-${Date.now()}-${Math.random()}`,
+                type: "vacant",
+                text: null,
+                stall_id: null,
+                stall: null,
+            });
+        }
+        setGridCells(newCells);
+        setGridDims((prev) => ({ ...prev, cols: prev.cols + 1 }));
     };
-    const shrinkCol = (amount: number) => {
-        router.post(
-            route("layouts.shrink", layout.id),
-            { direction: "col", amount, cells: gridCells },
-            { preserveScroll: true, preserveState: false },
-        );
+
+    const deleteCol = (colIndex: number) => {
+        if (gridDims.cols <= 1) return;
+        const newCells = [...gridCells];
+        for (let r = gridDims.rows - 1; r >= 0; r--) {
+            newCells.splice(r * gridDims.cols + colIndex, 1);
+        }
+        setGridCells(newCells);
+        setGridDims((prev) => ({ ...prev, cols: prev.cols - 1 }));
     };
 
     const saveLayout = () => {
         router.post(
-            route("layouts.save", layout.id),
-            { cells: gridCells },
+            route("layouts.saveMap", layout.id),
+            {
+                cells: gridCells,
+                total_rows: gridDims.rows,
+                total_cols: gridDims.cols,
+            },
             { preserveScroll: true },
         );
     };
@@ -261,12 +289,14 @@ export default function Mapper({
                 </div>
             </Modal>
 
-            <div className="flex h-[calc(100vh-4rem)]">
+            <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
                 <MapSidebar
+                    isOpen={isSidebarOpen}
                     buildings={buildings}
                     selectedFloor={selectedFloor}
                     onFloorChange={handleFloorChange}
                     layout={layout}
+                    gridCells={gridCells}
                     activeTool={activeTool}
                     setActiveTool={setActiveTool}
                     selectedStallId={selectedStallId}
@@ -277,7 +307,25 @@ export default function Mapper({
                     setCustomText={setCustomText}
                 />
 
-                <div className="flex-1 bg-slate-100 overflow-hidden relative flex items-center justify-center">
+                <div className="flex-1 bg-slate-200 overflow-hidden relative flex items-center justify-center">
+                    {/* Collapsible Sidebar Toggle Button */}
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="absolute top-4 left-4 z-[90] bg-white p-2.5 rounded-xl shadow-lg border-2 border-slate-300 text-slate-700 hover:text-blue-600 hover:border-blue-400 transition-colors cursor-pointer"
+                        title={
+                            isSidebarOpen ? "Collapse Toolbar" : "Expand Tools"
+                        }
+                    >
+                        <Icon
+                            icon={
+                                isSidebarOpen
+                                    ? "solar:sidebar-minimalistic-bold-duotone"
+                                    : "solar:sidebar-minimalistic-outline"
+                            }
+                            className="w-6 h-6"
+                        />
+                    </button>
+
                     {!selectedFloor ? (
                         <div className="text-center text-slate-400">
                             <Icon
@@ -303,14 +351,15 @@ export default function Mapper({
                         <InteractiveGrid
                             layout={layout}
                             gridCells={gridCells}
+                            gridDims={gridDims}
                             activeFloorData={activeFloorData}
                             onCellClick={handleCellClick}
                             onClearAll={handleClearAll}
                             onRevert={handleRevert}
-                            onExpandRow={expandRow}
-                            onExpandCol={expandCol}
-                            onShrinkRow={shrinkRow}
-                            onShrinkCol={shrinkCol}
+                            onInsertRow={insertRow}
+                            onDeleteRow={deleteRow}
+                            onInsertCol={insertCol}
+                            onDeleteCol={deleteCol}
                             onQuickPaint={handleQuickPaint}
                         />
                     )}

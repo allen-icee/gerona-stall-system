@@ -35,7 +35,8 @@ class BuildingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:buildings,name'
+            'name' => 'required|string|max:50|unique:buildings,name',
+            'description' => 'nullable|string|max:255'
         ]);
 
         Building::create($validated);
@@ -44,9 +45,11 @@ class BuildingController extends Controller
 
     public function update(Request $request, Building $building)
     {
-        $validated = $request->request->add(['name' => strtoupper($request->name)]);
+        $request->merge(['name' => strtoupper($request->name)]);
+
         $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:buildings,name,' . $building->id
+            'name' => 'required|string|max:50|unique:buildings,name,' . $building->id,
+            'description' => 'nullable|string|max:255'
         ]);
 
         $building->update($validated);

@@ -1,4 +1,4 @@
-//resources\js\Pages\Stalls\Index.tsx
+//resources/js/Pages/Stalls/Index.tsx
 import { useState, useEffect, useRef } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -8,6 +8,7 @@ import EditStallModal from "./Partials/EditStallModal";
 import BulkEditStallsModal from "./Partials/BulkEditStallsModal";
 import Modal from "@/Components/Modal";
 import CustomSelect from "@/Components/CustomSelect";
+import Pagination from "@/Components/Pagination";
 
 export default function StallsIndex({
     stalls,
@@ -48,7 +49,15 @@ export default function StallsIndex({
         ...buildings.map((b: any) => ({ value: b.id, label: b.name })),
     ];
 
+    const isFirstRender = useRef(true);
+
     useEffect(() => {
+        // 2. Add this block to block the first accidental search
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
         const delay = setTimeout(() => {
             const [sortBy, filterDirection] = sortFilter.split("_");
             router.get(
@@ -347,7 +356,6 @@ export default function StallsIndex({
                         />
                     </div>
 
-                    {/* 🔥 NEW BUILDING FILTER */}
                     <div className="w-48 z-30">
                         <CustomSelect
                             value={filterBuilding}
@@ -638,6 +646,10 @@ export default function StallsIndex({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    {/* 👇 THIS WAS THE BUG. FIXED! 👇 */}
+                    <div className="p-4 border-t border-gray-200">
+                        <Pagination links={stalls.links} />
                     </div>
                 </div>
             </div>
