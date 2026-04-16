@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\LayoutController.php
 namespace App\Http\Controllers;
 
 use App\Models\Building;
@@ -78,13 +78,13 @@ class LayoutController extends Controller
                 LayoutCell::where('id', $cellData['id'])->update([
                     'type' => $cellData['type'],
                     'stall_id' => $cellData['stall_id'],
-                    'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
+                    'text' => $cellData['text'] ?? null,
                 ]);
             }
         }
 
         $direction = $request->input('direction');
-        // Phase 3: Bulk Expansion
+
         $amount = max(1, (int) $request->input('amount', 1));
 
         if ($direction === 'row') {
@@ -138,17 +138,16 @@ class LayoutController extends Controller
                 LayoutCell::where('id', $cellData['id'])->update([
                     'type' => $cellData['type'],
                     'stall_id' => $cellData['stall_id'],
-                    'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
+                    'text' => $cellData['text'] ?? null,
                 ]);
             }
         }
 
         $direction = $request->input('direction');
-        // Phase 3: Bulk Shrinking
+
         $amount = max(1, (int) $request->input('amount', 1));
 
         if ($direction === 'row') {
-            // Prevent shrinking the grid below 1 row
             $amount = min($amount, $layout->total_rows - 1);
             if ($amount > 0) {
                 LayoutCell::where('layout_id', $layout->id)
@@ -158,7 +157,6 @@ class LayoutController extends Controller
                 $layout->save();
             }
         } elseif ($direction === 'col') {
-            // Prevent shrinking the grid below 1 column
             $amount = min($amount, $layout->total_cols - 1);
             if ($amount > 0) {
                 LayoutCell::where('layout_id', $layout->id)
@@ -180,7 +178,7 @@ class LayoutController extends Controller
             LayoutCell::where('id', $cellData['id'])->update([
                 'type' => $cellData['type'],
                 'stall_id' => $cellData['stall_id'],
-                'text' => $cellData['text'] ?? null, // 🔥 Saves the custom text
+                'text' => $cellData['text'] ?? null,
             ]);
         }
         return redirect()->back()->with('success', 'Map layout updated successfully!');

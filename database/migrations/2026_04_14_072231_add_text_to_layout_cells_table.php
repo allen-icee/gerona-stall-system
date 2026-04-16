@@ -1,5 +1,5 @@
 <?php
-
+//database\migrations\2026_04_14_072231_add_text_to_layout_cells_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

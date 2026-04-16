@@ -1,3 +1,4 @@
+//resources\js\Pages\Dashboard\StatCards.tsx
 import { Icon } from "@iconify/react";
 
 export default function StatCards({ stats }: { stats: any }) {

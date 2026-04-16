@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\Floor.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +7,7 @@ use App\Models\Building;
 
 class Floor extends Model
 {
-    // Add description here!
+
     protected $fillable = ['building_id', 'name', 'description'];
 
     public function building()
@@ -15,7 +15,6 @@ class Floor extends Model
         return $this->belongsTo(Building::class);
     }
 
-    // ADD THIS FIX:
     public function stalls()
     {
         return $this->hasMany(Stall::class);

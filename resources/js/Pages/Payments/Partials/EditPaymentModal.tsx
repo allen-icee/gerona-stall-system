@@ -8,6 +8,7 @@ import { useEnterTab } from "@/hooks/useEnterTab";
 export default function EditPaymentModal({ show, onClose, payment }: any) {
     const { data, setData, put, processing, errors, reset, clearErrors } =
         useForm({
+            payment_type: "rent", // 🔥 Added Default
             amount: "",
             payment_date: "",
             month: "",
@@ -36,6 +37,7 @@ export default function EditPaymentModal({ show, onClose, payment }: any) {
     useEffect(() => {
         if (payment) {
             setData({
+                payment_type: payment.payment_type || "rent", // 🔥 Set to existing
                 amount: payment.amount || "",
                 payment_date: payment.payment_date || "",
                 month: payment.month || "",
@@ -82,7 +84,7 @@ export default function EditPaymentModal({ show, onClose, payment }: any) {
             <form
                 ref={formRef}
                 onSubmit={submit}
-                className="p-6 space-y-5 bg-white rounded-b-2xl"
+                className="p-6 space-y-5 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar"
             >
                 {/* Read-only Context */}
                 <div className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4 mb-4">
@@ -112,6 +114,44 @@ export default function EditPaymentModal({ show, onClose, payment }: any) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Payment For
+                        </label>
+                        <select
+                            value={data.payment_type}
+                            onChange={(e) =>
+                                setData("payment_type", e.target.value)
+                            }
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors cursor-pointer"
+                        >
+                            <option value="rent">Monthly Rent</option>
+                            <option value="deposit">Deposit Top-up</option>
+                            <option value="violation">
+                                Violation / Penalty Fine
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Amount Paid (₱)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={data.amount}
+                            onChange={(e) => setData("amount", e.target.value)}
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-amber-500 focus:ring-0 transition-colors"
+                            required
+                        />
+                        {errors.amount && (
+                            <p className="text-rose-500 text-xs font-bold mt-1">
+                                {errors.amount}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2">
                         <div className="flex justify-between items-end mb-1">
                             <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
                                 OR Number
@@ -130,29 +170,12 @@ export default function EditPaymentModal({ show, onClose, payment }: any) {
                                 setData("or_number", e.target.value)
                             }
                             className="w-full bg-amber-50 border-2 border-amber-300 rounded-lg px-4 py-2.5 text-sm font-black text-amber-900 focus:border-amber-600 focus:ring-0 placeholder:font-normal placeholder:text-amber-300 transition-colors"
+                            placeholder="Enter Receipt Number"
                             required
                         />
                         {errors.or_number && (
                             <p className="text-rose-500 text-xs font-bold mt-1">
                                 {errors.or_number}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                            Amount Paid (₱)
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={data.amount}
-                            onChange={(e) => setData("amount", e.target.value)}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
-                            required
-                        />
-                        {errors.amount && (
-                            <p className="text-rose-500 text-xs font-bold mt-1">
-                                {errors.amount}
                             </p>
                         )}
                     </div>

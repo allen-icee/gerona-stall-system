@@ -1,5 +1,5 @@
 <?php
-
+//routes\web.php
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
@@ -13,6 +13,7 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\PenaltyController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -33,7 +34,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 1. ADMIN / EEDO ONLY ROUTES
     Route::middleware(['can:manage users'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
     });
@@ -49,15 +49,11 @@ Route::middleware('auth')->group(function () {
 
         Route::get('stalls/export', [StallController::class, 'export'])->name('stalls.export');
         Route::post('stalls/import', [StallController::class, 'import'])->name('stalls.import');
-
-        // 🔥 ADDED QUICK STATUS ROUTE HERE 🔥
         Route::post('stalls/{stall}/quick-status', [StallController::class, 'quickStatus'])->name('stalls.quick-status');
-
         Route::resource('stalls', StallController::class)->except(['create', 'show', 'edit']);
         Route::post('stalls/bulk-update', [StallController::class, 'bulkUpdate'])->name('stalls.bulk_update');
         Route::post('stalls/bulk-destroy', [StallController::class, 'bulkDestroy'])->name('stalls.bulk_destroy');
 
-        // 🔥 ADDED GLOBAL PRICING TOGGLE ROUTE HERE 🔥
         Route::post('/system/toggle-pricing', [StallController::class, 'togglePricing'])->name('system.toggle_pricing');
 
         Route::get('/mapper', [LayoutController::class, 'mapper'])->name('layouts.mapper');
@@ -78,15 +74,17 @@ Route::middleware('auth')->group(function () {
         Route::resource('contracts', ContractController::class)->except(['index', 'create', 'show', 'edit']);
     });
 
-    // 2. TREASURY ONLY ROUTES
     Route::middleware(['can:manage payments'])->group(function () {
+
+        Route::get('penalties', [PenaltyController::class, 'index'])->name('penalties.index');
+        Route::post('penalties/{penalty}/process', [PenaltyController::class, 'process'])->name('penalties.process');
+
         Route::get('payments/export', [PaymentController::class, 'export'])->name('payments.export');
         Route::post('payments/import', [PaymentController::class, 'import'])->name('payments.import');
         Route::get('payments/{payment}/print', [PaymentController::class, 'print'])->name('payments.print');
         Route::resource('payments', PaymentController::class);
     });
 
-    // 3. SHARED ROUTES (Both Admin & Treasury Access)
     Route::middleware(['can:view contracts'])->group(function () {
         Route::get('contracts/export', [ContractController::class, 'export'])->name('contracts.export');
         Route::get('contracts', [ContractController::class, 'index'])->name('contracts.index');

@@ -1,3 +1,4 @@
+//resources\js\Pages\DashboardChart.tsx
 import { Icon } from "@iconify/react";
 import {
     AreaChart,
@@ -10,7 +11,6 @@ import {
 } from "recharts";
 
 export default function DashboardChart() {
-    // Mock data for the chart (we will wire this to real backend data later)
     const data = [
         { month: "Oct", revenue: 210000, target: 250000 },
         { month: "Nov", revenue: 235000, target: 250000 },
@@ -107,7 +107,6 @@ export default function DashboardChart() {
                                 fontWeight: "bold",
                                 fontSize: "14px",
                             }}
-                            // FIXED: Changed type to any and wrapped value in Number()
                             formatter={(value: any) => [
                                 `₱ ${Number(value).toLocaleString()}`,
                                 "Amount",

@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\PaymentController.php
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
@@ -19,7 +19,6 @@ class PaymentController extends Controller
     {
         $query = Payment::with(['contract.stall.floor.building', 'contract.tenant', 'encoder']);
 
-        // 1. Text Search
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('or_number', 'like', $searchTerm)
@@ -33,7 +32,6 @@ class PaymentController extends Controller
                 });
         }
 
-        // 2. 🔥 NEW: Advanced Filtering
         if ($request->filled('building_id')) {
             $query->whereHas('contract.stall.floor', function ($q) use ($request) {
                 $q->where('building_id', $request->building_id);
@@ -46,7 +44,6 @@ class PaymentController extends Controller
             $query->where('year', $request->year);
         }
 
-        // 3. 🔥 NEW: Bulletproof Sorting
         $allowedSorts = ['payment_date', 'or_number', 'amount', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'payment_date';
         $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
@@ -55,7 +52,7 @@ class PaymentController extends Controller
 
         $payments = $query->paginate(15)->withQueryString();
 
-        $activeContracts = Contract::with(['stall.floor.building', 'tenant'])
+        $activeContracts = Contract::with(['stall.floor.building', 'tenant', 'payments', 'penalties'])
             ->where('is_active', true)
             ->get();
 
@@ -84,14 +81,16 @@ class PaymentController extends Controller
             'contract_id' => 'required|exists:contracts,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
-            'month' => 'required|string|max:20',
-            'year' => 'required|integer|min:2000',
+            'payment_type' => 'required|in:rent,deposit,violation',
+            'month' => 'nullable|string|max:20',
+            'year' => 'nullable|integer|min:2000',
             'or_number' => 'required|string|unique:payments,or_number',
         ]);
 
         $payment = Payment::create([
             'contract_id' => $validated['contract_id'],
             'amount' => $validated['amount'],
+            'payment_type' => $validated['payment_type'],
             'payment_date' => $validated['payment_date'],
             'month' => $validated['month'],
             'year' => $validated['year'],
@@ -99,7 +98,6 @@ class PaymentController extends Controller
             'encoded_by' => Auth::id(),
         ]);
 
-        // 🔥 THE FIX: Pass the newly created payment ID back to React to trigger Auto-Print
         return redirect()->back()->with([
             'success' => 'Official Receipt successfully recorded!',
             'recent_payment_id' => $payment->id
@@ -111,8 +109,9 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
-            'month' => 'required|string|max:20',
-            'year' => 'required|integer|min:2000',
+            'payment_type' => 'required|in:rent,deposit,violation',
+            'month' => 'nullable|string|max:20',
+            'year' => 'nullable|integer|min:2000',
             'or_number' => 'required|string|unique:payments,or_number,' . $payment->id,
         ]);
 
@@ -162,25 +161,55 @@ class PaymentController extends Controller
         $query->orderBy($sortBy, $direction);
 
         $payments = $query->get();
-        $csvData = "or_number,tenant_first_name,tenant_last_name,stall_code,amount,payment_date,month,year\n";
 
+        $exportData = [];
         foreach ($payments as $payment) {
-            $tenantFirst = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->first_name) . '"' : '""';
-            $tenantLast = ($payment->contract && $payment->contract->tenant) ? '"' . str_replace('"', '""', $payment->contract->tenant->last_name) . '"' : '""';
-            $stallCode = ($payment->contract && $payment->contract->stall) ? '"' . str_replace('"', '""', $payment->contract->stall->stall_code) . '"' : '""';
-
-            $csvData .= "{$payment->or_number},{$tenantFirst},{$tenantLast},{$stallCode},{$payment->amount},{$payment->payment_date},{$payment->month},{$payment->year}\n";
+            $exportData[] = [
+                'or_number' => $payment->or_number,
+                'payment_type' => strtoupper($payment->payment_type),
+                'tenant_first_name' => $payment->contract->tenant->first_name ?? '',
+                'tenant_last_name' => $payment->contract->tenant->last_name ?? '',
+                'stall_code' => $payment->contract->stall->stall_code ?? '',
+                'amount' => $payment->amount,
+                'payment_date' => $payment->payment_date,
+                'month' => $payment->month ?? 'N/A',
+                'year' => $payment->year ?? 'N/A',
+            ];
         }
 
-        return response($csvData)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="filtered_payments_export.csv"');
+        $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
+            protected $data;
+            public function __construct($data)
+            {
+                $this->data = $data;
+            }
+            public function array(): array
+            {
+                return $this->data;
+            }
+            public function headings(): array
+            {
+                return [
+                    'or_number',
+                    'payment_type',
+                    'tenant_first_name',
+                    'tenant_last_name',
+                    'stall_code',
+                    'amount',
+                    'payment_date',
+                    'month',
+                    'year'
+                ];
+            }
+        };
+
+        $filename = 'payments_' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download($export, $filename);
     }
 
     public function import(Request $request)
     {
         $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
-
         try {
             Excel::import(new PaymentsImport, $request->file('file'));
             return redirect()->back()->with('success', 'Payments synced successfully!');

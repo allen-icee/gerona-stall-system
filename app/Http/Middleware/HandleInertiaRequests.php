@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Middleware\HandleInertiaRequests.php
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
@@ -24,18 +24,16 @@ class HandleInertiaRequests extends Middleware
 
                 'permissions' => $request->user()
                     ? $request->user()
-                        ->getAllPermissions()
-                        ->pluck('name')
-                        ->values()
+                    ->getAllPermissions()
+                    ->pluck('name')
+                    ->values()
                     : [],
             ],
 
-            // 🔥 FIXED FLASH (COMPATIBLE)
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
 
-                // fallback support (IMPORTANT)
                 'message' => fn() => $request->session()->get('message'),
             ],
         ];

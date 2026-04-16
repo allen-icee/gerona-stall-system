@@ -1,3 +1,4 @@
+//resources\js\Layouts\AuthenticatedLayout.tsx
 import { useState, useEffect, useRef, PropsWithChildren } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -20,12 +21,10 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
 
     const hasPermission = (perm: string) => permissions.includes(perm);
 
-    // 🔥 THE OJT DEVELOPER EASTER EGG STATE 🔥
     const [showEasterEgg, setShowEasterEgg] = useState(false);
     const [clickCount, setClickCount] = useState(0);
     const secretKeys = useRef<string[]>([]);
 
-    // 1. Keyboard Shortcut Listener (typing "devs")
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             secretKeys.current = [
@@ -40,7 +39,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
 
-    // 2. Click Timer Reset
     useEffect(() => {
         if (clickCount > 0) {
             const timer = setTimeout(() => setClickCount(0), 1000);
@@ -48,7 +46,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
         }
     }, [clickCount]);
 
-    // 3. Logo Click Handler
     const handleSecretClick = () => {
         setClickCount((prev) => {
             if (prev + 1 >= 5) {
@@ -63,7 +60,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
             <ToastListener />
 
-            {/* Mobile Sidebar Overlay */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 z-20 bg-slate-900/50 transition-opacity lg:hidden backdrop-blur-sm"
@@ -71,12 +67,11 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                 />
             )}
 
-            {/* SIDEBAR */}
             <aside
-                className={`fixed inset-y-0 left-0 z-30 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-2xl border-r-2 border-slate-800 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                    }`}
+                className={`fixed inset-y-0 left-0 z-30 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col shadow-2xl border-r-2 border-slate-800 ${
+                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
             >
-                {/* Brand with Easter Egg Trigger */}
                 <div className="flex items-center gap-3 px-5 py-6 border-b-2 border-slate-800 bg-slate-950 shrink-0 select-none">
                     <div
                         onClick={handleSecretClick}
@@ -98,15 +93,14 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                     </div>
                 </div>
 
-                {/* NAV */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {/* Dashboard */}
                     <Link
                         href={route("dashboard")}
-                        className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${route().current("dashboard")
+                        className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
+                            route().current("dashboard")
                                 ? "bg-blue-700 text-white border-blue-900 shadow-sm"
                                 : "hover:bg-slate-800 hover:text-white border-transparent"
-                            }`}
+                        }`}
                     >
                         <Icon
                             icon="solar:pie-chart-2-bold-duotone"
@@ -115,17 +109,17 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         Dashboard
                     </Link>
 
-                    {/* Facility Setup Dropdown */}
                     {hasPermission("manage facilities") && (
                         <div className="flex flex-col space-y-1">
                             <button
                                 onClick={() =>
                                     setFacilityMenuOpen(!facilityMenuOpen)
                                 }
-                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${isFacilityRoute
+                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
+                                    isFacilityRoute
                                         ? "bg-slate-800 text-white border-slate-700"
                                         : "hover:bg-slate-800 hover:text-white border-transparent"
-                                    }`}
+                                }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon
@@ -166,24 +160,24 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         </div>
                     )}
 
-                    {/* LGU Reports Dropdown */}
                     {hasPermission("view reports") && (
                         <div className="flex flex-col space-y-1">
                             <button
                                 onClick={() =>
                                     setReportsMenuOpen(!reportsMenuOpen)
                                 }
-                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${isReportRoute
+                                className={`w-full flex justify-between items-center px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${
+                                    isReportRoute
                                         ? "bg-slate-800 text-white border-slate-700"
                                         : "hover:bg-slate-800 hover:text-white border-transparent"
-                                    }`}
+                                }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <Icon
                                         icon="solar:clipboard-list-bold-duotone"
                                         className="w-6 h-6 text-rose-500"
                                     />
-                                    LGU Reports
+                                    Reports
                                 </div>
                                 <Icon
                                     icon="solar:alt-arrow-down-bold"
@@ -219,7 +213,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
 
                     <div className="h-px bg-slate-800 my-4 mx-2"></div>
 
-                    {/* Map */}
                     {hasPermission("manage facilities") && (
                         <Link
                             href={route("layouts.mapper")}
@@ -233,7 +226,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         </Link>
                     )}
 
-                    {/* Tenants */}
                     {hasPermission("manage tenants") && (
                         <Link
                             href={route("tenants.index")}
@@ -247,7 +239,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         </Link>
                     )}
 
-                    {/* Contracts */}
                     {hasPermission("view contracts") && (
                         <Link
                             href={route("contracts.index")}
@@ -261,21 +252,32 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                         </Link>
                     )}
 
-                    {/* Treasury */}
                     {hasPermission("manage payments") && (
-                        <Link
-                            href={route("payments.index")}
-                            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${route().current("payments.*") ? "bg-blue-700 text-white border-blue-900 shadow-sm" : "border-transparent hover:bg-slate-800 hover:text-white"}`}
-                        >
-                            <Icon
-                                icon="solar:wallet-bold-duotone"
-                                className="w-6 h-6 text-emerald-500"
-                            />
-                            Treasury & Payments
-                        </Link>
+                        <div className="flex flex-col space-y-2">
+                            <Link
+                                href={route("payments.index")}
+                                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${route().current("payments.*") ? "bg-blue-700 text-white border-blue-900 shadow-sm" : "border-transparent hover:bg-slate-800 hover:text-white"}`}
+                            >
+                                <Icon
+                                    icon="solar:wallet-bold-duotone"
+                                    className="w-6 h-6 text-emerald-500"
+                                />
+                                Treasury & Payments
+                            </Link>
+
+                            <Link
+                                href={route("penalties.index")}
+                                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-black text-sm uppercase border-2 transition-colors ${route().current("penalties.*") ? "bg-rose-700 text-white border-rose-900 shadow-sm" : "border-transparent hover:bg-slate-800 hover:text-white"}`}
+                            >
+                                <Icon
+                                    icon="solar:danger-triangle-bold-duotone"
+                                    className="w-6 h-6 text-amber-500"
+                                />
+                                Penalty Review
+                            </Link>
+                        </div>
                     )}
 
-                    {/* Users */}
                     {hasPermission("manage users") && (
                         <Link
                             href={route("users.index")}
@@ -290,7 +292,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                     )}
                 </nav>
 
-                {/* Footer */}
                 <div className="p-4 border-t-2 border-slate-800 bg-slate-950 shrink-0">
                     <div className="flex items-center gap-3 px-2 py-2">
                         <div className="w-10 h-10 bg-slate-800 border-2 border-slate-700 shadow-inner flex items-center justify-center text-white font-black rounded-lg">
@@ -321,7 +322,6 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                 </div>
             </aside>
 
-            {/* MAIN CONTENT WRAPPER */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50">
                 <div className="lg:hidden bg-white shadow-sm h-16 flex items-center justify-between px-4 border-b-2 border-slate-300 shrink-0 z-10">
                     <div className="flex items-center gap-3">
@@ -345,14 +345,12 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                 </main>
             </div>
 
-            {/* 🔥 DEVELOPER EASTER EGG MODAL (SOLE CREATOR & GOLD STANDARD DESIGN) 🔥 */}
             <Modal
                 show={showEasterEgg}
                 onClose={() => setShowEasterEgg(false)}
                 maxWidth="sm"
             >
                 <div className="relative p-8 text-center bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden border border-gray-200 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
-                    {/* Gold Standard Gradients */}
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500"></div>
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-400/20 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-orange-400/20 rounded-full blur-3xl"></div>

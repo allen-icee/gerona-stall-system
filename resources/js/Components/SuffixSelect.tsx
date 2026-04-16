@@ -1,3 +1,4 @@
+//resources\js\Components\SuffixSelect.tsx
 import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 
@@ -15,14 +16,13 @@ export default function SuffixSelect({
     value,
     onChange,
     error,
-    theme = "blue", // Default to blue
+    theme = "blue",
     onKeyDown,
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const listRef = useRef<HTMLUListElement>(null);
 
-    // Theme Styles Configuration
     const themeStyles = {
         blue: {
             focus: "focus:border-blue-600 focus:ring-blue-600",
@@ -85,7 +85,9 @@ export default function SuffixSelect({
         if (isOpen) {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setSelectedIndex((prev) => prev < SUFFIXES.length - 1 ? prev + 1 : prev);
+                setSelectedIndex((prev) =>
+                    prev < SUFFIXES.length - 1 ? prev + 1 : prev,
+                );
                 return;
             }
             if (e.key === "ArrowUp") {
@@ -119,7 +121,7 @@ export default function SuffixSelect({
                     onFocus={() => setIsOpen(true)}
                     onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                     onKeyDown={handleKeyDown}
-                    onChange={() => { }}
+                    onChange={() => {}}
                     readOnly
                 />
 
@@ -140,10 +142,11 @@ export default function SuffixSelect({
                     {SUFFIXES.map((opt, index) => (
                         <li
                             key={opt}
-                            className={`px-4 py-2.5 cursor-pointer text-slate-700 font-bold transition-colors ${index === selectedIndex
-                                ? activeTheme.activeBg
-                                : "hover:bg-slate-100 hover:text-slate-900"
-                                }`}
+                            className={`px-4 py-2.5 cursor-pointer text-slate-700 font-bold transition-colors ${
+                                index === selectedIndex
+                                    ? activeTheme.activeBg
+                                    : "hover:bg-slate-100 hover:text-slate-900"
+                            }`}
                             onMouseDown={(e) => {
                                 e.preventDefault();
                                 onChange(opt);

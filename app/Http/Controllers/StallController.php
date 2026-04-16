@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\StallController.php
 namespace App\Http\Controllers;
 
 use App\Models\Stall;
@@ -17,7 +17,6 @@ class StallController extends Controller
 {
     public function index(Request $request)
     {
-        // 🔥 CHECK THE GLOBAL PRICING FEATURE FLAG
         $pricingFlag = DB::table('feature_flags')->where('name', 'use_proposed_pricing')->first();
         if (!$pricingFlag) {
             DB::table('feature_flags')->insert([
@@ -221,7 +220,6 @@ class StallController extends Controller
             })->values();
         }
 
-        // Prepare the Data Array
         $exportData = [];
         foreach ($stallsCollection as $stall) {
             $exportData[] = [
@@ -236,7 +234,6 @@ class StallController extends Controller
             ];
         }
 
-        // 🔥 Generate an on-the-fly Laravel Excel class
         $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
             protected $data;
             public function __construct($data)
@@ -262,7 +259,6 @@ class StallController extends Controller
             }
         };
 
-        // Export directly to .xlsx
         $filename = 'stalls_' . now()->format('Y-m-d') . '.xlsx';
         return Excel::download($export, $filename);
     }

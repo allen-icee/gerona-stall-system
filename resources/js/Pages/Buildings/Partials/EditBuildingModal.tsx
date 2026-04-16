@@ -1,3 +1,4 @@
+//resources\js\Pages\Buildings\Partials\EditBuildingModal.tsx
 import { useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -19,7 +20,6 @@ export default function EditBuildingModal({
             description: "",
         });
 
-    // Phase 1: Smart Keyboard Navigation
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 
@@ -78,8 +78,10 @@ export default function EditBuildingModal({
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
                             Building Name
                         </label>
-                        {/* Phase 2: Character Limit Indicator */}
-                        <span className={`text-[10px] font-bold ${data.name.length >= 50 ? 'text-rose-600' : 'text-slate-400'}`}>
+
+                        <span
+                            className={`text-[10px] font-bold ${data.name.length >= 50 ? "text-rose-600" : "text-slate-400"}`}
+                        >
                             {data.name.length}/50
                         </span>
                     </div>
@@ -87,7 +89,6 @@ export default function EditBuildingModal({
                         type="text"
                         value={data.name}
                         onChange={(e) => setData("name", e.target.value)}
-                        // Phase 2: Building Name Character Restriction
                         maxLength={50}
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:ring-0 outline-none transition-colors"
                         required
@@ -104,7 +105,9 @@ export default function EditBuildingModal({
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
                             Description (Optional)
                         </label>
-                        <span className={`text-[10px] font-bold ${data.description.length >= 255 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        <span
+                            className={`text-[10px] font-bold ${data.description.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                        >
                             {data.description.length}/255
                         </span>
                     </div>

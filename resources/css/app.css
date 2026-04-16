@@ -1,6 +1,5 @@
 @import "tailwindcss";
-
-/* Force cursor pointer on all interactive elements globally */
+/*resources\css\app.css*/
 button,
 a,
 select,
@@ -10,12 +9,11 @@ select,
     cursor: pointer !important;
 }
 
-/* Hide scrollbar globally for all elements */
 * {
-    -ms-overflow-style: none !important; /* IE and Edge */
-    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
 }
 
 *::-webkit-scrollbar {
-    display: none !important; /* Chrome, Safari and Opera */
+    display: none !important;
 }

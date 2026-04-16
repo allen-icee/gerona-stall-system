@@ -1,3 +1,4 @@
+//resources\js\Pages\Stalls\Index.tsx
 import { useState, useEffect, useRef } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -11,7 +12,7 @@ import CustomSelect from "@/Components/CustomSelect";
 export default function StallsIndex({
     stalls,
     floors,
-    buildings, // 🔥 Destructured buildings from props
+    buildings,
     filters,
     useProposedPricing,
 }: any) {
@@ -22,7 +23,6 @@ export default function StallsIndex({
             : "stall_code_asc",
     );
 
-    // 🔥 New Building Filter State
     const [filterBuilding, setFilterBuilding] = useState(
         filters?.building_id || "",
     );
@@ -43,7 +43,6 @@ export default function StallsIndex({
         { value: "created_at_desc", label: "Recently Added" },
     ];
 
-    // 🔥 Generate Building Options
     const buildingOptions = [
         { value: "", label: "All Buildings" },
         ...buildings.map((b: any) => ({ value: b.id, label: b.name })),
@@ -64,7 +63,7 @@ export default function StallsIndex({
             );
         }, 300);
         return () => clearTimeout(delay);
-    }, [search, sortFilter, filterBuilding]); // 🔥 Watched filterBuilding
+    }, [search, sortFilter, filterBuilding]);
 
     useEffect(() => {
         setSelectedStalls([]);
@@ -269,7 +268,6 @@ export default function StallsIndex({
             )}
 
             <div className="py-12 max-w-[95%] mx-auto space-y-6 pb-24">
-                {/* ROW 1: HEADER & ACTIONS */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
@@ -297,7 +295,6 @@ export default function StallsIndex({
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        {/* 🔥 NEW COMPACT PRICING TOGGLE 🔥 */}
                         <div className="flex bg-slate-200 p-1 rounded-lg border-2 border-slate-300 shrink-0">
                             <button
                                 onClick={() => {
@@ -340,7 +337,6 @@ export default function StallsIndex({
                     </div>
                 </div>
 
-                {/* ROW 2: SEARCH AND FILTERS */}
                 <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border-2 border-slate-300 shadow-sm z-40">
                     <div className="w-48 z-40">
                         <CustomSelect
@@ -409,7 +405,6 @@ export default function StallsIndex({
                     </button>
                 </div>
 
-                {/* THE TABLE */}
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col mt-4 relative z-10">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-sm whitespace-nowrap">

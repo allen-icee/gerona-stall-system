@@ -1,3 +1,4 @@
+//resources\js\Pages\Dashboard\QuickActions.tsx
 import { Link } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 

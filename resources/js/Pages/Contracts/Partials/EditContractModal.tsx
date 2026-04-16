@@ -1,3 +1,4 @@
+//resources\js\Pages\Contracts\Partials\EditContractModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -10,11 +11,9 @@ export default function EditContractModal({ show, onClose, contract }: any) {
             start_date: "",
             end_date: "",
             monthly_rent: "",
-            security_deposit: "",
+            deposit_required: "",
             document_status: "",
             permit_status: "",
-            deposit_paid: "",
-            deposit_reference: "",
             remarks: "",
         });
 
@@ -29,11 +28,9 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                 start_date: contract.start_date || "",
                 end_date: contract.end_date || "",
                 monthly_rent: contract.monthly_rent || "",
-                security_deposit: contract.security_deposit || "",
+                deposit_required: contract.deposit_required || "",
                 document_status: contract.document_status || "For Contract",
                 permit_status: contract.permit_status || "Waiting",
-                deposit_paid: contract.deposit_paid || "",
-                deposit_reference: contract.deposit_reference || "",
                 remarks: contract.remarks || "",
             });
             setIsRentLocked(true);
@@ -79,7 +76,6 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                 onSubmit={submit}
                 className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar"
             >
-                {/* Read-Only Entity Information */}
                 <div className="bg-slate-800 border-2 border-slate-900 rounded-xl p-4 shadow-inner text-white">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">
                         Linked Entities (Read-Only)
@@ -187,66 +183,17 @@ export default function EditContractModal({ show, onClose, contract }: any) {
 
                         <div>
                             <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Security Deposit (Bond)
+                                Required Deposit (Bond)
                             </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                value={data.security_deposit}
+                                value={data.deposit_required}
                                 onChange={(e) =>
-                                    setData("security_deposit", e.target.value)
+                                    setData("deposit_required", e.target.value)
                                 }
                                 className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-black focus:border-amber-600 focus:ring-0"
                                 placeholder="₱ 0.00"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-200">
-                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon
-                            icon="solar:wallet-money-bold-duotone"
-                            className="w-4 h-4"
-                        />{" "}
-                        Treasury Data
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Actual Deposit (Advance Rent)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={data.deposit_paid}
-                                onChange={(e) =>
-                                    setData("deposit_paid", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-black text-emerald-900 focus:border-emerald-600 focus:ring-0"
-                                placeholder="₱ 0.00"
-                            />
-                        </div>
-                        <div>
-                            <div className="flex justify-between items-end mb-1">
-                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide block cursor-pointer">
-                                    O.R. / Reference #
-                                </label>
-                                <span
-                                    className={`text-[10px] font-bold ${data.deposit_reference?.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
-                                >
-                                    {data.deposit_reference?.length || 0}/255
-                                </span>
-                            </div>
-                            <input
-                                type="text"
-                                maxLength={255}
-                                value={data.deposit_reference}
-                                onChange={(e) =>
-                                    setData("deposit_reference", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-bold text-emerald-900 focus:border-emerald-600 focus:ring-0"
-                                placeholder="e.g. OR-12345"
                             />
                         </div>
                     </div>

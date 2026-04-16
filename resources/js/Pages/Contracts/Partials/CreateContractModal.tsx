@@ -1,3 +1,4 @@
+//resources\js\Pages\Contracts\Partials\CreateContractModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -18,7 +19,7 @@ export default function CreateContractModal({
             start_date: "",
             end_date: "",
             monthly_rent: "",
-            security_deposit: "",
+            deposit_required: "",
             document_status: "For Contract",
             permit_status: "Waiting",
             deposit_paid: "",
@@ -30,7 +31,7 @@ export default function CreateContractModal({
     useEnterTab(formRef);
 
     const [isRentLocked, setIsRentLocked] = useState(true);
-    // 🔥 Formatted Tenant Options
+
     const tenantOptions =
         tenants?.map((t: any) => ({
             value: t.id,
@@ -47,7 +48,6 @@ export default function CreateContractModal({
             ),
         })) || [];
 
-    // 🔥 Formatted Stall Options (forces UPPERCASE for stall codes)
     const stallOptions =
         availableStalls?.map((s: any) => ({
             value: s.id,
@@ -64,6 +64,7 @@ export default function CreateContractModal({
                 </div>
             ),
         })) || [];
+
     useEffect(() => {
         if (data.stall_id) {
             const selectedStall = availableStalls.find(
@@ -79,7 +80,7 @@ export default function CreateContractModal({
                 setData((prev) => ({
                     ...prev,
                     monthly_rent: rent,
-                    security_deposit: rent, // Set deposit equal to 1 month rent default
+                    deposit_required: rent,
                 }));
                 setIsRentLocked(true);
             }
@@ -125,7 +126,6 @@ export default function CreateContractModal({
                 className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar"
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Tenant Select */}
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Assign to Tenant
@@ -144,7 +144,6 @@ export default function CreateContractModal({
                         )}
                     </div>
 
-                    {/* Stall Select */}
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Available Stall
@@ -244,14 +243,14 @@ export default function CreateContractModal({
                         </div>
                         <div>
                             <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Security Deposit (Bond)
+                                Required Deposit (Bond)
                             </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                value={data.security_deposit}
+                                value={data.deposit_required}
                                 onChange={(e) =>
-                                    setData("security_deposit", e.target.value)
+                                    setData("deposit_required", e.target.value)
                                 }
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-black focus:border-blue-600 focus:ring-0"
                                 placeholder="₱ 0.00"

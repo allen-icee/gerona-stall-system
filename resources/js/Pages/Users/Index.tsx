@@ -1,3 +1,4 @@
+//resources\js\Pages\Users\Index.tsx
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Icon } from "@iconify/react";
@@ -26,13 +27,11 @@ interface Props {
 export default function Index({ users, roles, filters }: Props) {
     const [search, setSearch] = useState(filters.search || "");
 
-    // Modal States
     const [showCreate, setShowCreate] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Debounced Search Logic
     useEffect(() => {
         const delay = setTimeout(() => {
             router.get(
@@ -62,14 +61,12 @@ export default function Index({ users, roles, filters }: Props) {
         }
     };
 
-    // Calculate total records for the tracker
     const totalUsers = users.total || users.data.length;
 
     return (
         <AuthenticatedLayout>
             <Head title="System Users" />
 
-            {/* Modals */}
             <CreateUserModal
                 show={showCreate}
                 onClose={() => setShowCreate(false)}
@@ -85,7 +82,6 @@ export default function Index({ users, roles, filters }: Props) {
                 user={editingUser}
             />
 
-            {/* Delete Confirmation Modal */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -123,9 +119,7 @@ export default function Index({ users, roles, filters }: Props) {
             </Modal>
 
             <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                {/* Header & Tools Area */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    {/* Title & Count Tracker */}
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 uppercase">
                             <Icon
@@ -134,13 +128,18 @@ export default function Index({ users, roles, filters }: Props) {
                             />
                             System Users
                         </h1>
-                        <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Tenants">
-                            <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
+                        <span
+                            className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5"
+                            title="Total Tenants"
+                        >
+                            <Icon
+                                icon="solar:database-bold-duotone"
+                                className="w-4 h-4"
+                            />
                             {totalUsers}
                         </span>
                     </div>
 
-                    {/* Search & Actions */}
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-64">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,13 +172,11 @@ export default function Index({ users, roles, filters }: Props) {
                     </div>
                 </div>
 
-                {/* Unified Table Card */}
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    {/* Centered Column Headers */}
                                     <th className="px-6 py-4 border-r border-slate-300 text-center">
                                         Name
                                     </th>
@@ -231,14 +228,15 @@ export default function Index({ users, roles, filters }: Props) {
                                                 {user.roles.map((role) => (
                                                     <span
                                                         key={role.id}
-                                                        className={`inline-block px-3 py-1 rounded border-2 font-black text-xs uppercase tracking-wider ${role.name ===
+                                                        className={`inline-block px-3 py-1 rounded border-2 font-black text-xs uppercase tracking-wider ${
+                                                            role.name ===
                                                             "admin"
-                                                            ? "bg-purple-600 border-purple-800 text-white"
-                                                            : role.name ===
-                                                                "treasury"
-                                                                ? "bg-amber-500 border-amber-700 text-slate-900"
-                                                                : "bg-blue-600 border-blue-800 text-white"
-                                                            }`}
+                                                                ? "bg-purple-600 border-purple-800 text-white"
+                                                                : role.name ===
+                                                                    "treasury"
+                                                                  ? "bg-amber-500 border-amber-700 text-slate-900"
+                                                                  : "bg-blue-600 border-blue-800 text-white"
+                                                        }`}
                                                     >
                                                         {role.name}
                                                     </span>
@@ -265,10 +263,11 @@ export default function Index({ users, roles, filters }: Props) {
                                                             )
                                                         }
                                                         disabled={user.id === 1}
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded font-black text-xs uppercase tracking-wide transition-colors ${user.id === 1
-                                                            ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
-                                                            : "bg-rose-100 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600"
-                                                            }`}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded font-black text-xs uppercase tracking-wide transition-colors ${
+                                                            user.id === 1
+                                                                ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
+                                                                : "bg-rose-100 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600"
+                                                        }`}
                                                     >
                                                         <Icon
                                                             icon="solar:trash-bin-trash-bold"

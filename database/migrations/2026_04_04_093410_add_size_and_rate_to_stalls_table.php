@@ -1,5 +1,5 @@
 <?php
-
+//database\migrations\2026_04_04_093410_add_size_and_rate_to_stalls_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('stalls', function (Blueprint $table) {
-            // Add the missing columns for the physical stall dimensions
+
             if (!Schema::hasColumn('stalls', 'size_sqm')) {
                 $table->decimal('size_sqm', 8, 2)->default(0)->after('stall_code');
             }

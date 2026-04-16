@@ -1,19 +1,25 @@
-import { Transition } from '@headlessui/react';
-import { Link, InertiaLinkProps } from '@inertiajs/react';
-import { createContext, useContext, useState, PropsWithChildren, Dispatch, SetStateAction } from 'react';
+//resources\js\Components\Dropdown.tsx
+import { Transition } from "@headlessui/react";
+import { Link, InertiaLinkProps } from "@inertiajs/react";
+import {
+    createContext,
+    useContext,
+    useState,
+    PropsWithChildren,
+    Dispatch,
+    SetStateAction,
+} from "react";
 
-// 1. Define what the Context holds
 interface DropDownContextType {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
     toggleOpen: () => void;
 }
 
-// 2. Initialize context with safe default values
 const DropDownContext = createContext<DropDownContextType>({
     open: false,
-    setOpen: () => { },
-    toggleOpen: () => { },
+    setOpen: () => {},
+    toggleOpen: () => {},
 });
 
 const Dropdown = ({ children }: PropsWithChildren) => {
@@ -47,33 +53,32 @@ const Trigger = ({ children }: PropsWithChildren) => {
     );
 };
 
-// 3. Define the custom props for the Content component
 interface ContentProps extends PropsWithChildren {
-    align?: 'left' | 'right';
-    width?: '48';
+    align?: "left" | "right";
+    width?: "48";
     contentClasses?: string;
 }
 
 const Content = ({
-    align = 'right',
-    width = '48',
-    contentClasses = 'py-1 bg-white',
+    align = "right",
+    width = "48",
+    contentClasses = "py-1 bg-white",
     children,
 }: ContentProps) => {
     const { open, setOpen } = useContext(DropDownContext);
 
-    let alignmentClasses = 'origin-top';
+    let alignmentClasses = "origin-top";
 
-    if (align === 'left') {
-        alignmentClasses = 'ltr:origin-top-left rtl:origin-top-right start-0';
-    } else if (align === 'right') {
-        alignmentClasses = 'ltr:origin-top-right rtl:origin-top-left end-0';
+    if (align === "left") {
+        alignmentClasses = "ltr:origin-top-left rtl:origin-top-right start-0";
+    } else if (align === "right") {
+        alignmentClasses = "ltr:origin-top-right rtl:origin-top-left end-0";
     }
 
-    let widthClasses = '';
+    let widthClasses = "";
 
-    if (width === '48') {
-        widthClasses = 'w-48';
+    if (width === "48") {
+        widthClasses = "w-48";
     }
 
     return (
@@ -105,13 +110,16 @@ const Content = ({
     );
 };
 
-// 4. Connect Inertia's Link Props
-const DropdownLink = ({ className = '', children, ...props }: InertiaLinkProps) => {
+const DropdownLink = ({
+    className = "",
+    children,
+    ...props
+}: InertiaLinkProps) => {
     return (
         <Link
             {...props}
             className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ' +
+                "block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none " +
                 className
             }
         >

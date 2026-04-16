@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\UserController.php
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -23,12 +23,11 @@ class UserController extends Controller
 
         $users = $query->paginate(10)->withQueryString();
 
-        // NEW: Fetch roles and pass them directly to the index view
         $roles = Role::all();
 
         return Inertia::render('Users/Index', [
             'users' => $users,
-            'roles' => $roles, // Pass roles here
+            'roles' => $roles,
             'filters' => $request->only(['search']),
             'flash' => [
                 'success' => session('success'),
@@ -39,7 +38,6 @@ class UserController extends Controller
 
     public function create()
     {
-        // Get all available roles to display in the dropdown
         $roles = Role::all();
 
         return Inertia::render('Users/Create', [
@@ -64,7 +62,6 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Assign the selected Spatie role
         $user->assignRole($request->role);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -72,13 +69,12 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        // Prevent editing the main system admin to avoid locking yourself out
         if ($user->id === 1) {
             return redirect()->route('users.index')->with('error', 'Cannot edit the Master Admin.');
         }
 
         $roles = Role::all();
-        $user->load('roles'); // Load current role
+        $user->load('roles');
 
         return Inertia::render('Users/Edit', [
             'user' => $user,
@@ -105,7 +101,6 @@ class UserController extends Controller
             'email' => $request->email,
         ]);
 
-        // If a new password was provided, update it
         if ($request->filled('password')) {
             $request->validate([
                 'password' => ['confirmed', Rules\Password::defaults()],
@@ -113,7 +108,6 @@ class UserController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        // Sync the new role
         $user->syncRoles([$request->role]);
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');

@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\Tenant.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +14,6 @@ class Tenant extends Model
         'address'
     ];
 
-    // Send the active stall count to React automatically
     protected $appends = ['active_stall_count'];
 
     public function contracts()
@@ -29,7 +28,6 @@ class Tenant extends Model
             ->withPivot(['monthly_rent', 'start_date', 'end_date']);
     }
 
-    // 🔥 Auto-calculate "No of stalls a person has"
     public function getActiveStallCountAttribute()
     {
         return $this->contracts()->where('is_active', true)->count();

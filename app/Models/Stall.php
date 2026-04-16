@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\Stall.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +12,6 @@ class Stall extends Model
         'stall_code',
         'size_sqm',
 
-        // --- LGU ORDINANCE PRICING FIELDS ---
         'current_monthly_rental',
         'current_rate_per_sqm',
         'proposed_monthly_rental',
@@ -31,10 +30,6 @@ class Stall extends Model
         'computed_status',
         'computed_monthly_rent'
     ];
-
-    // ==========================================
-    // RELATIONSHIPS
-    // ==========================================
 
     public function floor()
     {
@@ -62,13 +57,9 @@ class Stall extends Model
             ->where('contracts.is_active', true);
     }
 
-    // ==========================================
-    // COMPUTED LOGIC
-    // ==========================================
-
     public function getComputedMonthlyRentAttribute()
     {
-        // Simple and clean: just return the current ordinance rate
+
         return $this->current_monthly_rental;
     }
 
@@ -79,43 +70,43 @@ class Stall extends Model
         if (!$contract) {
             return [
                 'label' => 'VACANT',
-                'color' => '#00ff00' // Green
+                'color' => '#00ff00'
             ];
         }
 
         if ($contract->permit_status === 'Closed') {
             return [
                 'label' => 'CLOSED',
-                'color' => '#f4cccc' // Light Red
+                'color' => '#f4cccc'
             ];
         }
 
         if ($contract->document_status === 'For Contract') {
             return [
                 'label' => 'FOR CONTRACT',
-                'color' => '#ffff00' // Yellow
+                'color' => '#ffff00'
             ];
         }
 
         if ($contract->document_status === 'For Signing') {
             return [
                 'label' => 'FOR SIGNING',
-                'color' => '#00ffff' // Cyan
+                'color' => '#00ffff'
             ];
         }
 
         if ($contract->document_status === 'Signed') {
             switch ($contract->permit_status) {
                 case 'Waiting':
-                    return ['label' => 'WAITING FOR BUSINESS PERMIT', 'color' => '#ff00ff']; // Magenta
+                    return ['label' => 'WAITING FOR BUSINESS PERMIT', 'color' => '#ff00ff'];
                 case 'On Process':
-                    return ['label' => 'ON PROCESS', 'color' => '#999999']; // Gray
+                    return ['label' => 'ON PROCESS', 'color' => '#999999'];
                 case 'For Confirmation':
-                    return ['label' => 'FOR CONFIRMATION', 'color' => '#9900ff']; // Purple
+                    return ['label' => 'FOR CONFIRMATION', 'color' => '#9900ff'];
                 case 'Unpaid':
-                    return ['label' => 'UNPAID PERMIT', 'color' => '#ff0000']; // Red
+                    return ['label' => 'UNPAID PERMIT', 'color' => '#ff0000'];
                 case 'Valid':
-                    return ['label' => 'SIGNED CONTRACT', 'color' => '#ffffff']; // White
+                    return ['label' => 'SIGNED CONTRACT', 'color' => '#ffffff'];
             }
         }
 

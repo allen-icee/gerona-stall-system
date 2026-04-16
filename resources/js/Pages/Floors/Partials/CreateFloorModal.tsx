@@ -1,3 +1,4 @@
+//resources\js\Pages\Floors\Partials\CreateFloorModal.tsx
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
@@ -21,7 +22,6 @@ export default function CreateFloorModal({
             description: "",
         });
 
-    // 🔥 Added the smart Enter-to-Tab hook
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 
@@ -90,7 +90,9 @@ export default function CreateFloorModal({
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
                             Floor/Section Name
                         </label>
-                        <span className={`text-[10px] font-bold ${data.name.length >= 50 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        <span
+                            className={`text-[10px] font-bold ${data.name.length >= 50 ? "text-rose-600" : "text-slate-400"}`}
+                        >
                             {data.name.length}/50
                         </span>
                     </div>
@@ -115,7 +117,9 @@ export default function CreateFloorModal({
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
                             Description (Optional)
                         </label>
-                        <span className={`text-[10px] font-bold ${data.description.length >= 255 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        <span
+                            className={`text-[10px] font-bold ${data.description.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                        >
                             {data.description.length}/255
                         </span>
                     </div>

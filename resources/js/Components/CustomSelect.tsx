@@ -1,3 +1,4 @@
+//resources\js\Components\CustomSelect.tsx
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
@@ -15,7 +16,7 @@ interface Props {
     options: string[] | SelectOption[];
     error?: string;
     placeholder?: string;
-    theme?: "amber" | "blue" | "rose" | "purple" | "emerald"; // Added emerald here
+    theme?: "amber" | "blue" | "rose" | "purple" | "emerald";
     disabled?: boolean;
 }
 
@@ -37,7 +38,6 @@ export default function CustomSelect({
     const wrapperRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
-    // FIX: Added the 'emerald' theme configuration here so it knows what classes to load!
     const themeStyles = {
         blue: {
             focus: "focus:border-blue-600 focus:ring-blue-600",

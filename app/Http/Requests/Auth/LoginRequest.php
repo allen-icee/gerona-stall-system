@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Requests\Auth\LoginRequest.php
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Auth\Events\Lockout;
@@ -19,7 +19,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string'], // <-- Changed from email
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -28,12 +28,11 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // <-- Changed from email
         if (!Auth::attempt($this->only('username', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'username' => trans('auth.failed'), // <-- Changed from email
+                'username' => trans('auth.failed'),
             ]);
         }
 
@@ -51,7 +50,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'username' => trans('auth.throttle', [ // <-- Changed from email
+            'username' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -60,7 +59,6 @@ class LoginRequest extends FormRequest
 
     public function throttleKey(): string
     {
-        // <-- Changed from email
         return Str::transliterate(Str::lower($this->input('username')) . '|' . $this->ip());
     }
 }

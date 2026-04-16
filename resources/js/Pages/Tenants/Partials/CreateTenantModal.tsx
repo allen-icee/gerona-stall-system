@@ -1,3 +1,4 @@
+//resources\js\Pages\Tenants\Partials\CreateTenantModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -35,7 +36,6 @@ export default function CreateTenantModal({
         street: "",
     });
 
-    // 🔥 Added the smart Enter-to-Tab hook
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 

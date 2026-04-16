@@ -1,3 +1,4 @@
+//resources\js\Components\ConfirmDeleteModal.tsx
 import Modal from "@/Components/Modal";
 import { Icon } from "@iconify/react";
 
@@ -53,7 +54,10 @@ export default function ConfirmDeleteModal({
                     >
                         {processing ? (
                             <>
-                                <Icon icon="solar:spinner-bold-duotone" className="animate-spin w-4 h-4" />
+                                <Icon
+                                    icon="solar:spinner-bold-duotone"
+                                    className="animate-spin w-4 h-4"
+                                />
                                 Deleting...
                             </>
                         ) : (

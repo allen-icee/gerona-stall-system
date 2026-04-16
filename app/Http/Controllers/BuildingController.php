@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\BuildingController.php
 namespace App\Http\Controllers;
 
 use App\Models\Building;
@@ -79,7 +79,6 @@ class BuildingController extends Controller
         $query->orderBy($sortBy, $direction);
         $buildings = $query->get();
 
-        // Prepare the Data Array
         $exportData = [];
         foreach ($buildings as $building) {
             $exportData[] = [
@@ -87,8 +86,6 @@ class BuildingController extends Controller
                 'description' => $building->description,
             ];
         }
-
-        // 🔥 Generate an on-the-fly Laravel Excel class
         $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
             protected $data;
             public function __construct($data)
@@ -105,7 +102,6 @@ class BuildingController extends Controller
             }
         };
 
-        // Export directly to .xlsx
         $filename = 'buildings_' . now()->format('Y-m-d') . '.xlsx';
         return Excel::download($export, $filename);
     }

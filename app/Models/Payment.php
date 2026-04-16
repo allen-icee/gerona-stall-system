@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\Payment.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +16,6 @@ class Payment extends Model
         'encoded_by'
     ];
 
-    // THE FIX: Forces Laravel to send strictly "YYYY-MM-DD" to React
     protected $casts = [
         'payment_date' => 'date:Y-m-d',
     ];

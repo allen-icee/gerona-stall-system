@@ -1,5 +1,5 @@
 <?php
-
+//database\migrations\2026_04_04_090214_add_description_to_floors_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

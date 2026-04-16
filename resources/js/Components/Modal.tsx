@@ -1,3 +1,4 @@
+//resources\js\Components\Modal.tsx
 import { Fragment, PropsWithChildren } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 
@@ -45,7 +46,6 @@ export default function Modal({
     return (
         <Transition appear show={show} as={Fragment}>
             <Dialog as="div" className="relative z-[9999]" onClose={close}>
-                {/* BACKDROP */}
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
@@ -58,7 +58,6 @@ export default function Modal({
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
                 </Transition.Child>
 
-                {/* MODAL CONTAINER */}
                 <div className="fixed inset-0 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
                         <Transition.Child

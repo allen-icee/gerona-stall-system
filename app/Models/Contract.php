@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\Contract.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,18 +13,12 @@ class Contract extends Model
         'start_date',
         'end_date',
         'monthly_rent',
+        'deposit_required',
         'is_active',
-
-        // Document Statuses
         'permit_status',
         'document_status',
         'remarks',
-
-        // --- NEW LGU EXCEL FIELDS ---
-        'correct_deposit',
-        'current_deposit',
-        'deposit_name',
-        'payables_with_penalty', // Historical arrears
+        'payables_with_penalty',
         'business_permit_fee',
         'is_new_owner'
     ];
@@ -35,8 +29,7 @@ class Contract extends Model
         'is_active' => 'boolean',
         'is_new_owner' => 'boolean',
         'monthly_rent' => 'decimal:2',
-        'correct_deposit' => 'decimal:2',
-        'current_deposit' => 'decimal:2',
+        'deposit_required' => 'decimal:2',
         'payables_with_penalty' => 'decimal:2',
         'business_permit_fee' => 'decimal:2',
     ];
@@ -45,13 +38,11 @@ class Contract extends Model
         'total_paid',
         'outstanding_balance',
         'deposit_variance',
+        'penalty_balance',
         'total_outstanding',
         'monthly_matrix'
     ];
 
-    // ==========================================
-    // RELATIONSHIPS
-    // ==========================================
 
     public function tenant()
     {
@@ -65,37 +56,41 @@ class Contract extends Model
 
     public function payments()
     {
-        // 🔥 FIXED: Explicitly define the foreign key to prevent the 1054 SQL error
         return $this->hasMany(Payment::class, 'contract_id', 'id');
     }
 
-    // 🔥 Commented out until Phase 2 when the Violations Engine is built
-    /*
-    public function violations()
+    public function penalties()
     {
-        return $this->hasMany(Violation::class);
+        return $this->hasMany(Penalty::class, 'contract_id', 'id');
     }
-    */
 
-    // ==========================================
-    // 🔥 THE FINANCIAL ENGINE (COMPUTED LOGIC)
-    // ==========================================
+    public function getRentPaidAttribute()
+    {
+        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'rent')->sum('amount');
+        return $this->payments()->where('payment_type', 'rent')->sum('amount');
+    }
+
+    public function getDepositPaidAttribute()
+    {
+        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'deposit')->sum('amount');
+        return $this->payments()->where('payment_type', 'deposit')->sum('amount');
+    }
+
+    public function getPenaltyPaidAttribute()
+    {
+        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'violation')->sum('amount');
+        return $this->payments()->where('payment_type', 'violation')->sum('amount');
+    }
 
     public function getTotalPaidAttribute()
     {
-        // Check if relationship exists before querying to save DB calls if already loaded
-        if ($this->relationLoaded('payments')) {
-            return $this->payments->sum('amount');
-        }
-        return $this->payments()->sum('amount');
+        return $this->rent_paid + $this->deposit_paid + $this->penalty_paid;
     }
 
     public function getMonthsActiveAttribute()
     {
         $start = Carbon::parse($this->start_date);
-
-        if (Carbon::now()->lt($start))
-            return 0;
+        if (Carbon::now()->lt($start)) return 0;
 
         $end = $this->is_active ? Carbon::now() : Carbon::parse($this->end_date);
         return $start->diffInMonths($end) + 1;
@@ -106,25 +101,32 @@ class Contract extends Model
         return $this->months_active * $this->monthly_rent;
     }
 
-    public function getOutstandingBalanceAttribute()
+    public function getPenaltyIncurredAttribute()
     {
-        return max(0, $this->expected_rent - $this->total_paid);
+
+        if ($this->relationLoaded('penalties')) return $this->penalties->where('status', 'approved')->sum('adjusted_amount');
+        return $this->penalties()->where('status', 'approved')->sum('adjusted_amount');
     }
 
-    // --- NEW TREASURY EXCEL LOGIC ---
+    public function getOutstandingBalanceAttribute()
+    {
+        return max(0, $this->expected_rent - $this->rent_paid);
+    }
 
     public function getDepositVarianceAttribute()
     {
-        // Target correctly matches the Excel column logic
-        $required = $this->correct_deposit ?? 0;
-        $paid = $this->current_deposit ?? 0;
-        return max(0, $required - $paid);
+        return max(0, ($this->deposit_required ?? 0) - $this->deposit_paid);
+    }
+
+    public function getPenaltyBalanceAttribute()
+    {
+        return max(0, $this->penalty_incurred - $this->penalty_paid);
     }
 
     public function getTotalOutstandingAttribute()
     {
-        // Standard Rent Debt + Missing Deposit + Historical Payables/Penalties
-        return $this->outstanding_balance + $this->deposit_variance + ($this->payables_with_penalty ?? 0);
+
+        return $this->outstanding_balance + $this->deposit_variance + $this->penalty_balance + ($this->payables_with_penalty ?? 0);
     }
 
     public function getMonthlyMatrixAttribute()
@@ -144,10 +146,9 @@ class Contract extends Model
             'DEC' => 0
         ];
 
-        // Ensure payments are loaded to prevent N+1 queries if iterating through many contracts
         if ($this->relationLoaded('payments') || $this->payments()->exists()) {
             foreach ($this->payments as $payment) {
-                if (!empty($payment->month)) {
+                if ($payment->payment_type === 'rent' && !empty($payment->month)) {
                     $monthIndex = substr(strtoupper($payment->month), 0, 3);
                     if (isset($matrix[$monthIndex])) {
                         $matrix[$monthIndex] += $payment->amount;
@@ -155,7 +156,6 @@ class Contract extends Model
                 }
             }
         }
-
         return $matrix;
     }
 }

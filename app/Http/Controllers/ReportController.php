@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\ReportController.php
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
@@ -11,9 +11,6 @@ use Inertia\Inertia;
 
 class ReportController extends Controller
 {
-    /**
-     * Helper function to apply common advanced filters to a Contract query
-     */
     private function applyContractFilters($query, Request $request)
     {
         if ($request->filled('building_id')) {
@@ -67,7 +64,6 @@ class ReportController extends Controller
             ];
         });
 
-        // Handle collection sorting manually since it's an accessor-based collection now
         if ($sortBy === 'total_outstanding') {
             $withBalance = $direction === 'asc' ? $withBalance->sortBy('total_outstanding') : $withBalance->sortByDesc('total_outstanding');
         } elseif ($sortBy === 'stall_code') {
@@ -139,14 +135,10 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * 🔥 BRAND NEW: The Master Ledger Report
-     */
     public function masterLedger(Request $request)
     {
         $query = Payment::with(['contract.stall.floor.building', 'contract.tenant']);
 
-        // Master Ledger Filters
         if ($request->filled('building_id')) {
             $query->whereHas('contract.stall.floor', function ($q) use ($request) {
                 $q->where('building_id', $request->building_id);
@@ -202,7 +194,6 @@ class ReportController extends Controller
         return response($csvData)->header('Content-Type', 'text/csv')->header('Content-Disposition', 'attachment; filename="LGU_With_Balances_Report.csv"');
     }
 
-    // Add export logic for Master Ledger
     public function exportLedger()
     {
         $payments = Payment::with(['contract.stall.floor.building', 'contract.tenant'])->orderBy('payment_date', 'desc')->get();
@@ -217,7 +208,6 @@ class ReportController extends Controller
             $loc = '"' . str_replace('"', '""', $p->contract->stall->floor->building->name ?? 'N/A') . '"';
             $stall = '"' . str_replace('"', '""', $p->contract->stall->stall_code ?? 'N/A') . '"';
 
-            // Check remarks for 20% penalty
             $penalty = str_contains($p->contract->remarks ?? '', '20% Late Renewal Penalty') ? '"20% APPLIED"' : '""';
 
             $csvData .= "{$month},{$price},{$date},{$or},{$name},{$loc},{$stall},{$penalty}\n";

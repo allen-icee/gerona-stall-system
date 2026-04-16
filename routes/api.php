@@ -1,4 +1,5 @@
 <?php
+//routes\api.php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -9,7 +10,6 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // We will add protected stall/treasury routes here later!
     Route::get('/user', function (Request $request) {
         return $request->user()->load('roles');
     });

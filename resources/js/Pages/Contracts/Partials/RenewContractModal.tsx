@@ -1,3 +1,4 @@
+//resources\js\Pages\Contracts\Partials\RenewContractModal.tsx
 import { useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -12,14 +13,13 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
             start_date: "",
             end_date: "",
             monthly_rent: "",
-            security_deposit: "",
+            deposit_required: "",
             document_status: "For Contract",
             permit_status: "Waiting",
             deposit_paid: "",
             deposit_reference: "",
             remarks: "Contract Renewal",
 
-            // Tells the backend to trigger the smart renewal engine!
             is_renewal: true,
             old_contract_id: "",
         });
@@ -27,7 +27,6 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 
-    // Calculate if the grace period has passed (24 Hours)
     const isLate = contract
         ? new Date() >
           new Date(new Date(contract.end_date).getTime() + 24 * 60 * 60 * 1000)
@@ -41,7 +40,7 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                 start_date: "",
                 end_date: "",
                 monthly_rent: contract.monthly_rent || "",
-                security_deposit: contract.security_deposit || "",
+                deposit_required: contract.deposit_required || "",
                 document_status: "For Contract",
                 permit_status: "Waiting",
                 deposit_paid: "",
@@ -90,7 +89,6 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                 onSubmit={submit}
                 className="p-6 space-y-6 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar"
             >
-                {/* Penalty Warning Banner */}
                 {isLate && (
                     <div className="bg-rose-100 border-2 border-rose-400 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
                         <Icon
@@ -111,7 +109,6 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                     </div>
                 )}
 
-                {/* Read-Only Entity Information */}
                 <div className="bg-slate-800 border-2 border-slate-900 rounded-xl p-4 shadow-inner text-white">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2 flex justify-between">
                         <span>Linked Entities (Carried Over)</span>
@@ -142,7 +139,6 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                     </div>
                 </div>
 
-                {/* General Form Error Alert */}
                 {Object.keys(errors).length > 0 && (
                     <div className="bg-rose-50 border-2 border-rose-200 p-3 rounded-lg flex items-center gap-2">
                         <Icon
@@ -224,21 +220,21 @@ export default function RenewContractModal({ show, onClose, contract }: any) {
                         </div>
                         <div>
                             <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Security Deposit (Bond)
+                                Required Deposit (Bond)
                             </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                value={data.security_deposit}
+                                value={data.deposit_required}
                                 onChange={(e) =>
-                                    setData("security_deposit", e.target.value)
+                                    setData("deposit_required", e.target.value)
                                 }
-                                className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-black focus:ring-0 ${errors.security_deposit ? "border-rose-500 focus:border-rose-600" : "border-emerald-300 focus:border-emerald-600"}`}
+                                className={`w-full bg-white border-2 rounded-lg px-4 py-2 text-sm font-black focus:ring-0 ${errors.deposit_required ? "border-rose-500 focus:border-rose-600" : "border-emerald-300 focus:border-emerald-600"}`}
                                 placeholder="₱ 0.00"
                             />
-                            {errors.security_deposit && (
+                            {errors.deposit_required && (
                                 <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase">
-                                    {errors.security_deposit}
+                                    {errors.deposit_required}
                                 </p>
                             )}
                         </div>

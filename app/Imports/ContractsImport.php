@@ -1,5 +1,5 @@
 <?php
-
+//app\Imports\ContractsImport.php
 namespace App\Imports;
 
 use App\Models\Contract;
@@ -17,7 +17,6 @@ class ContractsImport implements ToModel, WithHeadingRow
             return null;
         }
 
-        // Resolve relations safely
         $tenant = Tenant::where('first_name', $row['tenant_first_name'])
             ->where('last_name', $row['tenant_last_name'])
             ->first();
@@ -25,14 +24,12 @@ class ContractsImport implements ToModel, WithHeadingRow
         $stall = Stall::where('stall_code', $row['stall_code'])->first();
 
         if (!$tenant || !$stall) {
-            return null; // Skip if references are invalid
+            return null;
         }
 
-        // Format dates safely
         $startDate = isset($row['start_date']) ? Carbon::parse($row['start_date'])->format('Y-m-d') : null;
         $endDate = isset($row['end_date']) ? Carbon::parse($row['end_date'])->format('Y-m-d') : null;
 
-        // Foolproof Sync: If a contract for this tenant and stall already exists, update its terms. Otherwise, create it.
         return Contract::updateOrCreate(
             [
                 'tenant_id' => $tenant->id,
@@ -43,7 +40,7 @@ class ContractsImport implements ToModel, WithHeadingRow
                 'end_date' => $endDate,
                 'monthly_rent' => $row['monthly_rent'] ?? 0,
                 'security_deposit' => $row['security_deposit'] ?? 0,
-                // Defaults for the lifecycle columns we added earlier
+
                 'is_active' => true,
                 'permit_status' => 'PENDING'
             ]

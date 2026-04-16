@@ -1,3 +1,4 @@
+//resources\js\Pages\Floors\Index.tsx
 import { useState, useEffect, useRef } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -10,29 +11,26 @@ import CustomSelect from "@/Components/CustomSelect";
 export default function FloorsIndex({ buildings, floors, filters }: any) {
     const [search, setSearch] = useState(filters?.search || "");
 
-    // 🔥 THE FIX: Setup the sort state safely
-    const [sortFilter, setSortFilter] = useState(filters?.sort ? `${filters.sort}_${filters.direction}` : 'building_asc');
+    const [sortFilter, setSortFilter] = useState(
+        filters?.sort ? `${filters.sort}_${filters.direction}` : "building_asc",
+    );
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingFloor, setEditingFloor] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Delete Confirmation State
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // Advanced Sorting Options
     const sortOptions = [
-        { value: 'building_asc', label: 'Building Name (A-Z)' },
-        { value: 'name_asc', label: 'Floor/Section Name (A-Z)' },
-        { value: 'created_at_desc', label: 'Recently Added' },
-        { value: 'created_at_asc', label: 'Oldest Added' },
+        { value: "building_asc", label: "Building Name (A-Z)" },
+        { value: "name_asc", label: "Floor/Section Name (A-Z)" },
+        { value: "created_at_desc", label: "Recently Added" },
+        { value: "created_at_asc", label: "Oldest Added" },
     ];
 
-    // Debounced Search & Sort Logic
     useEffect(() => {
         const delay = setTimeout(() => {
-            // 🔥 THE FIX: Using 'sortBy' prevents the Javascript [native code] crash
-            const [sortBy, filterDirection] = sortFilter.split('_');
+            const [sortBy, filterDirection] = sortFilter.split("_");
 
             router.get(
                 route("floors.index"),
@@ -56,14 +54,16 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
         }
     };
 
-    // Filtered Export Action
     const handleExport = (e: React.MouseEvent) => {
         e.preventDefault();
-        const [sortBy, filterDirection] = sortFilter.split('_');
-        window.location.href = route('floors.export', { search, sort: sortBy, direction: filterDirection });
+        const [sortBy, filterDirection] = sortFilter.split("_");
+        window.location.href = route("floors.export", {
+            search,
+            sort: sortBy,
+            direction: filterDirection,
+        });
     };
 
-    // Gold Standard: File Upload Logic directly using router.post
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             router.post(
@@ -81,7 +81,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                     onError: (errors) => {
                         alert(
                             errors.file ||
-                            "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
                         );
                         if (fileInputRef.current)
                             fileInputRef.current.value = "";
@@ -97,7 +97,6 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
         <AuthenticatedLayout>
             <Head title="Floors & Sections" />
 
-            {/* Custom High-Contrast Delete Confirmation Modal */}
             <Modal
                 show={deletingId !== null}
                 onClose={() => setDeletingId(null)}
@@ -146,19 +145,24 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                 />
                                 Floors & Sections
                             </h3>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5" title="Total Floors/Sections">
-                                <Icon icon="solar:database-bold-duotone" className="w-4 h-4" />
+                            <span
+                                className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5"
+                                title="Total Floors/Sections"
+                            >
+                                <Icon
+                                    icon="solar:database-bold-duotone"
+                                    className="w-4 h-4"
+                                />
                                 {totalFloors}
                             </span>
                         </div>
                         <p className="text-xs font-bold text-slate-500">
-                            Organize floors and sections within the existing buildings.
+                            Organize floors and sections within the existing
+                            buildings.
                         </p>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-
-                        {/* 🔥 Phase 1: Advanced Filtering Custom Select */}
                         <div className="w-56 z-20">
                             <CustomSelect
                                 value={sortFilter}
@@ -184,7 +188,6 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                             />
                         </div>
 
-                        {/* 🔥 Filtered Export */}
                         <button
                             onClick={handleExport}
                             className="flex items-center justify-center p-2.5 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 transition-colors shrink-0"
@@ -222,7 +225,9 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                 icon="solar:add-square-bold-duotone"
                                 className="w-5 h-5"
                             />
-                            <span className="hidden sm:inline">Add Floor/Section</span>
+                            <span className="hidden sm:inline">
+                                Add Floor/Section
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -232,7 +237,6 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    {/* 🔥 Centered Headers */}
                                     <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
                                         #
                                     </th>
@@ -276,10 +280,14 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                 </td>
                                                 <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center">
                                                     <div className="flex flex-col items-center justify-center">
-                                                        <span className="text-base">{floor.name}</span>
+                                                        <span className="text-base">
+                                                            {floor.name}
+                                                        </span>
                                                         {floor.description && (
                                                             <span className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                                                {floor.description}
+                                                                {
+                                                                    floor.description
+                                                                }
                                                             </span>
                                                         )}
                                                     </div>
@@ -293,31 +301,42 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                 </td>
                                                 <td className="px-6 py-4 text-center border-r border-slate-200">
                                                     <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold text-xs border border-slate-300">
-                                                        {floor.stalls_count || 0} Stalls
+                                                        {floor.stalls_count ||
+                                                            0}{" "}
+                                                        Stalls
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center gap-2">
-                                                        {/* 🔥 Added text to action buttons */}
                                                         <button
-                                                            onClick={() => setEditingFloor(floor)}
+                                                            onClick={() =>
+                                                                setEditingFloor(
+                                                                    floor,
+                                                                )
+                                                            }
                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600  rounded transition-colors text-xs font-bold uppercase tracking-wide"
                                                             title="Edit Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:pen-bold"
                                                                 className="w-4 h-4"
-                                                            /> Edit
+                                                            />{" "}
+                                                            Edit
                                                         </button>
                                                         <button
-                                                            onClick={() => confirmDelete(floor.id)}
+                                                            onClick={() =>
+                                                                confirmDelete(
+                                                                    floor.id,
+                                                                )
+                                                            }
                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-200 text-rose-700 hover:bg-rose-200 hover:border-rose-400 rounded transition-colors text-xs font-bold uppercase tracking-wide"
                                                             title="Delete Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:trash-bin-trash-bold"
                                                                 className="w-4 h-4"
-                                                            /> Delete
+                                                            />{" "}
+                                                            Delete
                                                         </button>
                                                     </div>
                                                 </td>
@@ -329,7 +348,6 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                         </table>
                     </div>
                 </div>
-                {/* Pagination goes here if you have it built out */}
             </div>
 
             <CreateFloorModal

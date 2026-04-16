@@ -1,4 +1,5 @@
-import { SVGProps } from 'react';
+//resources\js\Components\ApplicationLogo.tsx
+import { SVGProps } from "react";
 
 export default function ApplicationLogo(props: SVGProps<SVGSVGElement>) {
     return (

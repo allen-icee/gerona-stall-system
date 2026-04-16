@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\DashboardController.php
 namespace App\Http\Controllers;
 
 use App\Models\Stall;
@@ -16,10 +16,9 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        // Spatie provides getRoleNames(), we just grab the first one (e.g., 'admin', 'treasury', 'staff')
+
         $userRole = $user->getRoleNames()->first() ?? 'staff';
 
-        // 1. High-Level KPI Statistics
         $totalStalls = Stall::count();
         $vacantStalls = Stall::doesntHave('contracts', 'and', function ($query) {
             $query->where('is_active', true);
@@ -33,7 +32,6 @@ class DashboardController extends Controller
                 $q->where('is_active', true)->where('permit_status', 'Waiting');
             })->count(),
 
-            // 🔥 NEW: Add Treasury KPIs to global stats so they can be shown if role == treasury
             'today_collection' => Payment::whereDate('payment_date', Carbon::today())->sum('amount'),
             'month_collection' => Payment::whereMonth('payment_date', Carbon::now()->month)
                 ->whereYear('payment_date', Carbon::now()->year)
@@ -41,7 +39,6 @@ class DashboardController extends Controller
             'total_ors' => Payment::count()
         ];
 
-        // 2. THE EXECUTIVE SUMMARY ENGINE (Only really needed for Admin, but safe to load)
         $buildings = Building::with([
             'stalls.contracts' => function ($q) {
                 $q->where('is_active', true)->latest();
@@ -99,7 +96,6 @@ class DashboardController extends Controller
             return $tally;
         });
 
-        // 3. Recent Activity
         $recentActivity = Contract::with(['stall', 'tenant'])
             ->latest()
             ->take(5)
@@ -113,7 +109,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // 4. Expiring Contracts (Action Required)
         $expiringContracts = Contract::with('stall')
             ->where('is_active', true)
             ->where('end_date', '<=', Carbon::now()->addDays(30))
@@ -130,7 +125,7 @@ class DashboardController extends Controller
             'recentActivity' => $recentActivity,
             'buildingSummary' => $buildingSummary,
             'expiringContracts' => $expiringContracts,
-            'userRole' => strtolower($userRole) // 🔥 Pass the role to React!
+            'userRole' => strtolower($userRole)
         ]);
     }
 }

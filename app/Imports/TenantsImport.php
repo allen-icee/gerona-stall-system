@@ -1,5 +1,5 @@
 <?php
-
+//app\Imports\TenantsImport.php
 namespace App\Imports;
 
 use App\Models\Tenant;
@@ -10,12 +10,10 @@ class TenantsImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        // Skip empty rows
         if (empty($row['first_name']) || empty($row['last_name'])) {
             return null;
         }
 
-        // Foolproof Sync: Check by full name. Update contact info if they exist, otherwise create.
         return Tenant::updateOrCreate(
             [
                 'first_name' => $row['first_name'],

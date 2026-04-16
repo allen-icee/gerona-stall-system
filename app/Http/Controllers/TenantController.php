@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\TenantController.php
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
@@ -15,7 +15,6 @@ class TenantController extends Controller
     {
         $query = Tenant::query();
 
-        // Search Filter
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('first_name', 'like', $searchTerm)
@@ -24,7 +23,6 @@ class TenantController extends Controller
                 ->orWhere('contact_number', 'like', $searchTerm);
         }
 
-        // 🔥 BULLETPROOF SORTING 🔥
         $allowedSorts = ['last_name', 'first_name', 'company_name', 'created_at'];
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'last_name';
         $direction = strtolower($request->input('direction')) === 'desc' ? 'desc' : 'asc';
@@ -70,18 +68,15 @@ class TenantController extends Controller
     public function destroy(Tenant $tenant)
     {
         DB::transaction(function () use ($tenant) {
-            // 1. Find all contracts linked to this tenant
+
             $contractIds = \App\Models\Contract::where('tenant_id', $tenant->id)->pluck('id');
 
-            // 2. Delete all payments linked to those contracts
             if ($contractIds->isNotEmpty()) {
                 \App\Models\Payment::whereIn('contract_id', $contractIds)->delete();
             }
 
-            // 3. Delete the contracts
             \App\Models\Contract::where('tenant_id', $tenant->id)->delete();
 
-            // 4. Delete the tenant
             $tenant->delete();
         });
 
@@ -92,7 +87,6 @@ class TenantController extends Controller
     {
         $query = Tenant::query();
 
-        // Apply filters to Export
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where('first_name', 'like', $searchTerm)
@@ -107,11 +101,10 @@ class TenantController extends Controller
 
         $tenants = $query->orderBy($sortBy, $direction)->get();
 
-        // 🔥 Updated CSV Headers
         $csvData = "first_name,middle_initial,last_name,suffix,business_name,contact_number,address\n";
 
         foreach ($tenants as $tenant) {
-            // 1. Parse First Name & Middle Initial
+
             $fName = $tenant->first_name ?? '';
             $mi = '';
             if (preg_match('/ ([a-zA-Z])\.$/i', $fName, $matches)) {
@@ -119,7 +112,6 @@ class TenantController extends Controller
                 $fName = trim(preg_replace('/ [a-zA-Z]\.$/i', '', $fName));
             }
 
-            // 2. Parse Last Name & Suffix
             $lName = $tenant->last_name ?? '';
             $suf = '';
             $suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
@@ -131,7 +123,6 @@ class TenantController extends Controller
                 }
             }
 
-            // 3. Escape all fields for CSV safety
             $first = '"' . str_replace('"', '""', $fName) . '"';
             $middle = '"' . str_replace('"', '""', $mi) . '"';
             $last = '"' . str_replace('"', '""', $lName) . '"';
@@ -140,11 +131,9 @@ class TenantController extends Controller
             $contact = '"' . str_replace('"', '""', $tenant->contact_number ?? '') . '"';
             $address = '"' . str_replace('"', '""', $tenant->address ?? '') . '"';
 
-            // 4. Combine Row
             $csvData .= "{$first},{$middle},{$last},{$suffix},{$business},{$contact},{$address}\n";
         }
 
-        // 🔥 Dynamic Filename
         $filename = 'tenants_' . now()->format('Y-m-d') . '.csv';
 
         return response($csvData)

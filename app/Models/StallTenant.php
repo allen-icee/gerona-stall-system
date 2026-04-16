@@ -1,5 +1,5 @@
 <?php
-
+//app\Models\StallTenant.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;

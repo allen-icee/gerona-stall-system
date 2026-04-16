@@ -1,19 +1,14 @@
 <?php
-
+//database\migrations\2026_03_30_075733_create_payments_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            // The ONLY relational link we need.
-            // Through the contract, we already know the exact Stall and Tenant!
             $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
 
             $table->decimal('amount', 10, 2);
@@ -26,9 +21,6 @@ return new class extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('payments');

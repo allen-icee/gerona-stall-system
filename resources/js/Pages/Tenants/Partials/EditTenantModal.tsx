@@ -1,3 +1,4 @@
+//resources\js\Pages\Tenants\Partials\EditTenantModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";

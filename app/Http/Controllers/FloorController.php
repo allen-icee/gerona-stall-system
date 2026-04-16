@@ -1,5 +1,5 @@
 <?php
-
+//app\Http\Controllers\FloorController.php
 namespace App\Http\Controllers;
 
 use App\Models\Floor;
@@ -101,7 +101,6 @@ class FloorController extends Controller
 
         $floors = $query->get();
 
-        // Prepare the Data Array
         $exportData = [];
         foreach ($floors as $floor) {
             $exportData[] = [
@@ -111,8 +110,6 @@ class FloorController extends Controller
                 'description' => $floor->description,
             ];
         }
-
-        // 🔥 Generate an on-the-fly Laravel Excel class
         $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
             protected $data;
             public function __construct($data)
@@ -129,7 +126,6 @@ class FloorController extends Controller
             }
         };
 
-        // Export directly to .xlsx
         $filename = 'floors_sections_' . now()->format('Y-m-d') . '.xlsx';
         return Excel::download($export, $filename);
     }

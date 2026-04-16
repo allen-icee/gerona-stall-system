@@ -14,6 +14,7 @@ export default function CreatePaymentModal({
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
             contract_id: "",
+            payment_type: "rent", // 🔥 Added Default Payment Type
             amount: "",
             payment_date: new Date().toISOString().split("T")[0],
             month: "",
@@ -39,7 +40,6 @@ export default function CreatePaymentModal({
         "DECEMBER",
     ];
 
-    // 🔥 THE FIX: Stacked HTML for beautiful Payer Selection
     const contractOptions = activeContracts.map((c: any) => ({
         value: c.id,
         searchString: `${c.tenant?.first_name} ${c.tenant?.last_name} ${c.stall?.stall_code}`,
@@ -61,10 +61,28 @@ export default function CreatePaymentModal({
             const selectedContract = activeContracts.find(
                 (c: any) => c.id == data.contract_id,
             );
-            if (selectedContract)
-                setData("amount", selectedContract.monthly_rent);
+            if (selectedContract) {
+                // Auto-fill amount based on what they likely want to pay
+                if (data.payment_type === "rent") {
+                    setData("amount", selectedContract.monthly_rent);
+                } else if (data.payment_type === "violation") {
+                    setData(
+                        "amount",
+                        selectedContract.penalty_balance > 0
+                            ? selectedContract.penalty_balance
+                            : "",
+                    );
+                } else if (data.payment_type === "deposit") {
+                    setData(
+                        "amount",
+                        selectedContract.deposit_variance > 0
+                            ? selectedContract.deposit_variance
+                            : "",
+                    );
+                }
+            }
         }
-    }, [data.contract_id, activeContracts]);
+    }, [data.contract_id, data.payment_type, activeContracts]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,29 +119,174 @@ export default function CreatePaymentModal({
             <form
                 ref={formRef}
                 onSubmit={submit}
-                className="p-6 space-y-5 bg-white rounded-b-2xl"
+                className="p-6 space-y-5 bg-white rounded-b-2xl overflow-y-auto max-h-[80vh] custom-scrollbar"
             >
-                <div>
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                        Find Active Contract / Tenant
-                    </label>
-                    <SearchableSelect
-                        value={data.contract_id}
-                        onChange={(val: any) => setData("contract_id", val)}
-                        options={contractOptions}
-                        placeholder="Search for Payer or Stall..."
-                        error={errors.contract_id}
-                        theme="emerald"
-                    />
-                    {errors.contract_id && (
-                        <p className="text-rose-500 text-xs font-bold mt-1">
-                            {errors.contract_id}
-                        </p>
-                    )}
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="col-span-1 md:col-span-2">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Find Active Contract / Tenant
+                        </label>
+                        <SearchableSelect
+                            value={data.contract_id}
+                            onChange={(val: any) => setData("contract_id", val)}
+                            options={contractOptions}
+                            placeholder="Search for Payer or Stall..."
+                            error={errors.contract_id}
+                            theme="emerald"
+                        />
+                        {errors.contract_id && (
+                            <p className="text-rose-500 text-xs font-bold mt-1">
+                                {errors.contract_id}
+                            </p>
+                        )}
+
+                        {/* 🔥 SMART LEDGER BREAKDOWN CARD 🔥 */}
+                        {data.contract_id && (
+                            <div className="bg-slate-800 rounded-xl p-4 border-2 border-slate-900 shadow-inner mt-4 animate-[slide-down_0.2s_ease-out]">
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">
+                                    Tenant Outstanding Ledger
+                                </h3>
+
+                                {(() => {
+                                    const selectedContract =
+                                        activeContracts.find(
+                                            (c: any) =>
+                                                c.id == data.contract_id,
+                                        );
+                                    if (!selectedContract) return null;
+
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-sm font-bold text-slate-300">
+                                                <span>Rent Arrears:</span>
+                                                <span
+                                                    className={
+                                                        selectedContract.outstanding_balance >
+                                                        0
+                                                            ? "text-rose-400"
+                                                            : "text-emerald-400"
+                                                    }
+                                                >
+                                                    ₱{" "}
+                                                    {Number(
+                                                        selectedContract.outstanding_balance,
+                                                    ).toLocaleString(
+                                                        undefined,
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm font-bold text-slate-300">
+                                                <span>Deposit Shortfall:</span>
+                                                <span
+                                                    className={
+                                                        selectedContract.deposit_variance >
+                                                        0
+                                                            ? "text-amber-400"
+                                                            : "text-emerald-400"
+                                                    }
+                                                >
+                                                    ₱{" "}
+                                                    {Number(
+                                                        selectedContract.deposit_variance,
+                                                    ).toLocaleString(
+                                                        undefined,
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm font-bold text-slate-300">
+                                                <span>Unpaid Penalties:</span>
+                                                <span
+                                                    className={
+                                                        selectedContract.penalty_balance >
+                                                        0
+                                                            ? "text-rose-400"
+                                                            : "text-emerald-400"
+                                                    }
+                                                >
+                                                    ₱{" "}
+                                                    {Number(
+                                                        selectedContract.penalty_balance,
+                                                    ).toLocaleString(
+                                                        undefined,
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center text-base font-black text-white">
+                                                <span>Total Amount Due:</span>
+                                                <span
+                                                    className={
+                                                        selectedContract.total_outstanding >
+                                                        0
+                                                            ? "text-rose-500"
+                                                            : "text-emerald-500"
+                                                    }
+                                                >
+                                                    ₱{" "}
+                                                    {Number(
+                                                        selectedContract.total_outstanding,
+                                                    ).toLocaleString(
+                                                        undefined,
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+
                     <div>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Payment For
+                        </label>
+                        <select
+                            value={data.payment_type}
+                            onChange={(e) =>
+                                setData("payment_type", e.target.value)
+                            }
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors cursor-pointer"
+                        >
+                            <option value="rent">Monthly Rent</option>
+                            <option value="deposit">Deposit Top-up</option>
+                            <option value="violation">
+                                Violation / Penalty Fine
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Amount Paid (₱)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={data.amount}
+                            onChange={(e) => setData("amount", e.target.value)}
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
+                            required
+                        />
+                        {errors.amount && (
+                            <p className="text-rose-500 text-xs font-bold mt-1">
+                                {errors.amount}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2">
                         <div className="flex justify-between items-end mb-1">
                             <label className="text-xs font-black text-slate-800 uppercase tracking-wide block cursor-pointer">
                                 OR Number
@@ -148,24 +311,6 @@ export default function CreatePaymentModal({
                         {errors.or_number && (
                             <p className="text-rose-500 text-xs font-bold mt-1">
                                 {errors.or_number}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                            Amount Paid (₱)
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={data.amount}
-                            onChange={(e) => setData("amount", e.target.value)}
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-black text-slate-900 focus:border-emerald-600 focus:ring-0 transition-colors"
-                            required
-                        />
-                        {errors.amount && (
-                            <p className="text-rose-500 text-xs font-bold mt-1">
-                                {errors.amount}
                             </p>
                         )}
                     </div>

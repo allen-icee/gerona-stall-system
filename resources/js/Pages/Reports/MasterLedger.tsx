@@ -1,3 +1,4 @@
+//resources\js\Pages\Reports\MasterLedger.tsx
 import { useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
