@@ -19,7 +19,7 @@ export default function Mapper({
     const [activeTool, setActiveTool] = useState("stall");
     const [selectedStallId, setSelectedStallId] = useState("");
     const [customText, setCustomText] = useState("");
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true); // <-- Added Sidebar State
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const [gridCells, setGridCells] = useState<any[]>([]);
     const [gridDims, setGridDims] = useState({ rows: 0, cols: 0 });
@@ -36,6 +36,8 @@ export default function Mapper({
         onConfirm: () => {},
     });
 
+    // 🔥 FIX: Only reset the map layout when switching floors (layout.id changes),
+    // NOT when background data refreshes!
     useEffect(() => {
         if (layout && layout.cells) {
             setGridCells(layout.cells);
@@ -43,8 +45,27 @@ export default function Mapper({
                 rows: layout.total_rows,
                 cols: layout.total_cols,
             });
+        } else {
+            setGridCells([]);
+            setGridDims({ rows: 0, cols: 0 });
         }
-    }, [layout]);
+    }, [layout?.id]);
+
+    // 🔥 FIX: Smart Sync! When the database sends updated stall colors (via Quick Paint),
+    // dynamically patch the new colors into the working grid WITHOUT erasing the map!
+    useEffect(() => {
+        setGridCells((prev) =>
+            prev.map((cell) => {
+                if (cell.type === "stall" && cell.stall_id) {
+                    const updatedStall = stalls?.find(
+                        (s: any) => s.id == cell.stall_id,
+                    );
+                    return { ...cell, stall: updatedStall || cell.stall };
+                }
+                return cell;
+            }),
+        );
+    }, [stalls]);
 
     const {
         data: genData,
@@ -111,7 +132,7 @@ export default function Mapper({
         if (activeTool === "stall") {
             cell.stall = stalls.find((s: any) => s.id == selectedStallId);
             cell.text = null;
-            setSelectedStallId(""); // Clears selection so they don't accidentally duplicate
+            setSelectedStallId(""); // Clear selection so they don't accidentally duplicate
         } else if (activeTool === "text") {
             cell.stall = null;
             cell.text = customText;
@@ -179,7 +200,6 @@ export default function Mapper({
         );
     };
 
-    // --- INSTANT FRONTEND GRID RESIZING ---
     const insertRow = (rowIndex: number) => {
         const newCells = [...gridCells];
         const blankRow = Array.from({ length: gridDims.cols }, () => ({
@@ -237,6 +257,89 @@ export default function Mapper({
             },
             { preserveScroll: true },
         );
+    };
+
+    const handleExport = () => {
+        const data = {
+            total_rows: gridDims.rows,
+            total_cols: gridDims.cols,
+            cells: gridCells.map((c) => ({
+                type: c.type,
+                stall_id: c.stall_id,
+                text: c.text,
+            })),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Map_Layout_Export.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const json = JSON.parse(event.target?.result as string);
+                if (
+                    json.total_rows &&
+                    json.total_cols &&
+                    Array.isArray(json.cells)
+                ) {
+                    const hydratedCells = json.cells.map((cell: any) => {
+                        let stallObj = null;
+                        if (cell.type === "stall" && cell.stall_id) {
+                            stallObj =
+                                stalls.find(
+                                    (s: any) => s.id == cell.stall_id,
+                                ) || null;
+                        }
+                        return {
+                            ...cell,
+                            id: `imported-${Math.random()}`,
+                            stall: stallObj,
+                        };
+                    });
+
+                    setGridDims({
+                        rows: json.total_rows,
+                        cols: json.total_cols,
+                    });
+                    setGridCells(hydratedCells);
+
+                    setDialog({
+                        isOpen: true,
+                        type: "alert",
+                        title: "Import Successful",
+                        message:
+                            "Layout loaded! Click 'Update Map Layout' to save it to the database.",
+                        confirmText: "Awesome!",
+                        confirmColor:
+                            "bg-emerald-600 hover:bg-emerald-700 text-white",
+                        icon: "solar:check-circle-bold-duotone",
+                        iconColor: "text-emerald-500",
+                        onConfirm: closeDialog,
+                    });
+                } else {
+                    throw new Error("Invalid format");
+                }
+            } catch (err) {
+                alert(
+                    "Failed to parse JSON file. Ensure it is a valid map layout export.",
+                );
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
     };
 
     const generateGrid = (e: React.FormEvent) => {
@@ -305,10 +408,11 @@ export default function Mapper({
                     onSave={saveLayout}
                     customText={customText}
                     setCustomText={setCustomText}
+                    onExport={handleExport}
+                    onImport={handleImport}
                 />
 
                 <div className="flex-1 bg-slate-200 overflow-hidden relative flex items-center justify-center">
-                    {/* Collapsible Sidebar Toggle Button */}
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="absolute top-4 left-4 z-[90] bg-white p-2.5 rounded-xl shadow-lg border-2 border-slate-300 text-slate-700 hover:text-blue-600 hover:border-blue-400 transition-colors cursor-pointer"
@@ -351,8 +455,10 @@ export default function Mapper({
                         <InteractiveGrid
                             layout={layout}
                             gridCells={gridCells}
+                            setGridCells={setGridCells}
                             gridDims={gridDims}
                             activeFloorData={activeFloorData}
+                            activeTool={activeTool}
                             onCellClick={handleCellClick}
                             onClearAll={handleClearAll}
                             onRevert={handleRevert}

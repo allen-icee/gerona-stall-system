@@ -1,12 +1,14 @@
 //resources/js/Pages/Layouts/Partials/InteractiveGrid.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
 export default function InteractiveGrid({
     gridCells,
+    setGridCells,
     gridDims,
     activeFloorData,
+    activeTool,
     onCellClick,
     onClearAll,
     onRevert,
@@ -18,7 +20,6 @@ export default function InteractiveGrid({
 }: any) {
     const [zoom, setZoom] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
-
     const [searchQuery, setSearchQuery] = useState("");
     const [isLegendOpen, setIsLegendOpen] = useState(false);
     const [tooltip, setTooltip] = useState({
@@ -27,13 +28,17 @@ export default function InteractiveGrid({
         y: 0,
         data: null as any,
     });
-
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [paintMode, setPaintMode] = useState<{
         id: string;
         color: string;
         label: string;
     } | null>(null);
+
+    // State for the Expand Tool
+    const [selectedMapStallId, setSelectedMapStallId] = useState<number | null>(
+        null,
+    );
 
     const paintStatuses = [
         {
@@ -99,11 +104,11 @@ export default function InteractiveGrid({
         const handleWheel = (e: WheelEvent) => {
             if (e.ctrlKey) {
                 e.preventDefault();
-                if (e.deltaY < 0) {
-                    setZoom((z) => Math.min(3, z + 0.1));
-                } else {
-                    setZoom((z) => Math.max(0.4, z - 0.1));
-                }
+                setZoom((z) =>
+                    e.deltaY < 0
+                        ? Math.min(3, z + 0.1)
+                        : Math.max(0.4, z - 0.1),
+                );
             }
         };
 
@@ -120,12 +125,14 @@ export default function InteractiveGrid({
                     setZoom(1);
                 }
             }
-            if (e.key === "Escape") setPaintMode(null);
+            if (e.key === "Escape") {
+                setPaintMode(null);
+                setSelectedMapStallId(null);
+            }
         };
 
         container.addEventListener("wheel", handleWheel, { passive: false });
         window.addEventListener("keydown", handleKeyDown);
-
         return () => {
             container.removeEventListener("wheel", handleWheel);
             window.removeEventListener("keydown", handleKeyDown);
@@ -142,9 +149,107 @@ export default function InteractiveGrid({
 
     const cellSize = 56 * zoom;
     const headerSize = 30;
+    const gap = 0;
+
+    const placedStalls = useMemo(() => {
+        const map = new Map();
+        gridCells.forEach((cell: any, index: number) => {
+            if (cell.type === "stall" && cell.stall) {
+                const r = Math.floor(index / gridDims.cols);
+                const c = index % gridDims.cols;
+                if (!map.has(cell.stall.id)) {
+                    map.set(cell.stall.id, {
+                        stall: cell.stall,
+                        minR: r,
+                        maxR: r,
+                        minC: c,
+                        maxC: c,
+                    });
+                } else {
+                    const s = map.get(cell.stall.id);
+                    s.minR = Math.min(s.minR, r);
+                    s.maxR = Math.max(s.maxR, r);
+                    s.minC = Math.min(s.minC, c);
+                    s.maxC = Math.max(s.maxC, c);
+                }
+            }
+        });
+        return Array.from(map.values());
+    }, [gridCells, gridDims]);
+
+    const isRangeVacant = (
+        rStart: number,
+        rEnd: number,
+        cStart: number,
+        cEnd: number,
+    ) => {
+        for (let r = rStart; r <= rEnd; r++) {
+            for (let c = cStart; c <= cEnd; c++) {
+                const idx = r * gridDims.cols + c;
+                if (gridCells[idx].type !== "vacant") return false;
+            }
+        }
+        return true;
+    };
+
+    const setRange = (
+        rStart: number,
+        rEnd: number,
+        cStart: number,
+        cEnd: number,
+        stall: any,
+    ) => {
+        const newCells = [...gridCells];
+        for (let r = rStart; r <= rEnd; r++) {
+            for (let c = cStart; c <= cEnd; c++) {
+                const idx = r * gridDims.cols + c;
+                newCells[idx] = {
+                    ...newCells[idx],
+                    type: stall ? "stall" : "vacant",
+                    stall_id: stall ? stall.id : null,
+                    stall,
+                };
+            }
+        }
+        setGridCells(newCells);
+    };
+
+    const handleExpandRight = (stallId: number) => {
+        const s = placedStalls.find((p) => p.stall.id === stallId);
+        if (!s || s.maxC + 1 >= gridDims.cols) return;
+        if (!isRangeVacant(s.minR, s.maxR, s.maxC + 1, s.maxC + 1))
+            return alert("Cannot expand: Space is occupied.");
+        setRange(s.minR, s.maxR, s.maxC + 1, s.maxC + 1, s.stall);
+    };
+    const handleShrinkRight = (stallId: number) => {
+        const s = placedStalls.find((p) => p.stall.id === stallId);
+        if (!s || s.maxC === s.minC) return;
+        setRange(s.minR, s.maxR, s.maxC, s.maxC, null);
+    };
+    const handleExpandDown = (stallId: number) => {
+        const s = placedStalls.find((p) => p.stall.id === stallId);
+        if (!s || s.maxR + 1 >= gridDims.rows) return;
+        if (!isRangeVacant(s.maxR + 1, s.maxR + 1, s.minC, s.maxC))
+            return alert("Cannot expand: Space is occupied.");
+        setRange(s.maxR + 1, s.maxR + 1, s.minC, s.maxC, s.stall);
+    };
+    const handleShrinkDown = (stallId: number) => {
+        const s = placedStalls.find((p) => p.stall.id === stallId);
+        if (!s || s.maxR === s.minR) return;
+        setRange(s.maxR, s.maxR, s.minC, s.maxC, null);
+    };
+    const handleRemoveStall = (stallId: number) => {
+        const s = placedStalls.find((p) => p.stall.id === stallId);
+        if (!s) return;
+        setRange(s.minR, s.maxR, s.minC, s.maxC, null);
+        setSelectedMapStallId(null);
+    };
 
     return (
-        <div className="relative w-full h-full overflow-hidden flex flex-col bg-slate-200/50">
+        <div
+            className="relative w-full h-full overflow-hidden flex flex-col bg-slate-200/50"
+            onClick={() => setSelectedMapStallId(null)}
+        >
             {paintMode && (
                 <div
                     className="absolute top-0 left-0 w-full bg-slate-900 text-white py-2 z-[60] flex items-center justify-center gap-4 animate-fade-in-down shadow-lg border-b-4"
@@ -160,9 +265,6 @@ export default function InteractiveGrid({
                         <span style={{ color: paintMode.color }}>
                             {paintMode.label}
                         </span>
-                    </span>
-                    <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                        Click a stall to apply. Press ESC to cancel.
                     </span>
                     <button
                         onClick={() => setPaintMode(null)}
@@ -200,11 +302,12 @@ export default function InteractiveGrid({
                 {paintStatuses.map((status) => (
                     <button
                         key={status.id}
-                        onClick={() =>
+                        onClick={() => {
                             setPaintMode(
                                 paintMode?.id === status.id ? null : status,
-                            )
-                        }
+                            );
+                            setSelectedMapStallId(null);
+                        }}
                         className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer border-2 shrink-0 ${paintMode?.id === status.id ? "scale-110 shadow-lg ring-4 ring-offset-2" : "hover:scale-105 border-transparent shadow-sm"}`}
                         style={{
                             backgroundColor: status.color,
@@ -251,7 +354,6 @@ export default function InteractiveGrid({
                         </div>
                     </div>
                 )}
-
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsControlsOpen(!isControlsOpen)}
@@ -278,78 +380,6 @@ export default function InteractiveGrid({
                         </h2>
                     </div>
                 </div>
-            </div>
-
-            <div className="absolute bottom-24 right-6 z-50 flex flex-col items-end pointer-events-none">
-                {isLegendOpen && (
-                    <div className="bg-white p-5 rounded-2xl shadow-2xl border-2 border-slate-300 mb-3 w-80 animate-fade-in-up origin-bottom-right pointer-events-auto">
-                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 border-b-2 border-slate-100 pb-2">
-                            Color Legend
-                        </h4>
-                        <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[10px] uppercase font-bold text-slate-600 tracking-tight">
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#00ff00]"></div>{" "}
-                                Vacant
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#ffffff] border-2 border-slate-300"></div>{" "}
-                                Signed
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#ffff00]"></div>{" "}
-                                For Contract
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#00ffff]"></div>{" "}
-                                For Signing
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#ff00ff]"></div>{" "}
-                                Waiting Permit
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#999999]"></div>{" "}
-                                On Process
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#9900ff]"></div>{" "}
-                                Confirm Permit
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#ff0000]"></div>{" "}
-                                Unpaid
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-[#f4cccc]"></div>{" "}
-                                Closed
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-md shadow-sm bg-slate-300"></div>{" "}
-                                Walkway
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <button
-                    onClick={() => setIsLegendOpen(!isLegendOpen)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl shadow-xl hover:bg-slate-700 transition-colors border-2 border-slate-900 pointer-events-auto cursor-pointer"
-                >
-                    <Icon
-                        icon="solar:map-point-bold-duotone"
-                        className="w-5 h-5"
-                    />
-                    <span className="text-[11px] font-black uppercase tracking-wider">
-                        Legend
-                    </span>
-                    <Icon
-                        icon={
-                            isLegendOpen
-                                ? "solar:alt-arrow-down-bold"
-                                : "solar:alt-arrow-up-bold"
-                        }
-                        className="w-4 h-4 ml-1"
-                    />
-                </button>
             </div>
 
             <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300 pointer-events-auto">
@@ -382,15 +412,16 @@ export default function InteractiveGrid({
                 </button>
             </div>
 
-            {/* 👇 FIX APPLIED HERE: Replaced justify-start with m-auto on the inner wrapper 👇 */}
             <div
                 ref={containerRef}
                 className={`w-full h-full p-12 overflow-auto flex transition-all ${paintMode ? "cursor-crosshair" : "cursor-default"}`}
             >
-                {gridDims.cols > 0 && gridDims.rows > 0 && (
-                    <div className="m-auto bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block transition-all duration-300 ease-out">
+                {/* 🔥 FIX: Wrapped everything inside the relative div to defeat the p-6 math drift 🔥 */}
+                <div className="m-auto bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block transition-all duration-300 ease-out">
+                    <div className="relative">
+                        {/* LAYER 1: BASE GRID */}
                         <div
-                            className="grid gap-1"
+                            className="grid gap-0"
                             style={{
                                 gridTemplateColumns: `${headerSize}px repeat(${gridDims.cols}, ${cellSize}px) ${headerSize}px`,
                             }}
@@ -408,7 +439,10 @@ export default function InteractiveGrid({
                                     >
                                         <div className="hidden group-hover:flex items-center justify-center gap-1 bg-white rounded-t-lg shadow-md border border-b-0 border-slate-300 px-1 py-1 absolute bottom-0 z-20">
                                             <button
-                                                onClick={() => onInsertCol(c)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onInsertCol(c);
+                                                }}
                                                 title="Insert Column Before"
                                                 className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
                                             >
@@ -418,7 +452,10 @@ export default function InteractiveGrid({
                                                 />
                                             </button>
                                             <button
-                                                onClick={() => onDeleteCol(c)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteCol(c);
+                                                }}
                                                 title="Delete Column"
                                                 className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
                                             >
@@ -436,7 +473,10 @@ export default function InteractiveGrid({
                             {/* Top Right Add Column Button */}
                             <div className="flex items-end justify-start pl-1 pb-1">
                                 <button
-                                    onClick={() => onInsertCol(gridDims.cols)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onInsertCol(gridDims.cols);
+                                    }}
                                     className="text-slate-400 hover:text-white hover:bg-blue-500 bg-slate-50 border border-slate-200 shadow-sm rounded p-1 transition-all cursor-pointer"
                                     title="Add Column at End"
                                 >
@@ -455,9 +495,10 @@ export default function InteractiveGrid({
                                         <div className="group relative flex items-center justify-end pr-1">
                                             <div className="hidden group-hover:flex flex-col items-center justify-center gap-1 bg-white rounded-l-lg shadow-md border border-r-0 border-slate-300 px-1 py-1 absolute right-0 z-20">
                                                 <button
-                                                    onClick={() =>
-                                                        onInsertRow(r)
-                                                    }
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onInsertRow(r);
+                                                    }}
                                                     title="Insert Row Above"
                                                     className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
                                                 >
@@ -467,9 +508,10 @@ export default function InteractiveGrid({
                                                     />
                                                 </button>
                                                 <button
-                                                    onClick={() =>
-                                                        onDeleteRow(r)
-                                                    }
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDeleteRow(r);
+                                                    }}
                                                     title="Delete Row"
                                                     className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
                                                 >
@@ -492,67 +534,23 @@ export default function InteractiveGrid({
                                                 const globalIndex =
                                                     r * gridDims.cols + c;
                                                 let cellStyle =
-                                                    "bg-slate-50 border-slate-200 border-dashed hover:border-slate-400";
+                                                    "bg-slate-50 border-slate-200 border-dashed hover:bg-slate-100 border-b border-r";
                                                 let content: any = "";
-                                                let dbColor = "";
-                                                let isHighlighted = false;
-                                                let isDimmed = false;
-
-                                                if (searchQuery.trim() !== "") {
-                                                    const searchLower =
-                                                        searchQuery.toLowerCase();
-                                                    if (
-                                                        cell.type === "stall" &&
-                                                        cell.stall
-                                                    ) {
-                                                        const tenantName =
-                                                            `${cell.stall.active_contract?.tenant?.first_name || ""} ${cell.stall.active_contract?.tenant?.last_name || ""}`.toLowerCase();
-                                                        const companyName = (
-                                                            cell.stall
-                                                                .active_contract
-                                                                ?.tenant
-                                                                ?.company_name ||
-                                                            ""
-                                                        ).toLowerCase();
-                                                        const stallCode = (
-                                                            cell.stall
-                                                                .stall_code ||
-                                                            ""
-                                                        ).toLowerCase();
-                                                        if (
-                                                            tenantName.includes(
-                                                                searchLower,
-                                                            ) ||
-                                                            companyName.includes(
-                                                                searchLower,
-                                                            ) ||
-                                                            stallCode.includes(
-                                                                searchLower,
-                                                            )
-                                                        ) {
-                                                            isHighlighted = true;
-                                                        } else {
-                                                            isDimmed = true;
-                                                        }
-                                                    } else {
-                                                        isDimmed = true;
-                                                    }
-                                                }
 
                                                 if (cell.type === "walkway") {
                                                     cellStyle =
-                                                        "bg-slate-300 border-slate-400 border-solid text-slate-600";
+                                                        "bg-slate-300 border-slate-400 border-solid text-slate-600 border-b border-r";
                                                 } else if (
                                                     cell.type === "restroom"
                                                 ) {
                                                     cellStyle =
-                                                        "bg-cyan-100 border-cyan-300 border-solid text-cyan-700";
+                                                        "bg-cyan-100 border-cyan-300 border-solid text-cyan-700 border-b border-r";
                                                     content = "CR";
                                                 } else if (
                                                     cell.type === "stairs"
                                                 ) {
                                                     cellStyle =
-                                                        "bg-purple-100 border-purple-300 border-solid text-purple-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZjNmNGY2Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjZTllY2Y1IiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]";
+                                                        "bg-purple-100 border-purple-300 border-solid text-purple-700 border-b border-r bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZjNmNGY2Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjZTllY2Y1IiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]";
                                                     content = (
                                                         <Icon
                                                             icon="solar:double-alt-arrow-up-bold-duotone"
@@ -563,7 +561,7 @@ export default function InteractiveGrid({
                                                     cell.type === "wall"
                                                 ) {
                                                     cellStyle =
-                                                        "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner";
+                                                        "bg-slate-800 border-slate-900 border-solid text-slate-500 shadow-inner border-b border-r";
                                                 } else if (
                                                     cell.type === "text"
                                                 ) {
@@ -581,55 +579,12 @@ export default function InteractiveGrid({
                                                         </span>
                                                     );
                                                 } else if (
-                                                    cell.type === "stall" &&
-                                                    cell.stall
+                                                    cell.type === "stall"
                                                 ) {
                                                     cellStyle =
-                                                        "border-solid border-slate-800 shadow-sm text-slate-800 font-black";
-                                                    const tenant =
-                                                        cell.stall
-                                                            .active_contract
-                                                            ?.tenant;
-                                                    content = (
-                                                        <div className="flex flex-col items-center justify-center leading-none text-center w-full px-1">
-                                                            <span
-                                                                className="opacity-80"
-                                                                style={{
-                                                                    fontSize: `${Math.max(8, 10 * zoom)}px`,
-                                                                }}
-                                                            >
-                                                                {
-                                                                    cell.stall
-                                                                        .stall_code
-                                                                }
-                                                            </span>
-                                                            {tenant && (
-                                                                <span
-                                                                    className="truncate w-full mt-1 tracking-tight"
-                                                                    style={{
-                                                                        fontSize: `${Math.max(7, 9 * zoom)}px`,
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        tenant.last_name
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                    dbColor =
-                                                        cell.stall
-                                                            .computed_status
-                                                            ?.color ||
-                                                        "#ffffff";
+                                                        "bg-transparent border-none";
+                                                    content = null;
                                                 }
-
-                                                if (isHighlighted)
-                                                    cellStyle +=
-                                                        " ring-4 ring-amber-400 scale-110 z-10 shadow-2xl";
-                                                else if (isDimmed)
-                                                    cellStyle +=
-                                                        " opacity-25 grayscale";
 
                                                 return (
                                                     <div
@@ -637,71 +592,21 @@ export default function InteractiveGrid({
                                                             cell.id ||
                                                             `${r}-${c}`
                                                         }
-                                                        onClick={() => {
-                                                            if (paintMode) {
-                                                                if (
-                                                                    cell.type ===
-                                                                        "stall" &&
-                                                                    cell.stall
-                                                                )
-                                                                    onQuickPaint(
-                                                                        cell
-                                                                            .stall
-                                                                            .id,
-                                                                        paintMode.id,
-                                                                    );
-                                                            } else {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (!paintMode) {
+                                                                setSelectedMapStallId(
+                                                                    null,
+                                                                );
                                                                 onCellClick(
                                                                     globalIndex,
                                                                 );
                                                             }
                                                         }}
-                                                        onMouseEnter={(e) => {
-                                                            if (
-                                                                !paintMode &&
-                                                                cell.type ===
-                                                                    "stall" &&
-                                                                cell.stall
-                                                            )
-                                                                setTooltip({
-                                                                    show: true,
-                                                                    x: e.clientX,
-                                                                    y: e.clientY,
-                                                                    data: cell.stall,
-                                                                });
-                                                        }}
-                                                        onMouseMove={(e) => {
-                                                            if (
-                                                                !paintMode &&
-                                                                tooltip.show
-                                                            )
-                                                                setTooltip(
-                                                                    (prev) => ({
-                                                                        ...prev,
-                                                                        x: e.clientX,
-                                                                        y: e.clientY,
-                                                                    }),
-                                                                );
-                                                        }}
-                                                        onMouseLeave={() =>
-                                                            setTooltip({
-                                                                show: false,
-                                                                x: 0,
-                                                                y: 0,
-                                                                data: null,
-                                                            })
-                                                        }
-                                                        className={`border-2 rounded-md flex items-center justify-center transition-all select-none ${paintMode ? "hover:ring-4 hover:ring-opacity-50 cursor-crosshair" : "cursor-pointer active:scale-95 hover:scale-105"} ${cellStyle}`}
+                                                        className={`flex items-center justify-center transition-all select-none cursor-pointer ${cellStyle}`}
                                                         style={{
                                                             width: cellSize,
                                                             height: cellSize,
-                                                            backgroundColor:
-                                                                dbColor ||
-                                                                undefined,
-                                                            ["--tw-ring-color" as any]:
-                                                                paintMode
-                                                                    ? paintMode.color
-                                                                    : undefined,
                                                         }}
                                                     >
                                                         {content &&
@@ -716,14 +621,10 @@ export default function InteractiveGrid({
                                                     </div>
                                                 );
                                             })}
-
-                                        {/* Right Empty Spacing */}
                                         <div></div>
                                     </React.Fragment>
                                 ),
                             )}
-
-                            {/* Bottom Add Row Button */}
                             <div></div>
                             <div
                                 className="col-span-full pt-1 flex justify-center pb-2"
@@ -732,7 +633,10 @@ export default function InteractiveGrid({
                                 }}
                             >
                                 <button
-                                    onClick={() => onInsertRow(gridDims.rows)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onInsertRow(gridDims.rows);
+                                    }}
                                     className="flex items-center gap-1 text-[10px] uppercase font-black text-slate-500 bg-white px-4 py-1.5 border border-slate-200 shadow-sm hover:bg-blue-500 hover:border-blue-600 hover:text-white rounded-full transition-colors cursor-pointer"
                                 >
                                     <Icon
@@ -743,10 +647,198 @@ export default function InteractiveGrid({
                                 </button>
                             </div>
                         </div>
+
+                        {/* LAYER 2: BOUNDING BOX OVERLAYS (THE EXPAND TOOL MAGIC) */}
+                        {placedStalls.map((s) => {
+                            const top = headerSize + s.minR * cellSize;
+                            const left = headerSize + s.minC * cellSize;
+                            const width = (s.maxC - s.minC + 1) * cellSize;
+                            const height = (s.maxR - s.minR + 1) * cellSize;
+
+                            const dbColor =
+                                s.stall.computed_status?.color || "#ffffff";
+                            const isSelected =
+                                selectedMapStallId === s.stall.id;
+
+                            let isHighlighted = false;
+                            let isDimmed = false;
+
+                            if (searchQuery.trim() !== "") {
+                                const searchLower = searchQuery.toLowerCase();
+                                const tenantName =
+                                    `${s.stall.active_contract?.tenant?.first_name || ""} ${s.stall.active_contract?.tenant?.last_name || ""}`.toLowerCase();
+                                const companyName = (
+                                    s.stall.active_contract?.tenant
+                                        ?.company_name || ""
+                                ).toLowerCase();
+                                const stallCode = (
+                                    s.stall.stall_code || ""
+                                ).toLowerCase();
+                                if (
+                                    tenantName.includes(searchLower) ||
+                                    companyName.includes(searchLower) ||
+                                    stallCode.includes(searchLower)
+                                ) {
+                                    isHighlighted = true;
+                                } else {
+                                    isDimmed = true;
+                                }
+                            }
+
+                            const overlayStyle = `absolute rounded-md flex flex-col items-center justify-center transition-all cursor-pointer border-2 ${isSelected ? "ring-4 ring-blue-500 border-blue-600 z-30 shadow-2xl scale-[1.02]" : "border-slate-800 shadow-sm hover:scale-[1.01] z-20 hover:shadow-lg hover:border-slate-500"} ${isHighlighted ? "ring-4 ring-amber-400 scale-110 z-40 shadow-2xl" : ""} ${isDimmed ? "opacity-25 grayscale" : ""}`;
+
+                            return (
+                                <div
+                                    key={`overlay-${s.stall.id}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (activeTool === "vacant") {
+                                            handleRemoveStall(s.stall.id);
+                                        } else if (paintMode) {
+                                            onQuickPaint(
+                                                s.stall.id,
+                                                paintMode.id,
+                                            );
+                                        } else {
+                                            setSelectedMapStallId(s.stall.id);
+                                        }
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!paintMode && !isSelected)
+                                            setTooltip({
+                                                show: true,
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                data: s.stall,
+                                            });
+                                    }}
+                                    onMouseMove={(e) => {
+                                        if (!paintMode && tooltip.show)
+                                            setTooltip((prev) => ({
+                                                ...prev,
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                            }));
+                                    }}
+                                    onMouseLeave={() =>
+                                        setTooltip({
+                                            show: false,
+                                            x: 0,
+                                            y: 0,
+                                            data: null,
+                                        })
+                                    }
+                                    className={overlayStyle}
+                                    style={{
+                                        top,
+                                        left,
+                                        width,
+                                        height,
+                                        backgroundColor: dbColor,
+                                    }}
+                                >
+                                    <span
+                                        className="font-black text-slate-900 drop-shadow-md truncate px-1"
+                                        style={{
+                                            fontSize: `${Math.max(10, 12 * zoom)}px`,
+                                        }}
+                                    >
+                                        {s.stall.stall_code}
+                                    </span>
+                                    {s.stall.active_contract?.tenant && (
+                                        <span
+                                            className="text-slate-800 font-bold drop-shadow-md truncate w-full text-center px-1 tracking-tight"
+                                            style={{
+                                                fontSize: `${Math.max(8, 10 * zoom)}px`,
+                                            }}
+                                        >
+                                            {
+                                                s.stall.active_contract.tenant
+                                                    .last_name
+                                            }
+                                        </span>
+                                    )}
+
+                                    {/* THE EXPAND TOOL BUTTONS */}
+                                    {isSelected && !paintMode && (
+                                        <>
+                                            <div className="absolute -right-8 top-1/2 -translate-y-1/2 flex flex-col gap-1 bg-slate-800 p-1 rounded-lg shadow-xl pointer-events-auto">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleExpandRight(
+                                                            s.stall.id,
+                                                        );
+                                                    }}
+                                                    title="Expand Right"
+                                                    className="bg-slate-700 hover:bg-blue-500 text-white w-6 h-6 flex items-center justify-center rounded cursor-pointer"
+                                                >
+                                                    <Icon icon="solar:add-square-bold" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleShrinkRight(
+                                                            s.stall.id,
+                                                        );
+                                                    }}
+                                                    title="Shrink Right"
+                                                    className="bg-slate-700 hover:bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded cursor-pointer"
+                                                >
+                                                    <Icon icon="solar:minus-square-bold" />
+                                                </button>
+                                            </div>
+                                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 bg-slate-800 p-1 rounded-lg shadow-xl pointer-events-auto">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleExpandDown(
+                                                            s.stall.id,
+                                                        );
+                                                    }}
+                                                    title="Expand Down"
+                                                    className="bg-slate-700 hover:bg-blue-500 text-white w-6 h-6 flex items-center justify-center rounded cursor-pointer"
+                                                >
+                                                    <Icon icon="solar:add-square-bold" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleShrinkDown(
+                                                            s.stall.id,
+                                                        );
+                                                    }}
+                                                    title="Shrink Up"
+                                                    className="bg-slate-700 hover:bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded cursor-pointer"
+                                                >
+                                                    <Icon icon="solar:minus-square-bold" />
+                                                </button>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveStall(
+                                                        s.stall.id,
+                                                    );
+                                                }}
+                                                title="Delete from Map"
+                                                className="absolute -top-3 -right-3 bg-rose-600 hover:bg-rose-500 text-white w-6 h-6 rounded-full shadow-xl flex items-center justify-center border-2 border-white cursor-pointer"
+                                            >
+                                                <Icon
+                                                    icon="solar:trash-bin-trash-bold"
+                                                    className="w-3 h-3"
+                                                />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                )}
+                </div>
             </div>
 
+            {/* Tooltip rendering */}
             {!paintMode &&
                 tooltip.show &&
                 tooltip.data &&

@@ -12,6 +12,7 @@ use App\Imports\StallsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Validation\Rule; // <-- Added this import for the new validation rule
 
 class StallController extends Controller
 {
@@ -81,7 +82,7 @@ class StallController extends Controller
         $page = Paginator::resolveCurrentPage() ?: 1;
         $perPage = 15;
         $paginatedStalls = new LengthAwarePaginator(
-            $stallsCollection->forPage($page, $perPage)->values(), // <-- Added .values() here
+            $stallsCollection->forPage($page, $perPage)->values(),
             $stallsCollection->count(),
             $perPage,
             $page,
@@ -105,9 +106,18 @@ class StallController extends Controller
 
     public function store(Request $request)
     {
+        // Find the floor first so we know which building this stall belongs to
+        $floor = Floor::findOrFail($request->floor_id);
+
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
-            'stall_code' => 'required|string|max:255|unique:stalls,stall_code',
+            'stall_code' => [
+                'required',
+                'string',
+                'max:255',
+                // 👇 This rule ensures stall_code is only unique WITHIN this building 👇
+                Rule::unique('stalls', 'stall_code')->where('building_id', $floor->building_id)
+            ],
             'size_sqm' => 'nullable|numeric|min:0',
             'current_monthly_rental' => 'nullable|numeric|min:0',
             'current_rate_per_sqm' => 'nullable|numeric|min:0',
@@ -121,7 +131,6 @@ class StallController extends Controller
         $validated['proposed_monthly_rental'] = round($validated['proposed_monthly_rental'] ?? 0);
         $validated['proposed_rate_per_sqm'] = round($validated['proposed_rate_per_sqm'] ?? 0);
 
-        $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
         Stall::create($validated);
@@ -131,9 +140,20 @@ class StallController extends Controller
 
     public function update(Request $request, Stall $stall)
     {
+        // Find the floor first so we know which building this stall belongs to
+        $floor = Floor::findOrFail($request->floor_id);
+
         $validated = $request->validate([
             'floor_id' => 'required|exists:floors,id',
-            'stall_code' => 'required|string|max:255|unique:stalls,stall_code,' . $stall->id,
+            'stall_code' => [
+                'required',
+                'string',
+                'max:255',
+                // 👇 Ignore the current stall ID so we can save edits, scoped to the building 👇
+                Rule::unique('stalls', 'stall_code')
+                    ->where('building_id', $floor->building_id)
+                    ->ignore($stall->id)
+            ],
             'size_sqm' => 'nullable|numeric|min:0',
             'current_monthly_rental' => 'nullable|numeric|min:0',
             'current_rate_per_sqm' => 'nullable|numeric|min:0',
@@ -147,7 +167,6 @@ class StallController extends Controller
         $validated['proposed_monthly_rental'] = round($validated['proposed_monthly_rental'] ?? 0);
         $validated['proposed_rate_per_sqm'] = round($validated['proposed_rate_per_sqm'] ?? 0);
 
-        $floor = Floor::findOrFail($validated['floor_id']);
         $validated['building_id'] = $floor->building_id;
 
         $stall->update($validated);
