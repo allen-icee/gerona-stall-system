@@ -12,11 +12,14 @@ class StallsImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        if (empty($row['stall_code']) || empty($row['floor_or_section_name']) || empty($row['building_name'])) {
+        if (
+            !isset($row['stall_code']) || (string) $row['stall_code'] === '' ||
+            !isset($row['floor_or_section_name']) || trim($row['floor_or_section_name']) === '' ||
+            !isset($row['building_name']) || trim($row['building_name']) === ''
+        ) {
             return null;
         }
 
-        // 1. Find or Create the Building, then update its description if provided
         $building = Building::firstOrCreate(
             ['name' => trim($row['building_name'])]
         );
@@ -25,7 +28,6 @@ class StallsImport implements ToModel, WithHeadingRow
             $building->update(['description' => trim($row['building_description'])]);
         }
 
-        // 2. Find or Create the Floor/Section, then update its description if provided
         $floor = Floor::firstOrCreate(
             [
                 'name' => trim($row['floor_or_section_name']),
@@ -37,19 +39,18 @@ class StallsImport implements ToModel, WithHeadingRow
             $floor->update(['description' => trim($row['floor_or_section_description'])]);
         }
 
-        // 3. Find or Create the Stall (matching BOTH stall_code and building_id)
         return Stall::updateOrCreate(
             [
                 'stall_code' => trim($row['stall_code']),
-                'building_id' => $building->id // <-- CRITICAL: Respects the composite unique constraint
+                'floor_id' => $floor->id // Matches the new floor_id scope!
             ],
             [
-                'floor_id' => $floor->id,
-                'size_sqm' => isset($row['size_sqm']) ? (float)$row['size_sqm'] : 0,
-                'current_monthly_rental' => isset($row['current_monthly_rental']) ? (float)$row['current_monthly_rental'] : 0,
-                'current_rate_per_sqm' => isset($row['current_rate_per_sqm']) ? (float)$row['current_rate_per_sqm'] : 0,
-                'proposed_monthly_rental' => isset($row['proposed_monthly_rental']) ? (float)$row['proposed_monthly_rental'] : 0,
-                'proposed_rate_per_sqm' => isset($row['proposed_rate_per_sqm']) ? (float)$row['proposed_rate_per_sqm'] : 0,
+                'building_id' => $building->id,
+                'size_sqm' => isset($row['size_sqm']) && $row['size_sqm'] !== '' ? (float) $row['size_sqm'] : 0,
+                'current_monthly_rental' => isset($row['current_monthly_rental']) && $row['current_monthly_rental'] !== '' ? (float) $row['current_monthly_rental'] : 0,
+                'current_rate_per_sqm' => isset($row['current_rate_per_sqm']) && $row['current_rate_per_sqm'] !== '' ? (float) $row['current_rate_per_sqm'] : 0,
+                'proposed_monthly_rental' => isset($row['proposed_monthly_rental']) && $row['proposed_monthly_rental'] !== '' ? (float) $row['proposed_monthly_rental'] : 0,
+                'proposed_rate_per_sqm' => isset($row['proposed_rate_per_sqm']) && $row['proposed_rate_per_sqm'] !== '' ? (float) $row['proposed_rate_per_sqm'] : 0,
             ]
         );
     }

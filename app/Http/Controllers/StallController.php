@@ -12,7 +12,7 @@ use App\Imports\StallsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Validation\Rule; // <-- Added this import for the new validation rule
+use Illuminate\Validation\Rule;
 
 class StallController extends Controller
 {
@@ -106,7 +106,6 @@ class StallController extends Controller
 
     public function store(Request $request)
     {
-        // Find the floor first so we know which building this stall belongs to
         $floor = Floor::findOrFail($request->floor_id);
 
         $validated = $request->validate([
@@ -115,8 +114,8 @@ class StallController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // 👇 This rule ensures stall_code is only unique WITHIN this building 👇
-                Rule::unique('stalls', 'stall_code')->where('building_id', $floor->building_id)
+                // Scoped to floor_id (Section)
+                Rule::unique('stalls', 'stall_code')->where('floor_id', $request->floor_id)
             ],
             'size_sqm' => 'nullable|numeric|min:0',
             'current_monthly_rental' => 'nullable|numeric|min:0',
@@ -140,7 +139,6 @@ class StallController extends Controller
 
     public function update(Request $request, Stall $stall)
     {
-        // Find the floor first so we know which building this stall belongs to
         $floor = Floor::findOrFail($request->floor_id);
 
         $validated = $request->validate([
@@ -149,9 +147,9 @@ class StallController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // 👇 Ignore the current stall ID so we can save edits, scoped to the building 👇
+                // Scoped to floor_id (Section)
                 Rule::unique('stalls', 'stall_code')
-                    ->where('building_id', $floor->building_id)
+                    ->where('floor_id', $request->floor_id)
                     ->ignore($stall->id)
             ],
             'size_sqm' => 'nullable|numeric|min:0',
@@ -253,7 +251,7 @@ class StallController extends Controller
             ];
         }
 
-        $export = new class($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
+        $export = new class ($exportData) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\ShouldAutoSize {
             protected $data;
             public function __construct($data)
             {
@@ -266,14 +264,14 @@ class StallController extends Controller
             public function headings(): array
             {
                 return [
-                    'building_name',
-                    'floor_or_section_name',
-                    'stall_code',
-                    'size_sqm',
-                    'current_monthly_rental',
-                    'current_rate_per_sqm',
-                    'proposed_monthly_rental',
-                    'proposed_rate_per_sqm'
+                'building_name',
+                'floor_or_section_name',
+                'stall_code',
+                'size_sqm',
+                'current_monthly_rental',
+                'current_rate_per_sqm',
+                'proposed_monthly_rental',
+                'proposed_rate_per_sqm'
                 ];
             }
         };
@@ -290,7 +288,7 @@ class StallController extends Controller
             Excel::import(new StallsImport, $request->file('file'));
             return redirect()->back()->with('message', 'Stalls synced successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed. Check column headers.');
+            return redirect()->back()->with('error', 'Import Error: ' . $e->getMessage());
         }
     }
 

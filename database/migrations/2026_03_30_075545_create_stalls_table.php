@@ -10,14 +10,15 @@ return new class extends Migration {
     {
         Schema::create('stalls', function (Blueprint $table) {
             $table->id();
-            $table->string('stall_code');
+            $table->string('stall_code'); // No unique here!
             $table->foreignId('building_id')->constrained()->cascadeOnDelete();
             $table->foreignId('floor_id')->constrained()->cascadeOnDelete();
             $table->foreignId('status_id')->constrained('statuses');
             $table->integer('version')->default(1);
             $table->timestamps();
 
-            $table->unique(['stall_code', 'building_id']);
+            // 👇 Ensures a stall code is unique per SECTION (Floor)
+            $table->unique(['stall_code', 'floor_id']);
         });
     }
 
