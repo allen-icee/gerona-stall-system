@@ -33,7 +33,7 @@ export default function Mapper({
         confirmColor: "bg-blue-600 hover:bg-blue-700",
         icon: "solar:info-circle-bold-duotone",
         iconColor: "text-blue-500",
-        onConfirm: () => {},
+        onConfirm: () => { },
     });
 
     // 🔥 FIX: Only reset the map layout when switching floors (layout.id changes),
@@ -249,7 +249,7 @@ export default function Mapper({
 
     const saveLayout = () => {
         router.post(
-            route("layouts.saveMap", layout.id),
+            route("layouts.save", layout.id),
             {
                 cells: gridCells,
                 total_rows: gridDims.rows,
