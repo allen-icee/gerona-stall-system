@@ -7,11 +7,16 @@ import CreateTenantModal from "./Partials/CreateTenantModal";
 import EditTenantModal from "./Partials/EditTenantModal";
 import Modal from "@/Components/Modal";
 import CustomSelect from "@/Components/CustomSelect";
+import Pagination from "@/Components/Pagination";
 
 export default function TenantsIndex({ tenants, filters }: any) {
-    const [search, setSearch] = useState(filters?.search || "");
+    const [search, setSearch] = useState(
+        filters?.search && typeof filters.search === 'string' ? filters.search : ""
+    );
+
+    // FIXED: Protect against PHP empty arrays exposing the native JS Array.sort() function
     const [sortFilter, setSortFilter] = useState(
-        filters?.sort
+        filters?.sort && typeof filters.sort === 'string'
             ? `${filters.sort}_${filters.direction}`
             : "last_name_asc",
     );
@@ -79,7 +84,7 @@ export default function TenantsIndex({ tenants, filters }: any) {
                     onError: (errors) => {
                         alert(
                             errors.file ||
-                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                            "Failed to upload file. Make sure it's a valid Excel/CSV.",
                         );
                         if (fileInputRef.current)
                             fileInputRef.current.value = "";
@@ -235,19 +240,19 @@ export default function TenantsIndex({ tenants, filters }: any) {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center w-12">
                                         #
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Tenant Name
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
-                                        Business / Company
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
+                                        Business Name & Contact
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
-                                        Contact Info
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
+                                        Address
                                     </th>
-                                    <th className="px-6 py-4 text-center">
+                                    <th className="px-4 py-2 text-center w-32">
                                         Actions
                                     </th>
                                 </tr>
@@ -257,11 +262,11 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="px-6 py-12 text-center text-slate-400 font-bold"
+                                            className="px-4 py-8 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
                                                 icon="solar:ghost-broken"
-                                                className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
+                                                className="w-10 h-10 mx-auto mb-2 opacity-50 text-slate-300"
                                             />
                                             No tenants registered yet.
                                         </td>
@@ -273,57 +278,54 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                 key={tenant.id}
                                                 className="hover:bg-blue-50 transition-colors"
                                             >
-                                                <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                <td className="px-4 py-2 font-bold text-slate-500 text-center border-r border-slate-200">
                                                     {(tenants.from || 1) +
                                                         index}
                                                 </td>
-                                                <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200">
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
-                                                            <Icon
-                                                                icon="solar:user-id-bold-duotone"
-                                                                className="w-5 h-5"
-                                                            />
-                                                        </div>
-                                                        <span>
-                                                            {tenant.last_name},{" "}
-                                                            {tenant.first_name}
-                                                        </span>
+                                                <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 uppercase text-left">
+                                                    {tenant.last_name},{" "}
+                                                    {tenant.first_name}
+                                                </td>
+                                                <td className="px-4 py-2 text-center border-r border-slate-200">
+                                                    <div className="flex flex-col items-center justify-center leading-tight">
+                                                        {tenant.company_name ? (
+                                                            <span className="font-bold text-slate-700 uppercase">
+                                                                {tenant.company_name}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 italic font-normal uppercase">
+                                                                N/A
+                                                            </span>
+                                                        )}
+                                                        {tenant.contact_number && (
+                                                            <span className="text-xs font-bold text-slate-500 mt-0.5">
+                                                                {tenant.contact_number}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-center border-r border-slate-200 font-bold text-slate-700">
-                                                    {tenant.company_name || (
-                                                        <span className="text-slate-400 italic font-normal">
-                                                            N/A
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                    <div className="font-bold text-slate-800">
-                                                        {tenant.contact_number ||
-                                                            "No Number"}
-                                                    </div>
+                                                <td className="px-4 py-2 text-center border-r border-slate-200">
                                                     <div
-                                                        className="text-[10px] text-slate-500 uppercase tracking-wide truncate max-w-[200px] mx-auto"
-                                                        title={tenant.address}
+                                                        className="text-sm font-bold text-slate-800 truncate max-w-[200px] mx-auto uppercase cursor-help"
+                                                        title={tenant.address || "No Address"}
                                                     >
                                                         {tenant.address ||
-                                                            "No Address"}
+                                                            <span className="text-slate-400 italic font-normal">N/A</span>}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-center gap-2">
+                                                <td className="px-4 py-2">
+                                                    <div className="flex justify-center gap-1.5">
                                                         <button
                                                             onClick={() =>
                                                                 setEditingTenant(
                                                                     tenant,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
                                                         >
                                                             <Icon
                                                                 icon="solar:pen-bold"
-                                                                className="w-4 h-4"
+                                                                className="w-3.5 h-3.5"
                                                             />{" "}
                                                             Edit
                                                         </button>
@@ -333,11 +335,11 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                                     tenant.id,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
                                                         >
                                                             <Icon
                                                                 icon="solar:trash-bin-trash-bold"
-                                                                className="w-4 h-4"
+                                                                className="w-3.5 h-3.5"
                                                             />{" "}
                                                             Delete
                                                         </button>
@@ -350,6 +352,11 @@ export default function TenantsIndex({ tenants, filters }: any) {
                             </tbody>
                         </table>
                     </div>
+                    {tenants.links && tenants.links.length > 3 && (
+                        <div className="px-4 py-3 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-center">
+                            <Pagination links={tenants.links} />
+                        </div>
+                    )}
                 </div>
             </div>
 

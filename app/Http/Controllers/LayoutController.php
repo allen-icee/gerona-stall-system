@@ -25,12 +25,14 @@ class LayoutController extends Controller
                 'cells' => function ($query) {
                     $query->orderBy('row_number', 'asc')->orderBy('column_number', 'asc');
                 },
-                'cells.stall.activeContract.tenant'
+                // FIXED: Changed activeContract to activeContracts
+                'cells.stall.activeContracts.tenant'
             ])
                 ->where('floor_id', $floor_id)
                 ->first();
 
-            $stalls = Stall::where('floor_id', $floor_id)->with('activeContract.tenant')->get();
+            // FIXED: Changed activeContract to activeContracts
+            $stalls = Stall::where('floor_id', $floor_id)->with('activeContracts.tenant')->get();
         }
 
         return Inertia::render('Layouts/Mapper', [
@@ -73,7 +75,6 @@ class LayoutController extends Controller
             ->with('success', 'Grid generated successfully!');
     }
 
-    // Completely revamped save method. It dynamically re-calculates row/col based on the frontend array.
     public function saveMap(Request $request, Layout $layout)
     {
         $request->validate([
@@ -83,16 +84,13 @@ class LayoutController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $layout) {
-            // 1. Update the dimensions
             $layout->update([
                 'total_rows' => $request->total_rows,
                 'total_cols' => $request->total_cols,
             ]);
 
-            // 2. Wipe the old map cells
             $layout->cells()->delete();
 
-            // 3. Insert the new ones exactly as the frontend arranged them
             $newCells = [];
             $now = now();
             $cols = $request->total_cols;
@@ -100,8 +98,8 @@ class LayoutController extends Controller
             foreach ($request->cells as $index => $cell) {
                 $newCells[] = [
                     'layout_id' => $layout->id,
-                    'row_number' => floor($index / $cols) + 1, // Auto-calculate Row
-                    'column_number' => ($index % $cols) + 1,   // Auto-calculate Col
+                    'row_number' => floor($index / $cols) + 1,
+                    'column_number' => ($index % $cols) + 1,
                     'type' => $cell['type'] ?? 'vacant',
                     'stall_id' => $cell['stall_id'] ?? null,
                     'text' => $cell['text'] ?? null,
@@ -110,7 +108,6 @@ class LayoutController extends Controller
                 ];
             }
 
-            // Insert in chunks to prevent database memory overload if the grid is massive
             foreach (array_chunk($newCells, 500) as $chunk) {
                 LayoutCell::insert($chunk);
             }

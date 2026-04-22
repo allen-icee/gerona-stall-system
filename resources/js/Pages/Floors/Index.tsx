@@ -7,12 +7,18 @@ import CreateFloorModal from "./Partials/CreateFloorModal";
 import EditFloorModal from "./Partials/EditFloorModal";
 import Modal from "@/Components/Modal";
 import CustomSelect from "@/Components/CustomSelect";
+import Pagination from "@/Components/Pagination";
 
 export default function FloorsIndex({ buildings, floors, filters }: any) {
-    const [search, setSearch] = useState(filters?.search || "");
+    const [search, setSearch] = useState(
+        filters?.search && typeof filters.search === "string" ? filters.search : ""
+    );
 
+    // Protected against the native JS sort() function bug
     const [sortFilter, setSortFilter] = useState(
-        filters?.sort ? `${filters.sort}_${filters.direction}` : "building_asc",
+        filters?.sort && typeof filters.sort === "string"
+            ? `${filters.sort}_${filters.direction}`
+            : "building_asc",
     );
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -81,7 +87,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                     onError: (errors) => {
                         alert(
                             errors.file ||
-                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                            "Failed to upload file. Make sure it's a valid Excel/CSV.",
                         );
                         if (fileInputRef.current)
                             fileInputRef.current.value = "";
@@ -237,19 +243,19 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center w-12">
                                         #
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-1/3">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center w-1/3">
                                         Floor / Section
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Building Designation
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Stall Count
                                     </th>
-                                    <th className="px-6 py-4 text-center">
+                                    <th className="px-4 py-2 text-center w-32">
                                         System Actions
                                     </th>
                                 </tr>
@@ -259,11 +265,11 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="px-6 py-12 text-center text-slate-400 font-bold"
+                                            className="px-4 py-8 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
                                                 icon="solar:layers-minimalistic-broken"
-                                                className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
+                                                className="w-10 h-10 mx-auto mb-2 opacity-50 text-slate-300"
                                             />
                                             No floors/sections found.
                                         </td>
@@ -275,10 +281,10 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                 key={floor.id}
                                                 className="hover:bg-blue-50 transition-colors"
                                             >
-                                                <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                <td className="px-4 py-2 font-bold text-slate-500 text-center border-r border-slate-200">
                                                     {(floors.from || 1) + index}
                                                 </td>
-                                                <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center">
+                                                <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 text-center">
                                                     <div className="flex flex-col items-center justify-center">
                                                         <span className="text-base">
                                                             {floor.name}
@@ -292,34 +298,34 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 font-black text-blue-700 text-center border-r border-slate-200">
+                                                <td className="px-4 py-2 font-black text-blue-700 text-center border-r border-slate-200">
                                                     {floor.building?.name || (
                                                         <span className="text-rose-500">
                                                             Unassigned
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                <td className="px-4 py-2 text-center border-r border-slate-200">
                                                     <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold text-xs border border-slate-300">
                                                         {floor.stalls_count ||
                                                             0}{" "}
                                                         Stalls
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-center gap-2">
+                                                <td className="px-4 py-2">
+                                                    <div className="flex justify-center gap-1.5">
                                                         <button
                                                             onClick={() =>
                                                                 setEditingFloor(
                                                                     floor,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600  rounded transition-colors text-xs font-bold uppercase tracking-wide"
+                                                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded transition-colors text-xs font-black uppercase tracking-wide"
                                                             title="Edit Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:pen-bold"
-                                                                className="w-4 h-4"
+                                                                className="w-3.5 h-3.5"
                                                             />{" "}
                                                             Edit
                                                         </button>
@@ -329,12 +335,12 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                                                     floor.id,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-200 text-rose-700 hover:bg-rose-200 hover:border-rose-400 rounded transition-colors text-xs font-bold uppercase tracking-wide"
+                                                            className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded transition-colors text-xs font-black uppercase tracking-wide"
                                                             title="Delete Floor/Section"
                                                         >
                                                             <Icon
                                                                 icon="solar:trash-bin-trash-bold"
-                                                                className="w-4 h-4"
+                                                                className="w-3.5 h-3.5"
                                                             />{" "}
                                                             Delete
                                                         </button>
@@ -347,6 +353,12 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                             </tbody>
                         </table>
                     </div>
+                    {/* Pagination */}
+                    {floors.links && floors.links.length > 3 && (
+                        <div className="px-4 py-3 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-center">
+                            <Pagination links={floors.links} />
+                        </div>
+                    )}
                 </div>
             </div>
 

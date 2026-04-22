@@ -11,7 +11,6 @@ class Stall extends Model
         'floor_id',
         'stall_code',
         'size_sqm',
-
         'current_monthly_rental',
         'current_rate_per_sqm',
         'proposed_monthly_rental',
@@ -46,33 +45,34 @@ class Stall extends Model
         return $this->hasMany(Contract::class);
     }
 
-    public function activeContract()
+    public function activeContracts()
     {
-        return $this->hasOne(Contract::class)->where('contracts.is_active', true)->latestOfMany();
+        return $this->hasMany(Contract::class)->where('is_active', true);
     }
 
-    public function currentTenant()
+    public function currentTenants()
     {
-        return $this->hasOneThrough(Tenant::class, Contract::class, 'stall_id', 'id', 'id', 'tenant_id')
-            ->where('contracts.is_active', true);
+        return $this->belongsToMany(Tenant::class, 'contracts', 'stall_id', 'tenant_id')
+            ->wherePivot('is_active', true);
     }
 
     public function getComputedMonthlyRentAttribute()
     {
-
         return $this->current_monthly_rental;
     }
 
     public function getComputedStatusAttribute()
     {
-        $contract = $this->activeContract;
+        $contracts = $this->activeContracts;
 
-        if (!$contract) {
+        if ($contracts->isEmpty()) {
             return [
                 'label' => 'VACANT',
                 'color' => '#00ff00'
             ];
         }
+
+        $contract = $contracts->first();
 
         if ($contract->permit_status === 'Closed') {
             return [

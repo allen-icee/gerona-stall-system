@@ -1,9 +1,8 @@
 //resources\js\Pages\Tenants\Partials\CreateTenantModal.tsx
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
-import SearchableSelect from "@/Components/SearchableSelect";
 import SuffixSelect from "@/Components/SuffixSelect";
 import { useEnterTab } from "@/hooks/useEnterTab";
 
@@ -30,88 +29,16 @@ export default function CreateTenantModal({
         suffix: "",
         company_name: "",
         contact_number: "",
-        province: "",
-        municipality: "",
-        barangay: "",
-        street: "",
+        address: "",
     });
 
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
 
-    const [locationData, setLocationData] = useState<any>(null);
-    const [provinces, setProvinces] = useState<string[]>([]);
-    const [municipalities, setMunicipalities] = useState<string[]>([]);
-    const [barangays, setBarangays] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (show && !locationData) {
-            fetch("/data/locations.json")
-                .then((res) => res.json())
-                .then((json) => {
-                    setLocationData(json);
-                    const provList: string[] = [];
-                    Object.keys(json).forEach((regionKey) => {
-                        provList.push(
-                            ...Object.keys(json[regionKey].province_list),
-                        );
-                    });
-                    setProvinces(provList.sort());
-                })
-                .catch((err) => console.error("Failed to load locations", err));
-        }
-    }, [show]);
-
-    const handleProvinceChange = (prov: string) => {
-        setData((prev) => ({
-            ...prev,
-            province: prov,
-            municipality: "",
-            barangay: "",
-        }));
-        setBarangays([]);
-        if (!prov || !locationData) return setMunicipalities([]);
-
-        for (const regionKey in locationData) {
-            const provs = locationData[regionKey].province_list;
-            if (provs[prov]) {
-                setMunicipalities(
-                    Object.keys(provs[prov].municipality_list).sort(),
-                );
-                break;
-            }
-        }
-    };
-
-    const handleMunicipalityChange = (mun: string) => {
-        setData((prev) => ({ ...prev, municipality: mun, barangay: "" }));
-        if (!mun || !locationData || !data.province) return setBarangays([]);
-
-        for (const regionKey in locationData) {
-            const provs = locationData[regionKey].province_list;
-            if (provs[data.province]) {
-                const muns = provs[data.province].municipality_list;
-                if (muns[mun]) {
-                    setBarangays(muns[mun].barangay_list.sort());
-                    break;
-                }
-            }
-        }
-    };
-
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
         transform((currentData: any) => {
-            const fullAddress = [
-                currentData.street,
-                currentData.barangay,
-                currentData.municipality,
-                currentData.province,
-            ]
-                .filter(Boolean)
-                .join(", ");
-
             const finalFirstName = currentData.middle_initial
                 ? `${currentData.first_name} ${currentData.middle_initial}.`
                 : currentData.first_name;
@@ -123,7 +50,6 @@ export default function CreateTenantModal({
                 ...currentData,
                 first_name: finalFirstName,
                 last_name: finalLastName,
-                address: fullAddress,
             };
         });
 
@@ -149,6 +75,7 @@ export default function CreateTenantModal({
                     Register Tenant
                 </h2>
                 <button
+                    type="button"
                     onClick={closeModal}
                     className="text-slate-500 hover:text-slate-800 transition-colors"
                 >
@@ -184,13 +111,13 @@ export default function CreateTenantModal({
                                 setData(
                                     "first_name",
                                     e.target.value.replace(
-                                        /[^a-zA-ZñÑ\s\-,]/g,
+                                        /[^a-zA-ZñÑ\s\-,\.]/g,
                                         "",
-                                    ),
+                                    ).toUpperCase()
                                 )
                             }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 transition-colors"
-                            placeholder="e.g. Maria Theresa"
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 transition-colors"
+                            placeholder="E.G. MARIA THERESA"
                             required
                         />
                         {errors.first_name && (
@@ -222,8 +149,8 @@ export default function CreateTenantModal({
                                         .toUpperCase(),
                                 )
                             }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 text-center focus:border-blue-600 focus:ring-0 transition-colors"
-                            placeholder="e.g. C"
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase text-center focus:border-blue-600 focus:ring-0 transition-colors"
+                            placeholder="E.G. C"
                         />
                     </div>
                     <div className="col-span-12 sm:col-span-4">
@@ -245,13 +172,13 @@ export default function CreateTenantModal({
                                 setData(
                                     "last_name",
                                     e.target.value.replace(
-                                        /[^a-zA-ZñÑ\s\-,]/g,
+                                        /[^a-zA-ZñÑ\s\-,\.]/g,
                                         "",
-                                    ),
+                                    ).toUpperCase()
                                 )
                             }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 transition-colors"
-                            placeholder="e.g. Yu"
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 transition-colors"
+                            placeholder="E.G. YU"
                             required
                         />
                         {errors.last_name && (
@@ -288,10 +215,10 @@ export default function CreateTenantModal({
                             maxLength={255}
                             value={data.company_name}
                             onChange={(e) =>
-                                setData("company_name", e.target.value)
+                                setData("company_name", e.target.value.toUpperCase())
                             }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
-                            placeholder="e.g. Sari-Sari Store"
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 outline-none transition-colors"
+                            placeholder="E.G. SARI-SARI STORE"
                         />
                     </div>
                     <div>
@@ -324,81 +251,21 @@ export default function CreateTenantModal({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-20">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                            Province *
-                        </label>
-                        <SearchableSelect
-                            id="province"
-                            value={data.province}
-                            onChange={(val: any) => handleProvinceChange(val)}
-                            options={provinces}
-                            placeholder="Select Province"
-                            theme="blue"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                            Municipality *
-                        </label>
-                        <SearchableSelect
-                            id="municipality"
-                            value={data.municipality}
-                            onChange={(val: any) =>
-                                handleMunicipalityChange(val)
-                            }
-                            options={municipalities}
-                            placeholder="Select Municipality"
-                            disabled={!data.province}
-                            theme="blue"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                            Barangay *
-                        </label>
-                        <SearchableSelect
-                            id="barangay"
-                            value={data.barangay}
-                            onChange={(val: any) => setData("barangay", val)}
-                            options={barangays}
-                            placeholder="Select Barangay"
-                            disabled={!data.municipality}
-                            theme="blue"
-                        />
-                    </div>
-                </div>
-
                 <div>
                     <div className="flex justify-between items-end mb-1">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                            Street / House No.{" "}
+                            Address{" "}
                             <span className="text-[10px] text-slate-500 font-normal ml-1">
                                 (Optional)
                             </span>
                         </label>
-                        <span
-                            className={`text-[10px] font-bold ${data.street.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
-                        >
-                            {data.street.length}/255
-                        </span>
                     </div>
-                    <input
-                        type="text"
-                        maxLength={255}
-                        value={data.street}
-                        onChange={(e) =>
-                            setData(
-                                "street",
-                                e.target.value.replace(
-                                    /[^a-zA-Z0-9\s\-\.,#]/g,
-                                    "",
-                                ),
-                            )
-                        }
-                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-0 outline-none transition-colors"
-                        placeholder="House No. / Street Name"
+                    <textarea
+                        rows={3}
+                        value={data.address}
+                        onChange={(e) => setData("address", e.target.value.toUpperCase())}
+                        className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 outline-none transition-colors resize-none"
+                        placeholder="COMPLETE ADDRESS (E.G. 123 MAIN ST., BRGY. SAN JUAN, GERONA, TARLAC)"
                     />
                 </div>
 
@@ -412,7 +279,7 @@ export default function CreateTenantModal({
                     </button>
                     <button
                         type="submit"
-                        disabled={processing || !data.barangay}
+                        disabled={processing}
                         className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
                     >
                         Save Tenant

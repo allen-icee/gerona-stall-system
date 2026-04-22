@@ -17,11 +17,15 @@ export default function StallsIndex({
     filters,
     useProposedPricing,
 }: any) {
-    const [search, setSearch] = useState(filters?.search || "");
+    const [search, setSearch] = useState(
+        filters?.search && typeof filters.search === "string" ? filters.search : ""
+    );
+
+    // Protected against the native JS sort() function bug
     const [sortFilter, setSortFilter] = useState(
-        filters?.sort
+        filters?.sort && typeof filters.sort === "string"
             ? `${filters.sort}_${filters.direction}`
-            : "stall_code_asc",
+            : "stall_code_asc"
     );
 
     const [filterBuilding, setFilterBuilding] = useState(
@@ -52,7 +56,7 @@ export default function StallsIndex({
     const isFirstRender = useRef(true);
 
     useEffect(() => {
-        // 2. Add this block to block the first accidental search
+        // Block the first accidental search
         if (isFirstRender.current) {
             isFirstRender.current = false;
             return;
@@ -418,44 +422,43 @@ export default function StallsIndex({
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-200 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b-2 border-slate-300">
                                 <tr>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-14">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center w-12">
                                         <button
                                             type="button"
                                             onClick={handleSelectAll}
                                             aria-label="Select all records"
-                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                stalls.data.length > 0 &&
+                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${stalls.data.length > 0 &&
                                                 selectedStalls.length ===
-                                                    stalls.data.length
-                                                    ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
-                                                    : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                            }`}
+                                                stalls.data.length
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
+                                                : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                }`}
                                         >
                                             <Icon
                                                 icon="solar:check-read-bold"
-                                                width="14"
+                                                width="12"
                                             />
                                         </button>
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center w-16">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center w-12">
                                         #
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Stall Code
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Size (SQM)
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Active Pricing
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Current Status
                                     </th>
-                                    <th className="px-6 py-4 border-r border-slate-300 text-center">
+                                    <th className="px-4 py-2 border-r border-slate-300 text-center">
                                         Location
                                     </th>
-                                    <th className="px-6 py-4 text-center">
+                                    <th className="px-4 py-2 text-center w-32">
                                         System Actions
                                     </th>
                                 </tr>
@@ -465,11 +468,11 @@ export default function StallsIndex({
                                     <tr>
                                         <td
                                             colSpan={8}
-                                            className="px-6 py-12 text-center text-slate-400 font-bold"
+                                            className="px-4 py-8 text-center text-slate-400 font-bold"
                                         >
                                             <Icon
                                                 icon="solar:ghost-broken"
-                                                className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-300"
+                                                className="w-10 h-10 mx-auto mb-2 opacity-50 text-slate-300"
                                             />
                                             No stalls found in the registry.
                                         </td>
@@ -507,7 +510,7 @@ export default function StallsIndex({
                                                     }
                                                 >
                                                     <td
-                                                        className="px-6 py-4 text-center border-r border-slate-200"
+                                                        className="px-4 py-2 text-center border-r border-slate-200"
                                                         onClick={(e) =>
                                                             e.stopPropagation()
                                                         }
@@ -519,29 +522,28 @@ export default function StallsIndex({
                                                                     stall.id,
                                                                 )
                                                             }
-                                                            className={`w-5 h-5 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                                isSelected
-                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
-                                                                    : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                            }`}
+                                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${isSelected
+                                                                ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
+                                                                : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                                }`}
                                                         >
                                                             <Icon
                                                                 icon="solar:check-read-bold"
-                                                                width="14"
+                                                                width="12"
                                                             />
                                                         </button>
                                                     </td>
-                                                    <td className="px-6 py-4 font-bold text-slate-500 text-center border-r border-slate-200">
+                                                    <td className="px-4 py-2 font-bold text-slate-500 text-center border-r border-slate-200">
                                                         {(stalls.from || 1) +
                                                             index}
                                                     </td>
-                                                    <td className="px-6 py-4 font-black text-slate-900 border-r border-slate-200 text-center text-base">
+                                                    <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 text-center text-base">
                                                         {stall.stall_code}
                                                     </td>
 
-                                                    <td className="px-6 py-4 font-black text-slate-700 text-center border-r border-slate-200">
+                                                    <td className="px-4 py-2 font-black text-slate-700 text-center border-r border-slate-200">
                                                         {stall.size_sqm ? (
-                                                            <span className="bg-slate-100 border border-slate-300 px-2 py-1 rounded text-xs">
+                                                            <span className="bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-[10px] sm:text-xs">
                                                                 {stall.size_sqm}{" "}
                                                                 sqm
                                                             </span>
@@ -552,7 +554,7 @@ export default function StallsIndex({
                                                         )}
                                                     </td>
 
-                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                    <td className="px-4 py-2 text-center border-r border-slate-200">
                                                         <div
                                                             className={`text-sm font-black ${useProposedPricing ? "text-amber-600" : "text-emerald-700"}`}
                                                         >
@@ -569,16 +571,16 @@ export default function StallsIndex({
                                                         </div>
                                                     </td>
 
-                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
+                                                    <td className="px-4 py-2 text-center border-r border-slate-200">
                                                         <span
-                                                            className="inline-block px-3 py-1 rounded border-2 font-black text-[10px] uppercase tracking-wider shadow-sm"
+                                                            className="inline-block px-2.5 py-0.5 rounded border-2 font-black text-[9px] uppercase tracking-wider shadow-sm"
                                                             style={{
                                                                 backgroundColor: `${statusObj.color}20`,
                                                                 borderColor:
                                                                     statusObj.color,
                                                                 color:
                                                                     statusObj.color ===
-                                                                    "#ffffff"
+                                                                        "#ffffff"
                                                                         ? "#000000"
                                                                         : statusObj.color,
                                                             }}
@@ -586,16 +588,16 @@ export default function StallsIndex({
                                                             {statusObj.label}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center border-r border-slate-200">
-                                                        <div className="font-bold text-slate-800">
+                                                    <td className="px-4 py-2 text-center border-r border-slate-200">
+                                                        <div className="font-bold text-sm text-slate-800">
                                                             {stall.floor
                                                                 ?.name || (
-                                                                <span className="text-rose-500">
-                                                                    No Floor
-                                                                </span>
-                                                            )}
+                                                                    <span className="text-rose-500">
+                                                                        No Floor
+                                                                    </span>
+                                                                )}
                                                         </div>
-                                                        <div className="text-xs text-slate-500">
+                                                        <div className="text-[10px] sm:text-xs text-slate-500">
                                                             {stall.floor
                                                                 ?.building
                                                                 ?.name ||
@@ -603,23 +605,23 @@ export default function StallsIndex({
                                                         </div>
                                                     </td>
                                                     <td
-                                                        className="px-6 py-4"
+                                                        className="px-4 py-2"
                                                         onClick={(e) =>
                                                             e.stopPropagation()
                                                         }
                                                     >
-                                                        <div className="flex justify-center gap-2">
+                                                        <div className="flex justify-center gap-1.5">
                                                             <button
                                                                 onClick={() =>
                                                                     setEditingStall(
                                                                         stall,
                                                                     )
                                                                 }
-                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors cursor-pointer"
+                                                                className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-[10px] sm:text-xs uppercase tracking-wide transition-colors cursor-pointer"
                                                             >
                                                                 <Icon
                                                                     icon="solar:pen-bold"
-                                                                    className="w-4 h-4"
+                                                                    className="w-3.5 h-3.5"
                                                                 />{" "}
                                                                 Edit
                                                             </button>
@@ -629,11 +631,11 @@ export default function StallsIndex({
                                                                         stall.id,
                                                                     )
                                                                 }
-                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors cursor-pointer"
+                                                                className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-[10px] sm:text-xs uppercase tracking-wide transition-colors cursor-pointer"
                                                             >
                                                                 <Icon
                                                                     icon="solar:trash-bin-trash-bold"
-                                                                    className="w-4 h-4"
+                                                                    className="w-3.5 h-3.5"
                                                                 />{" "}
                                                                 Delete
                                                             </button>
@@ -647,10 +649,12 @@ export default function StallsIndex({
                             </tbody>
                         </table>
                     </div>
-                    {/* 👇 THIS WAS THE BUG. FIXED! 👇 */}
-                    <div className="p-4 border-t border-gray-200">
-                        <Pagination links={stalls.links} />
-                    </div>
+                    {/* Pagination */}
+                    {stalls.links && stalls.links.length > 3 && (
+                        <div className="px-4 py-3 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-center">
+                            <Pagination links={stalls.links} />
+                        </div>
+                    )}
                 </div>
             </div>
 

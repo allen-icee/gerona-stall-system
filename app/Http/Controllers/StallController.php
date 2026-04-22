@@ -30,7 +30,8 @@ class StallController extends Controller
             $useProposedPricing = (bool) $pricingFlag->is_enabled;
         }
 
-        $query = Stall::with(['floor.building', 'activeContract']);
+        // 🔥 FIXED: Changed 'activeContract' to 'activeContracts'
+        $query = Stall::with(['floor.building', 'activeContracts']);
 
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
@@ -114,7 +115,6 @@ class StallController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // Scoped to floor_id (Section)
                 Rule::unique('stalls', 'stall_code')->where('floor_id', $request->floor_id)
             ],
             'size_sqm' => 'nullable|numeric|min:0',
@@ -147,7 +147,6 @@ class StallController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // Scoped to floor_id (Section)
                 Rule::unique('stalls', 'stall_code')
                     ->where('floor_id', $request->floor_id)
                     ->ignore($stall->id)

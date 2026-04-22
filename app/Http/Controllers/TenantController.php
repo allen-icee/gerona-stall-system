@@ -68,7 +68,6 @@ class TenantController extends Controller
     public function destroy(Tenant $tenant)
     {
         DB::transaction(function () use ($tenant) {
-
             $contractIds = \App\Models\Contract::where('tenant_id', $tenant->id)->pluck('id');
 
             if ($contractIds->isNotEmpty()) {
@@ -76,7 +75,6 @@ class TenantController extends Controller
             }
 
             \App\Models\Contract::where('tenant_id', $tenant->id)->delete();
-
             $tenant->delete();
         });
 
@@ -104,7 +102,6 @@ class TenantController extends Controller
         $csvData = "first_name,middle_initial,last_name,suffix,business_name,contact_number,address\n";
 
         foreach ($tenants as $tenant) {
-
             $fName = $tenant->first_name ?? '';
             $mi = '';
             if (preg_match('/ ([a-zA-Z])\.$/i', $fName, $matches)) {
