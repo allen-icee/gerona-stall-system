@@ -283,8 +283,11 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                         index}
                                                 </td>
                                                 <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 uppercase text-left">
-                                                    {tenant.last_name},{" "}
+                                                    {/* DISPLAY THE FULL NAME WITH ALL 4 PIECES */}
+                                                    {tenant.last_name}
+                                                    {tenant.suffix ? ` ${tenant.suffix}` : ""},{" "}
                                                     {tenant.first_name}
+                                                    {tenant.middle_name ? ` ${tenant.middle_name}` : ""}
                                                 </td>
                                                 <td className="px-4 py-2 text-center border-r border-slate-200">
                                                     <div className="flex flex-col items-center justify-center leading-tight">

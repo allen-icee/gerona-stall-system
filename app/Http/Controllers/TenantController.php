@@ -39,7 +39,9 @@ class TenantController extends Controller
     {
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:10',
             'company_name' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:255',
             'address' => 'nullable|string',
@@ -54,7 +56,9 @@ class TenantController extends Controller
     {
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:10',
             'company_name' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:255',
             'address' => 'nullable|string',
@@ -99,31 +103,13 @@ class TenantController extends Controller
 
         $tenants = $query->orderBy($sortBy, $direction)->get();
 
-        $csvData = "first_name,middle_initial,last_name,suffix,business_name,contact_number,address\n";
+        $csvData = "first_name,middle_name,last_name,suffix,business_name,contact_number,address\n";
 
         foreach ($tenants as $tenant) {
-            $fName = $tenant->first_name ?? '';
-            $mi = '';
-            if (preg_match('/ ([a-zA-Z])\.$/i', $fName, $matches)) {
-                $mi = strtoupper($matches[1]);
-                $fName = trim(preg_replace('/ [a-zA-Z]\.$/i', '', $fName));
-            }
-
-            $lName = $tenant->last_name ?? '';
-            $suf = '';
-            $suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
-            foreach ($suffixes as $s) {
-                if (str_ends_with($lName, ' ' . $s)) {
-                    $suf = $s;
-                    $lName = trim(substr($lName, 0, -strlen(' ' . $s)));
-                    break;
-                }
-            }
-
-            $first = '"' . str_replace('"', '""', $fName) . '"';
-            $middle = '"' . str_replace('"', '""', $mi) . '"';
-            $last = '"' . str_replace('"', '""', $lName) . '"';
-            $suffix = '"' . str_replace('"', '""', $suf) . '"';
+            $first = '"' . str_replace('"', '""', $tenant->first_name ?? '') . '"';
+            $middle = '"' . str_replace('"', '""', $tenant->middle_name ?? '') . '"';
+            $last = '"' . str_replace('"', '""', $tenant->last_name ?? '') . '"';
+            $suffix = '"' . str_replace('"', '""', $tenant->suffix ?? '') . '"';
             $business = '"' . str_replace('"', '""', $tenant->company_name ?? '') . '"';
             $contact = '"' . str_replace('"', '""', $tenant->contact_number ?? '') . '"';
             $address = '"' . str_replace('"', '""', $tenant->address ?? '') . '"';

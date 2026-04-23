@@ -8,7 +8,9 @@ class Tenant extends Model
 {
     protected $fillable = [
         'first_name',
+        'middle_name',
         'last_name',
+        'suffix',
         'company_name',
         'contact_number',
         'address'

@@ -20,7 +20,10 @@ class TenantsImport implements ToModel, WithHeadingRow
                 'last_name' => $row['last_name']
             ],
             [
-                'company_name' => $row['company_name'] ?? null,
+                // Supports both new and old headers seamlessly
+                'middle_name' => $row['middle_name'] ?? ($row['middle_initial'] ?? null),
+                'suffix' => $row['suffix'] ?? null,
+                'company_name' => $row['company_name'] ?? ($row['business_name'] ?? null),
                 'contact_number' => $row['contact_number'] ?? null,
                 'address' => $row['address'] ?? null,
             ]

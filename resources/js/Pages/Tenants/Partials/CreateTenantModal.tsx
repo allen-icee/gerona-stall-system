@@ -24,7 +24,7 @@ export default function CreateTenantModal({
         transform,
     } = useForm({
         first_name: "",
-        middle_initial: "",
+        middle_name: "",
         last_name: "",
         suffix: "",
         company_name: "",
@@ -39,17 +39,14 @@ export default function CreateTenantModal({
         e.preventDefault();
 
         transform((currentData: any) => {
-            const finalFirstName = currentData.middle_initial
-                ? `${currentData.first_name} ${currentData.middle_initial}.`
-                : currentData.first_name;
-            const finalLastName = currentData.suffix
-                ? `${currentData.last_name} ${currentData.suffix}`
-                : currentData.last_name;
+            let mName = (currentData.middle_name || "").trim();
+            if (mName.length === 1 && /^[A-ZÑ]$/i.test(mName)) {
+                mName += ".";
+            }
 
             return {
                 ...currentData,
-                first_name: finalFirstName,
-                last_name: finalLastName,
+                middle_name: mName,
             };
         });
 
@@ -98,15 +95,15 @@ export default function CreateTenantModal({
                                 First Name
                             </label>
                             <span
-                                className={`text-[10px] font-bold ${data.first_name.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                                className={`text-[10px] font-bold ${(data.first_name || "").length >= 255 ? "text-rose-600" : "text-slate-400"}`}
                             >
-                                {data.first_name.length}/255
+                                {(data.first_name || "").length}/255
                             </span>
                         </div>
                         <input
                             type="text"
                             maxLength={255}
-                            value={data.first_name}
+                            value={data.first_name || ""}
                             onChange={(e) =>
                                 setData(
                                     "first_name",
@@ -126,48 +123,48 @@ export default function CreateTenantModal({
                             </p>
                         )}
                     </div>
-                    <div className="col-span-6 sm:col-span-2">
-                        <div className="flex justify-between items-end mb-1">
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide block text-center">
-                                M.I.
-                            </label>
-                            <span
-                                className={`text-[10px] font-bold ${data.middle_initial.length >= 2 ? "text-rose-600" : "text-slate-400"}`}
-                            >
-                                {data.middle_initial.length}/2
-                            </span>
-                        </div>
-                        <input
-                            type="text"
-                            maxLength={2}
-                            value={data.middle_initial}
-                            onChange={(e) =>
-                                setData(
-                                    "middle_initial",
-                                    e.target.value
-                                        .replace(/[^a-zA-ZñÑ]/g, "")
-                                        .toUpperCase(),
-                                )
-                            }
-                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase text-center focus:border-blue-600 focus:ring-0 transition-colors"
-                            placeholder="E.G. C"
-                        />
-                    </div>
-                    <div className="col-span-12 sm:col-span-4">
+                    <div className="col-span-6 sm:col-span-3">
                         <div className="flex justify-between items-end mb-1">
                             <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                                Last Name
+                                M.I. / Middle
                             </label>
                             <span
-                                className={`text-[10px] font-bold ${data.last_name.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                                className={`text-[10px] font-bold ${(data.middle_name || "").length >= 255 ? "text-rose-600" : "text-slate-400"}`}
                             >
-                                {data.last_name.length}/255
+                                {(data.middle_name || "").length}/255
                             </span>
                         </div>
                         <input
                             type="text"
                             maxLength={255}
-                            value={data.last_name}
+                            value={data.middle_name || ""}
+                            onChange={(e) =>
+                                setData(
+                                    "middle_name",
+                                    e.target.value
+                                        .replace(/[^a-zA-ZñÑ\s\.]/g, "")
+                                        .toUpperCase(),
+                                )
+                            }
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 transition-colors"
+                            placeholder="E.G. C OR CAPITULO"
+                        />
+                    </div>
+                    <div className="col-span-12 sm:col-span-3">
+                        <div className="flex justify-between items-end mb-1">
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide block">
+                                Last Name
+                            </label>
+                            <span
+                                className={`text-[10px] font-bold ${(data.last_name || "").length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                            >
+                                {(data.last_name || "").length}/255
+                            </span>
+                        </div>
+                        <input
+                            type="text"
+                            maxLength={255}
+                            value={data.last_name || ""}
                             onChange={(e) =>
                                 setData(
                                     "last_name",
@@ -189,7 +186,7 @@ export default function CreateTenantModal({
                     </div>
                     <div className="col-span-6 sm:col-span-2 flex flex-col justify-end pb-0.5">
                         <SuffixSelect
-                            value={data.suffix}
+                            value={data.suffix || ""}
                             onChange={(val: any) => setData("suffix", val)}
                         />
                     </div>
@@ -205,15 +202,15 @@ export default function CreateTenantModal({
                                 </span>
                             </label>
                             <span
-                                className={`text-[10px] font-bold ${data.company_name.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
+                                className={`text-[10px] font-bold ${(data.company_name || "").length >= 255 ? "text-rose-600" : "text-slate-400"}`}
                             >
-                                {data.company_name.length}/255
+                                {(data.company_name || "").length}/255
                             </span>
                         </div>
                         <input
                             type="text"
                             maxLength={255}
-                            value={data.company_name}
+                            value={data.company_name || ""}
                             onChange={(e) =>
                                 setData("company_name", e.target.value.toUpperCase())
                             }
@@ -230,15 +227,15 @@ export default function CreateTenantModal({
                                 </span>
                             </label>
                             <span
-                                className={`text-[10px] font-bold ${data.contact_number.length >= 11 ? "text-rose-600" : "text-slate-400"}`}
+                                className={`text-[10px] font-bold ${(data.contact_number || "").length >= 11 ? "text-rose-600" : "text-slate-400"}`}
                             >
-                                {data.contact_number.length}/11
+                                {(data.contact_number || "").length}/11
                             </span>
                         </div>
                         <input
                             type="text"
                             maxLength={11}
-                            value={data.contact_number}
+                            value={data.contact_number || ""}
                             onChange={(e) =>
                                 setData(
                                     "contact_number",
@@ -262,7 +259,7 @@ export default function CreateTenantModal({
                     </div>
                     <textarea
                         rows={3}
-                        value={data.address}
+                        value={data.address || ""}
                         onChange={(e) => setData("address", e.target.value.toUpperCase())}
                         className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-0 outline-none transition-colors resize-none"
                         placeholder="COMPLETE ADDRESS (E.G. 123 MAIN ST., BRGY. SAN JUAN, GERONA, TARLAC)"
