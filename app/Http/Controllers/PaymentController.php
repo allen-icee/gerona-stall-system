@@ -1,5 +1,5 @@
 <?php
-//app\Http\Controllers\PaymentController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
@@ -71,7 +71,10 @@ class PaymentController extends Controller
             'activeContracts' => $activeContracts,
             'buildings' => $buildings,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
-            'stats' => $stats
+            'stats' => $stats,
+
+            // 🔥 DEPENDENCY GUARDRAIL COUNT 🔥
+            'contracts_count' => \App\Models\Contract::count(),
         ]);
     }
 

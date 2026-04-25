@@ -25,14 +25,17 @@ class LayoutController extends Controller
                 'cells' => function ($query) {
                     $query->orderBy('row_number', 'asc')->orderBy('column_number', 'asc');
                 },
-                // FIXED: Changed activeContract to activeContracts
+                // Phase 3: Inject Real-Time Status into the Map JSON
+                'cells.stall.status',
                 'cells.stall.activeContracts.tenant'
             ])
                 ->where('floor_id', $floor_id)
                 ->first();
 
-            // FIXED: Changed activeContract to activeContracts
-            $stalls = Stall::where('floor_id', $floor_id)->with('activeContracts.tenant')->get();
+            // Phase 3: Inject Real-Time Status into the standalone stalls array
+            $stalls = Stall::where('floor_id', $floor_id)
+                ->with(['status', 'activeContracts.tenant'])
+                ->get();
         }
 
         return Inertia::render('Layouts/Mapper', [
@@ -82,6 +85,25 @@ class LayoutController extends Controller
             'total_cols' => 'required|integer|min:1',
             'cells' => 'required|array'
         ]);
+
+        // --- PRE-CHECK GUARDRAIL ---
+        // 1. Pluck all non-null stall_ids from the incoming JSON map
+        $stallIds = collect($request->cells)->pluck('stall_id')->filter()->unique();
+
+        if ($stallIds->isNotEmpty()) {
+            // 2. Verify all extracted IDs actually exist AND belong to this specific floor
+            $validStallCount = Stall::whereIn('id', $stallIds)
+                ->where('floor_id', $layout->floor_id)
+                ->count();
+
+            // 3. If the counts don't match, the JSON is out of sync with the DB. Abort.
+            if ($validStallCount !== $stallIds->count()) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Map sync failed. The layout contains stalls that do not exist in the database for this floor. Please upload the Stalls Excel file first.'
+                ]);
+            }
+        }
+        // ---------------------------
 
         DB::transaction(function () use ($request, $layout) {
             $layout->update([

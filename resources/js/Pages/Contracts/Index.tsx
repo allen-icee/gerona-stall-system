@@ -1,4 +1,3 @@
-//resources\js\Pages\Contracts\Index.tsx
 import { useState, useEffect, useRef } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -15,6 +14,8 @@ export default function ContractsIndex({
     availableStalls,
     buildings,
     filters,
+    stalls_count = 1, // Fallbacks injected
+    tenants_count = 1, // Fallbacks injected
 }: any) {
     const { permissions = [] } = (usePage().props as any).auth;
     const canManageContracts = permissions.includes("manage contracts");
@@ -39,6 +40,17 @@ export default function ContractsIndex({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<"standard" | "ledger">("standard");
+
+    // DEPENDENCY GUARDRAIL LOGIC
+    const isImportDisabled = stalls_count === 0 || tenants_count === 0;
+    let importTooltip = "Import from Excel";
+    if (stalls_count === 0 && tenants_count === 0)
+        importTooltip =
+            "🔒 Action Locked: You must import Stalls and Tenants first.";
+    else if (stalls_count === 0)
+        importTooltip = "🔒 Action Locked: You must import Stalls first.";
+    else if (tenants_count === 0)
+        importTooltip = "🔒 Action Locked: You must import Tenants first.";
 
     const sortOptions = [
         { value: "created_at_desc", label: "Recently Drafted" },
@@ -196,7 +208,7 @@ export default function ContractsIndex({
                             </h3>
                             <span
                                 className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5"
-                                title="Total Tenants"
+                                title="Total Contracts"
                             >
                                 <Icon
                                     icon="solar:database-bold-duotone"
@@ -315,20 +327,34 @@ export default function ContractsIndex({
                             className="w-5 h-5"
                         />
                     </button>
+
+                    {/* LOCKDOWN: File Input and Import Button */}
                     <input
                         type="file"
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         accept=".csv, .xlsx"
+                        disabled={isImportDisabled}
                     />
                     <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center justify-center p-2 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 shrink-0"
-                        title="Import from Excel"
+                        onClick={() =>
+                            !isImportDisabled && fileInputRef.current?.click()
+                        }
+                        disabled={isImportDisabled}
+                        className={`flex items-center justify-center p-2 rounded-lg border-2 shrink-0 transition-colors ${
+                            isImportDisabled
+                                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                                : "text-amber-700 bg-amber-100 border-amber-300 hover:bg-amber-200"
+                        }`}
+                        title={importTooltip}
                     >
                         <Icon
-                            icon="solar:import-bold-duotone"
+                            icon={
+                                isImportDisabled
+                                    ? "solar:lock-password-bold-duotone"
+                                    : "solar:import-bold-duotone"
+                            }
                             className="w-5 h-5"
                         />
                     </button>

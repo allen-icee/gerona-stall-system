@@ -1,5 +1,5 @@
 <?php
-//app\Http\Controllers\ContractController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
@@ -10,7 +10,7 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
-use App\Imports\ContractsImport;
+use App\Imports\ContractsImport; // <-- Make sure app/Imports/ContractsImport.php exists!
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -75,6 +75,10 @@ class ContractController extends Controller
             'availableStalls' => $availableStalls,
             'buildings' => $buildings,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
+
+            // DEPENDENCY COUNTS FOR REACT UI LOCKDOWN
+            'stalls_count' => \App\Models\Stall::count(),
+            'tenants_count' => \App\Models\Tenant::count(),
         ]);
     }
 
