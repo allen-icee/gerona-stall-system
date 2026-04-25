@@ -137,4 +137,5 @@ class LayoutController extends Controller
 
         return redirect()->back()->with('success', 'Map layout updated successfully!');
     }
+    
 }
