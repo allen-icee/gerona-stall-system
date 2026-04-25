@@ -11,12 +11,14 @@ import Pagination from "@/Components/Pagination";
 
 export default function TenantsIndex({ tenants, filters }: any) {
     const [search, setSearch] = useState(
-        filters?.search && typeof filters.search === 'string' ? filters.search : ""
+        filters?.search && typeof filters.search === "string"
+            ? filters.search
+            : "",
     );
 
     // FIXED: Protect against PHP empty arrays exposing the native JS Array.sort() function
     const [sortFilter, setSortFilter] = useState(
-        filters?.sort && typeof filters.sort === 'string'
+        filters?.sort && typeof filters.sort === "string"
             ? `${filters.sort}_${filters.direction}`
             : "last_name_asc",
     );
@@ -84,7 +86,7 @@ export default function TenantsIndex({ tenants, filters }: any) {
                     onError: (errors) => {
                         alert(
                             errors.file ||
-                            "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
                         );
                         if (fileInputRef.current)
                             fileInputRef.current.value = "";
@@ -285,15 +287,21 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                 <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 uppercase text-left">
                                                     {/* DISPLAY THE FULL NAME WITH ALL 4 PIECES */}
                                                     {tenant.last_name}
-                                                    {tenant.suffix ? ` ${tenant.suffix}` : ""},{" "}
-                                                    {tenant.first_name}
-                                                    {tenant.middle_name ? ` ${tenant.middle_name}` : ""}
+                                                    {tenant.suffix
+                                                        ? ` ${tenant.suffix}`
+                                                        : ""}
+                                                    , {tenant.first_name}
+                                                    {tenant.middle_name
+                                                        ? ` ${tenant.middle_name}`
+                                                        : ""}
                                                 </td>
                                                 <td className="px-4 py-2 text-center border-r border-slate-200">
                                                     <div className="flex flex-col items-center justify-center leading-tight">
                                                         {tenant.company_name ? (
                                                             <span className="font-bold text-slate-700 uppercase">
-                                                                {tenant.company_name}
+                                                                {
+                                                                    tenant.company_name
+                                                                }
                                                             </span>
                                                         ) : (
                                                             <span className="text-slate-400 italic font-normal uppercase">
@@ -302,7 +310,9 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                         )}
                                                         {tenant.contact_number && (
                                                             <span className="text-xs font-bold text-slate-500 mt-0.5">
-                                                                {tenant.contact_number}
+                                                                {
+                                                                    tenant.contact_number
+                                                                }
                                                             </span>
                                                         )}
                                                     </div>
@@ -310,10 +320,16 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                 <td className="px-4 py-2 text-center border-r border-slate-200">
                                                     <div
                                                         className="text-sm font-bold text-slate-800 truncate max-w-[200px] mx-auto uppercase cursor-help"
-                                                        title={tenant.address || "No Address"}
+                                                        title={
+                                                            tenant.address ||
+                                                            "No Address"
+                                                        }
                                                     >
-                                                        {tenant.address ||
-                                                            <span className="text-slate-400 italic font-normal">N/A</span>}
+                                                        {tenant.address || (
+                                                            <span className="text-slate-400 italic font-normal">
+                                                                N/A
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -324,27 +340,26 @@ export default function TenantsIndex({ tenants, filters }: any) {
                                                                     tenant,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            className="flex items-center justify-center px-2.5 py-1 bg-blue-100 border-2 border-blue-400 text-blue-800 hover:bg-blue-200 hover:border-blue-600 rounded transition-colors"
                                                         >
                                                             <Icon
                                                                 icon="solar:pen-bold"
-                                                                className="w-3.5 h-3.5"
-                                                            />{" "}
-                                                            Edit
+                                                                className="w-4 h-4"
+                                                            />
                                                         </button>
+
                                                         <button
                                                             onClick={() =>
                                                                 confirmDelete(
                                                                     tenant.id,
                                                                 )
                                                             }
-                                                            className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded font-black text-xs uppercase tracking-wide transition-colors"
+                                                            className="flex items-center justify-center px-2.5 py-1 bg-rose-100 border-2 border-rose-400 text-rose-800 hover:bg-rose-200 hover:border-rose-600 rounded transition-colors"
                                                         >
                                                             <Icon
                                                                 icon="solar:trash-bin-trash-bold"
-                                                                className="w-3.5 h-3.5"
-                                                            />{" "}
-                                                            Delete
+                                                                className="w-4 h-4"
+                                                            />
                                                         </button>
                                                     </div>
                                                 </td>

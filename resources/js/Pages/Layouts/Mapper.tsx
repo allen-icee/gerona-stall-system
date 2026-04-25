@@ -21,6 +21,12 @@ export default function Mapper({
     const [customText, setCustomText] = useState("");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    const [paintMode, setPaintMode] = useState<{
+        id: string;
+        color: string;
+        label: string;
+    } | null>(null);
+
     const [gridCells, setGridCells] = useState<any[]>([]);
     const [gridDims, setGridDims] = useState({ rows: 0, cols: 0 });
 
@@ -33,11 +39,9 @@ export default function Mapper({
         confirmColor: "bg-blue-600 hover:bg-blue-700",
         icon: "solar:info-circle-bold-duotone",
         iconColor: "text-blue-500",
-        onConfirm: () => { },
+        onConfirm: () => {},
     });
 
-    // 🔥 FIX: Only reset the map layout when switching floors (layout.id changes),
-    // NOT when background data refreshes!
     useEffect(() => {
         if (layout && layout.cells) {
             setGridCells(layout.cells);
@@ -51,8 +55,6 @@ export default function Mapper({
         }
     }, [layout?.id]);
 
-    // 🔥 FIX: Smart Sync! When the database sends updated stall colors (via Quick Paint),
-    // dynamically patch the new colors into the working grid WITHOUT erasing the map!
     useEffect(() => {
         setGridCells((prev) =>
             prev.map((cell) => {
@@ -132,7 +134,7 @@ export default function Mapper({
         if (activeTool === "stall") {
             cell.stall = stalls.find((s: any) => s.id == selectedStallId);
             cell.text = null;
-            setSelectedStallId(""); // Clear selection so they don't accidentally duplicate
+            setSelectedStallId("");
         } else if (activeTool === "text") {
             cell.stall = null;
             cell.text = customText;
@@ -192,10 +194,30 @@ export default function Mapper({
         });
     };
 
-    const handleQuickPaint = (stallId: string, statusId: string) => {
+    // 🔥 OPTIMISTIC UI RESTORED: Visually patches the map color instantly!
+    const handleQuickPaint = (stallId: string, statusObj: any) => {
+        setGridCells((prev) =>
+            prev.map((cell) => {
+                if (cell.type === "stall" && cell.stall_id == stallId) {
+                    return {
+                        ...cell,
+                        stall: {
+                            ...cell.stall,
+                            computed_status: {
+                                id: statusObj.id,
+                                color: statusObj.color,
+                                label: statusObj.label,
+                            },
+                        },
+                    };
+                }
+                return cell;
+            }),
+        );
+
         router.post(
             route("stalls.quick-status", stallId),
-            { status: statusId },
+            { status: statusObj.id },
             { preserveScroll: true, preserveState: true },
         );
     };
@@ -267,6 +289,8 @@ export default function Mapper({
                 type: c.type,
                 stall_id: c.stall_id,
                 text: c.text,
+                colSpan: c.colSpan || 1,
+                rowSpan: c.rowSpan || 1,
             })),
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -410,6 +434,8 @@ export default function Mapper({
                     setCustomText={setCustomText}
                     onExport={handleExport}
                     onImport={handleImport}
+                    paintMode={paintMode}
+                    setPaintMode={setPaintMode}
                 />
 
                 <div className="flex-1 bg-slate-200 overflow-hidden relative flex items-center justify-center">
@@ -467,6 +493,8 @@ export default function Mapper({
                             onInsertCol={insertCol}
                             onDeleteCol={deleteCol}
                             onQuickPaint={handleQuickPaint}
+                            paintMode={paintMode}
+                            setPaintMode={setPaintMode}
                         />
                     )}
                 </div>

@@ -1,4 +1,4 @@
-// resources/js/Pages/OrRecords/Print.tsx
+// resources\js\Pages\Payments\Print.tsx
 
 import { Head } from "@inertiajs/react";
 import { useEffect } from "react";
@@ -23,10 +23,18 @@ interface Props {
 
 export default function Print({ record }: Props) {
     useEffect(() => {
-        setTimeout(() => {
-            window.print();
-        }, 800);
+        setTimeout(() => window.print(), 800);
     }, []);
+
+    const rows = Array.from({ length: 28 });
+
+    const Cell = ({ value = "" }: { value?: string }) => (
+        <div className="border-r border-black h-[22px] flex items-center px-1">
+            <div className="w-full h-[16px] border border-gray-400 flex items-center px-1 text-[9pt]">
+                {value}
+            </div>
+        </div>
+    );
 
     return (
         <div className="bg-gray-500 min-h-screen flex justify-center print:bg-white">
@@ -49,92 +57,83 @@ export default function Print({ record }: Props) {
             </style>
 
             {/* PAPER */}
-            <div className="relative w-[8.5in] h-[25.5cm] bg-white font-mono text-[10pt]">
-
+            <div className="w-[8.5in] h-[25.5cm] bg-white border border-black p-4 flex flex-col font-mono text-[10pt]">
                 {/* HEADER */}
-                <div className="absolute top-[10mm] left-0 w-full text-center">
+                <div className="relative text-center border-b border-black pb-2">
                     <div className="text-[10pt]">BUSINESS NAME</div>
                     <div className="text-[16pt] font-bold tracking-wide">
                         STALL RENTAL
                     </div>
+
+                    {/* Monthly Rent */}
+                    <div className="absolute right-0 top-0 flex items-center gap-2 text-[10pt]">
+                        <span>Monthly Rent</span>
+                        <div className="w-28 h-5 border-b border-black flex items-center justify-end pr-1">
+                            {record.monthly_rent.toFixed(2)}
+                        </div>
+                    </div>
                 </div>
 
-                {/* MONTHLY RENT */}
-                <div className="absolute top-[10mm] right-[10mm] text-[10pt]">
-                    Monthly Rent: {record.monthly_rent.toFixed(2)}
-                </div>
-
-                {/* ADDRESS */}
-                <div className="absolute top-[25mm] left-[10mm] w-[90mm]">
-                    <span className="mr-2">ADDRESS:</span>
-                    <span className="border-b border-black inline-block w-[70mm]">
-                        {record.address}
-                    </span>
-                </div>
-
-                {/* OWNER */}
-                <div className="absolute top-[25mm] right-[10mm] w-[90mm]">
-                    <span className="mr-2">BUSINESS OWNER:</span>
-                    <span className="border-b border-black inline-block w-[60mm]">
-                        {record.owner}
-                    </span>
-                </div>
-
-                {/* TABLE */}
-                <div className="absolute top-[40mm] left-[10mm] w-[7.5in]">
-
-                    {/* HEADER ROW */}
-                    <div className="grid grid-cols-5 text-center font-bold">
-                        <div className="border border-black py-[2mm]">
-                            MONTH/YEAR
-                        </div>
-                        <div className="border border-black py-[2mm]">
-                            AMOUNT
-                        </div>
-                        <div className="border border-black py-[2mm]">
-                            O.R No.
-                        </div>
-                        <div className="border border-black py-[2mm]">
-                            DATE
-                        </div>
-                        <div className="border border-black py-[2mm]">
-                            MODE OF PAYMENT
+                {/* INFO ROW */}
+                <div className="flex justify-between mt-3 text-[10pt]">
+                    <div className="flex items-center gap-2 w-1/2">
+                        <span>ADDRESS:</span>
+                        <div className="flex-1 h-5 border-b border-black flex items-center px-1">
+                            {record.address}
                         </div>
                     </div>
 
-                    {/* DATA ROWS */}
-                    {Array.from({ length: 20 }).map((_, index) => {
-                        const row = record.payments[index];
+                    <div className="flex items-center gap-2 w-1/2 pl-4">
+                        <span>BUSINESS OWNER:</span>
+                        <div className="flex-1 h-5 border-b border-black flex items-center px-1">
+                            {record.owner}
+                        </div>
+                    </div>
+                </div>
 
-                        return (
+                {/* TABLE */}
+                <div className="mt-4 border border-black flex-1 flex flex-col">
+                    {/* HEADER */}
+                    <div className="grid grid-cols-5 text-center text-[10pt] font-bold border-b border-black">
+                        {[
+                            "MONTH/YEAR",
+                            "AMOUNT",
+                            "O.R No.",
+                            "DATE",
+                            "MODE OF PAYMENT",
+                        ].map((h, i) => (
                             <div
-                                key={index}
-                                className="grid grid-cols-5 text-center"
+                                key={i}
+                                className="border-r border-black py-2 px-1"
                             >
-                                <div className="border border-black py-[2mm]">
-                                    {row?.month_year || ""}
-                                </div>
-
-                                <div className="border border-black py-[2mm]">
-                                    {row
-                                        ? Number(row.amount).toFixed(2)
-                                        : ""}
-                                </div>
-
-                                <div className="border border-black py-[2mm]">
-                                    {row?.or_number || ""}
-                                </div>
-
-                                <div className="border border-black py-[2mm]">
-                                    {row?.date || ""}
-                                </div>
-
-                                <div className="border border-black py-[2mm]">
-                                    {row?.mode || ""}
+                                <div className="border border-gray-400 py-1">
+                                    {h}
                                 </div>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
+
+                    {/* BODY */}
+                    <div className="flex-1 flex flex-col">
+                        {rows.map((_, i) => {
+                            const row = record.payments[i];
+
+                            return (
+                                <div
+                                    key={i}
+                                    className="grid grid-cols-5 border-b border-black"
+                                >
+                                    <Cell value={row?.month_year || ""} />
+                                    <Cell
+                                        value={row ? row.amount.toFixed(2) : ""}
+                                    />
+                                    <Cell value={row?.or_number || ""} />
+                                    <Cell value={row?.date || ""} />
+                                    <Cell value={row?.mode || ""} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>

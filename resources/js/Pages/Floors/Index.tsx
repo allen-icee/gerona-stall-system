@@ -11,7 +11,9 @@ import Pagination from "@/Components/Pagination";
 
 export default function FloorsIndex({ buildings, floors, filters }: any) {
     const [search, setSearch] = useState(
-        filters?.search && typeof filters.search === "string" ? filters.search : ""
+        filters?.search && typeof filters.search === "string"
+            ? filters.search
+            : "",
     );
 
     // Protected against the native JS sort() function bug
@@ -87,7 +89,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                     onError: (errors) => {
                         alert(
                             errors.file ||
-                            "Failed to upload file. Make sure it's a valid Excel/CSV.",
+                                "Failed to upload file. Make sure it's a valid Excel/CSV.",
                         );
                         if (fileInputRef.current)
                             fileInputRef.current.value = "";
@@ -256,7 +258,7 @@ export default function FloorsIndex({ buildings, floors, filters }: any) {
                                         Stall Count
                                     </th>
                                     <th className="px-4 py-2 text-center w-32">
-                                        System Actions
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>

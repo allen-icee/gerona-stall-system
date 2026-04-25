@@ -1,9 +1,10 @@
-//resources\js\Pages\Contracts\Partials\CreateContractModal.tsx
+//resources/js/Pages/Contracts/Partials/CreateContractModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
+import CustomSelect from "@/Components/CustomSelect";
 import { useEnterTab } from "@/hooks/useEnterTab";
 
 export default function CreateContractModal({
@@ -32,6 +33,9 @@ export default function CreateContractModal({
 
     const [isRentLocked, setIsRentLocked] = useState(true);
 
+    // 🔥 NEW: Single Floor Filter mimicking MapSideBar
+    const [selectedFloorId, setSelectedFloorId] = useState("");
+
     const tenantOptions =
         tenants?.map((t: any) => ({
             value: t.id,
@@ -48,8 +52,39 @@ export default function CreateContractModal({
             ),
         })) || [];
 
+    // 🔥 NEW: Extract floors from available stalls and format exactly like MapSideBar
+    const floorOptions = Array.from(
+        new Map(
+            availableStalls
+                ?.filter((s: any) => s.floor)
+                .map((s: any) => [
+                    s.floor.id,
+                    {
+                        value: s.floor.id,
+                        searchString: `${s.floor.building?.name || ""} - ${s.floor.name}`,
+                        label: (
+                            <div className="flex flex-col justify-center w-full overflow-hidden text-left py-0.5">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5 truncate">
+                                    {s.floor.building?.name || "No Building"}
+                                </span>
+                                <span className="text-sm font-black text-blue-700 uppercase leading-none truncate">
+                                    {s.floor.name}
+                                </span>
+                            </div>
+                        ),
+                    },
+                ]),
+        ).values(),
+    );
+
+    // 🔥 NEW: Filter stalls based on the selected floor
+    const filteredStalls = availableStalls?.filter((s: any) => {
+        if (selectedFloorId && s.floor?.id !== selectedFloorId) return false;
+        return true;
+    });
+
     const stallOptions =
-        availableStalls?.map((s: any) => ({
+        filteredStalls?.map((s: any) => ({
             value: s.id,
             searchString: `${s.stall_code} ${s.floor?.building?.name || ""}`,
             label: (
@@ -97,6 +132,14 @@ export default function CreateContractModal({
         clearErrors();
         reset();
         setIsRentLocked(true);
+        setSelectedFloorId("");
+    };
+
+    // Prevent negative numbers and scientific notations
+    const preventNegativeInput = (e: any) => {
+        if (["-", "+", "e", "E"].includes(e.key)) {
+            e.preventDefault();
+        }
     };
 
     return (
@@ -146,13 +189,33 @@ export default function CreateContractModal({
 
                     <div>
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
-                            Available Stall
+                            Select Facility Level
+                        </label>
+                        <div className="mb-2">
+                            <SearchableSelect
+                                value={selectedFloorId}
+                                onChange={(val: any) => {
+                                    setSelectedFloorId(val);
+                                    setData("stall_id", ""); // Clear stall when floor changes
+                                }}
+                                options={floorOptions}
+                                placeholder="Search facility level..."
+                                theme="blue"
+                            />
+                        </div>
+
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            Target Stall
                         </label>
                         <SearchableSelect
                             value={data.stall_id}
                             onChange={(val: any) => setData("stall_id", val)}
                             options={stallOptions}
-                            placeholder="Search vacant stalls..."
+                            placeholder={
+                                selectedFloorId
+                                    ? "Search stalls in area..."
+                                    : "Search vacant stalls..."
+                            }
                             error={errors.stall_id}
                             theme="amber"
                         />
@@ -169,7 +232,7 @@ export default function CreateContractModal({
                         <Icon
                             icon="solar:calendar-date-bold-duotone"
                             className="w-4 h-4"
-                        />{" "}
+                        />
                         Basic Details
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -212,10 +275,10 @@ export default function CreateContractModal({
                                     onClick={() =>
                                         setIsRentLocked(!isRentLocked)
                                     }
-                                    className="text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
+                                    className={`focus:outline-none transition-colors px-2 py-0.5 rounded flex items-center gap-1 ${isRentLocked ? "text-slate-400 hover:text-blue-600 bg-transparent" : "text-white bg-rose-500 hover:bg-rose-600 shadow-sm"}`}
                                     title={
                                         isRentLocked
-                                            ? "Unlock to edit"
+                                            ? "Unlock to edit manually"
                                             : "Lock price"
                                     }
                                 >
@@ -227,17 +290,24 @@ export default function CreateContractModal({
                                         }
                                         className="w-4 h-4"
                                     />
+                                    {!isRentLocked && (
+                                        <span className="text-[9px] font-black uppercase">
+                                            Unlocked
+                                        </span>
+                                    )}
                                 </button>
                             </div>
                             <input
                                 type="number"
+                                min="0"
                                 step="0.01"
+                                onKeyDown={preventNegativeInput}
                                 value={data.monthly_rent}
                                 onChange={(e) =>
                                     setData("monthly_rent", e.target.value)
                                 }
                                 readOnly={isRentLocked}
-                                className={`w-full border-2 rounded-lg px-4 py-2 text-sm font-black transition-colors focus:ring-0 ${isRentLocked ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" : "bg-white border-blue-400 text-blue-900 focus:border-blue-600"}`}
+                                className={`w-full border-2 rounded-lg px-4 py-2 text-sm font-black transition-colors focus:ring-0 ${isRentLocked ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" : "bg-rose-50 border-rose-400 text-rose-900 focus:border-rose-600"}`}
                                 required
                             />
                         </div>
@@ -247,7 +317,9 @@ export default function CreateContractModal({
                             </label>
                             <input
                                 type="number"
+                                min="0"
                                 step="0.01"
+                                onKeyDown={preventNegativeInput}
                                 value={data.deposit_required}
                                 onChange={(e) =>
                                     setData("deposit_required", e.target.value)
@@ -264,7 +336,7 @@ export default function CreateContractModal({
                         <Icon
                             icon="solar:wallet-money-bold-duotone"
                             className="w-4 h-4"
-                        />{" "}
+                        />
                         Treasury Data (Initial Payment)
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -274,7 +346,9 @@ export default function CreateContractModal({
                             </label>
                             <input
                                 type="number"
+                                min="0"
                                 step="0.01"
+                                onKeyDown={preventNegativeInput}
                                 value={data.deposit_paid}
                                 onChange={(e) =>
                                     setData("deposit_paid", e.target.value)
@@ -313,7 +387,7 @@ export default function CreateContractModal({
                         <Icon
                             icon="solar:folder-with-files-bold-duotone"
                             className="w-4 h-4"
-                        />{" "}
+                        />
                         EEDO / Admin Operations
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -321,30 +395,64 @@ export default function CreateContractModal({
                             <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
                                 Document Status
                             </label>
-                            <select
+                            <CustomSelect
                                 value={data.document_status}
-                                onChange={(e) =>
-                                    setData("document_status", e.target.value)
+                                onChange={(e: any) =>
+                                    setData(
+                                        "document_status",
+                                        e.target?.value ?? e,
+                                    )
                                 }
                                 className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
+                                options={[
+                                    {
+                                        label: "For Contract",
+                                        value: "For Contract",
+                                    },
+                                    {
+                                        label: "For Signing",
+                                        value: "For Signing",
+                                    },
+                                    { label: "Signed", value: "Signed" },
+                                ]}
                             >
                                 <option value="For Contract">
                                     For Contract
                                 </option>
                                 <option value="For Signing">For Signing</option>
                                 <option value="Signed">Signed</option>
-                            </select>
+                            </CustomSelect>
                         </div>
                         <div>
                             <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
                                 Permit Status
                             </label>
-                            <select
+                            <CustomSelect
                                 value={data.permit_status}
-                                onChange={(e) =>
-                                    setData("permit_status", e.target.value)
+                                onChange={(e: any) =>
+                                    setData(
+                                        "permit_status",
+                                        e.target?.value ?? e,
+                                    )
                                 }
                                 className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
+                                options={[
+                                    {
+                                        label: "Waiting for Permit",
+                                        value: "Waiting",
+                                    },
+                                    {
+                                        label: "On Process",
+                                        value: "On Process",
+                                    },
+                                    {
+                                        label: "For Confirmation",
+                                        value: "For Confirmation",
+                                    },
+                                    { label: "Unpaid", value: "Unpaid" },
+                                    { label: "Valid", value: "Valid" },
+                                    { label: "Closed", value: "Closed" },
+                                ]}
                             >
                                 <option value="Waiting">
                                     Waiting for Permit
@@ -356,7 +464,7 @@ export default function CreateContractModal({
                                 <option value="Unpaid">Unpaid</option>
                                 <option value="Valid">Valid</option>
                                 <option value="Closed">Closed</option>
-                            </select>
+                            </CustomSelect>
                         </div>
                         <div className="col-span-1 md:col-span-2">
                             <div className="flex justify-between items-end mb-1">

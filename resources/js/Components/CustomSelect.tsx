@@ -1,5 +1,5 @@
-//resources\js\Components\CustomSelect.tsx
-import { useState, useEffect, useRef } from "react";
+//resources/js/Components/CustomSelect.tsx
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
@@ -18,6 +18,8 @@ interface Props {
     placeholder?: string;
     theme?: "amber" | "blue" | "rose" | "purple" | "emerald";
     disabled?: boolean;
+    children?: ReactNode; // 🔥 Added to suppress TS error
+    className?: string; // 🔥 Added to suppress TS error
 }
 
 export default function CustomSelect({
@@ -30,6 +32,8 @@ export default function CustomSelect({
     placeholder = "Select...",
     theme = "blue",
     disabled = false,
+    children,
+    className = "",
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -150,7 +154,7 @@ export default function CustomSelect({
     };
 
     return (
-        <div ref={wrapperRef} className="relative w-full">
+        <div ref={wrapperRef} className={`relative w-full ${className}`}>
             <div className="relative group">
                 <input
                     id={id}

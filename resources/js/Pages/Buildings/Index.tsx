@@ -11,14 +11,16 @@ import Pagination from "@/Components/Pagination";
 
 export default function BuildingsIndex({ buildings, filters }: any) {
     const [search, setSearch] = useState(
-        filters?.search && typeof filters.search === "string" ? filters.search : ""
+        filters?.search && typeof filters.search === "string"
+            ? filters.search
+            : "",
     );
 
     // Protected against the native JS sort() function bug
     const [sortFilter, setSortFilter] = useState(
         filters?.sort && typeof filters.sort === "string"
             ? `${filters.sort}_${filters.direction}`
-            : "name_asc"
+            : "name_asc",
     );
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -212,7 +214,7 @@ export default function BuildingsIndex({ buildings, filters }: any) {
                                         Floors / Sections Count
                                     </th>
                                     <th className="px-4 py-2 text-center w-32">
-                                        System Actions
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>

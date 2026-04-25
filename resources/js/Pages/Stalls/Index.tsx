@@ -18,14 +18,16 @@ export default function StallsIndex({
     useProposedPricing,
 }: any) {
     const [search, setSearch] = useState(
-        filters?.search && typeof filters.search === "string" ? filters.search : ""
+        filters?.search && typeof filters.search === "string"
+            ? filters.search
+            : "",
     );
 
     // Protected against the native JS sort() function bug
     const [sortFilter, setSortFilter] = useState(
         filters?.sort && typeof filters.sort === "string"
             ? `${filters.sort}_${filters.direction}`
-            : "stall_code_asc"
+            : "stall_code_asc",
     );
 
     const [filterBuilding, setFilterBuilding] = useState(
@@ -427,12 +429,13 @@ export default function StallsIndex({
                                             type="button"
                                             onClick={handleSelectAll}
                                             aria-label="Select all records"
-                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${stalls.data.length > 0 &&
+                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
+                                                stalls.data.length > 0 &&
                                                 selectedStalls.length ===
-                                                stalls.data.length
-                                                ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
-                                                : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                }`}
+                                                    stalls.data.length
+                                                    ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
+                                                    : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                            }`}
                                         >
                                             <Icon
                                                 icon="solar:check-read-bold"
@@ -459,7 +462,7 @@ export default function StallsIndex({
                                         Location
                                     </th>
                                     <th className="px-4 py-2 text-center w-32">
-                                        System Actions
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -522,10 +525,11 @@ export default function StallsIndex({
                                                                     stall.id,
                                                                 )
                                                             }
-                                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${isSelected
-                                                                ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
-                                                                : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                                }`}
+                                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
+                                                                isSelected
+                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
+                                                                    : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
+                                                            }`}
                                                         >
                                                             <Icon
                                                                 icon="solar:check-read-bold"
@@ -580,7 +584,7 @@ export default function StallsIndex({
                                                                     statusObj.color,
                                                                 color:
                                                                     statusObj.color ===
-                                                                        "#ffffff"
+                                                                    "#ffffff"
                                                                         ? "#000000"
                                                                         : statusObj.color,
                                                             }}
@@ -592,10 +596,10 @@ export default function StallsIndex({
                                                         <div className="font-bold text-sm text-slate-800">
                                                             {stall.floor
                                                                 ?.name || (
-                                                                    <span className="text-rose-500">
-                                                                        No Floor
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-rose-500">
+                                                                    No Floor
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="text-[10px] sm:text-xs text-slate-500">
                                                             {stall.floor
