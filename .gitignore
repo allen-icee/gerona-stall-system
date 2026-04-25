@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# -------------------------------------------------------------------------
+# GERONA LEDGER CLIENT (Electron)
+# -------------------------------------------------------------------------
+/gerona-ledger-client/node_modules/
+/gerona-ledger-client/dist/
+/gerona-ledger-client/*.exe
+/gerona-ledger-client/server-config.json
+/gerona-ledger-client/ledger-server-config.json

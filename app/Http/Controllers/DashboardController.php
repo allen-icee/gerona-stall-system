@@ -1,5 +1,5 @@
 <?php
-//app\Http\Controllers\DashboardController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Stall;
@@ -17,7 +17,8 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        $userRole = $user->getRoleNames()->first() ?? 'staff';
+        // Safe role check (Prevents the getRoleNames error)
+        $userRole = $user->role ?? (method_exists($user, 'getRoleNames') ? $user->getRoleNames()->first() : 'staff');
 
         $totalStalls = Stall::count();
         $vacantStalls = Stall::doesntHave('contracts', 'and', function ($query) {
@@ -120,12 +121,16 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Auto-detect LAN IPv4 Address
+        $serverIp = gethostbyname(gethostname());
+
         return inertia('Dashboard', [
             'stats' => $stats,
             'recentActivity' => $recentActivity,
             'buildingSummary' => $buildingSummary,
             'expiringContracts' => $expiringContracts,
-            'userRole' => strtolower($userRole)
+            'userRole' => strtolower($userRole),
+            'serverIp' => $serverIp
         ]);
     }
 }

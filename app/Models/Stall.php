@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Stall extends Model
 {
@@ -45,7 +47,7 @@ class Stall extends Model
         return $this->hasMany(Contract::class);
     }
 
-    public function activeContracts()
+    public function activeContracts(): HasMany
     {
         return $this->hasMany(Contract::class)->where('is_active', true);
     }
@@ -114,5 +116,9 @@ class Stall extends Model
             'label' => 'UNKNOWN DATA',
             'color' => '#000000'
         ];
+    }
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status_id');
     }
 }
