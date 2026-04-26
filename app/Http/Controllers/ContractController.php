@@ -135,6 +135,8 @@ class ContractController extends Controller
                     'contract_id' => $contract->id,
                     'amount' => $depositPaid,
                     'payment_date' => now(),
+                    'month' => now()->format('F'), // ✅ Adds the month string (e.g., "April")
+                    'year' => now()->format('Y'),  // ✅ Adds the year integer (e.g., 2026)
                     'payment_type' => 'deposit',
                     'or_number' => $depositRef ?? 'SYS-DEP-' . strtoupper(uniqid()),
                     'encoded_by' => Auth::id() ?? 1,

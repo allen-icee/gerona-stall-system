@@ -223,9 +223,31 @@ class PaymentController extends Controller
 
     public function print(Payment $payment)
     {
+        // 1. Load all the necessary relationships
         $payment->load(['contract.tenant', 'contract.stall.floor.building', 'encoder']);
+
+        // 2. Format the data into the exact structure Print.tsx expects
+        $record = [
+            'business_name' => $payment->contract->tenant->company_name ?? 'Individual/Personal',
+            'address' => $payment->contract->tenant->address ?? $payment->contract->stall->floor->building->name ?? 'N/A',
+            'owner' => trim(($payment->contract->tenant->first_name ?? '') . ' ' . ($payment->contract->tenant->last_name ?? '')),
+            'monthly_rent' => (float) ($payment->contract->monthly_rent ?? 0),
+
+            // 3. Pass the single payment to populate the first row of the receipt
+            'payments' => [
+                [
+                    'month_year' => ($payment->month && $payment->year) ? $payment->month . ' ' . $payment->year : \Carbon\Carbon::parse($payment->payment_date)->format('F Y'),
+                    'amount' => (float) $payment->amount,
+                    'or_number' => $payment->or_number,
+                    'date' => \Carbon\Carbon::parse($payment->payment_date)->format('m/d/Y'),
+                    'mode' => ucfirst($payment->payment_type ?? 'Cash')
+                ]
+            ]
+        ];
+
+        // 4. Send it as 'record' instead of 'payment'
         return Inertia::render('Payments/Print', [
-            'payment' => $payment
+            'record' => $record
         ]);
     }
 }

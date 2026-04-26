@@ -1,4 +1,3 @@
-//resources/js/Components/CustomSelect.tsx
 import { useState, useEffect, useRef, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
@@ -10,6 +9,7 @@ export interface SelectOption {
 
 interface Props {
     id?: string;
+    name?: string; // 🔥 Added name property
     nextElementId?: string;
     value: string | number | undefined | null;
     onChange: (value: any) => void;
@@ -18,12 +18,13 @@ interface Props {
     placeholder?: string;
     theme?: "amber" | "blue" | "rose" | "purple" | "emerald";
     disabled?: boolean;
-    children?: ReactNode; // 🔥 Added to suppress TS error
-    className?: string; // 🔥 Added to suppress TS error
+    children?: ReactNode;
+    className?: string;
 }
 
 export default function CustomSelect({
     id,
+    name, // 🔥 Destructure name
     nextElementId,
     value,
     onChange,
@@ -158,6 +159,7 @@ export default function CustomSelect({
             <div className="relative group">
                 <input
                     id={id}
+                    name={name} // 🔥 Apply name property to input
                     type="text"
                     readOnly
                     disabled={disabled}

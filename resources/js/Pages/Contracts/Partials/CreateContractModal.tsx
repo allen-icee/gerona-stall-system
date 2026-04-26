@@ -1,4 +1,3 @@
-//resources/js/Pages/Contracts/Partials/CreateContractModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -32,8 +31,6 @@ export default function CreateContractModal({
     useEnterTab(formRef);
 
     const [isRentLocked, setIsRentLocked] = useState(true);
-
-    // 🔥 NEW: Single Floor Filter mimicking MapSideBar
     const [selectedFloorId, setSelectedFloorId] = useState("");
 
     const tenantOptions =
@@ -52,7 +49,6 @@ export default function CreateContractModal({
             ),
         })) || [];
 
-    // 🔥 NEW: Extract floors from available stalls and format exactly like MapSideBar
     const floorOptions = Array.from(
         new Map(
             availableStalls
@@ -77,7 +73,6 @@ export default function CreateContractModal({
         ).values(),
     );
 
-    // 🔥 NEW: Filter stalls based on the selected floor
     const filteredStalls = availableStalls?.filter((s: any) => {
         if (selectedFloorId && s.floor?.id !== selectedFloorId) return false;
         return true;
@@ -135,7 +130,6 @@ export default function CreateContractModal({
         setSelectedFloorId("");
     };
 
-    // Prevent negative numbers and scientific notations
     const preventNegativeInput = (e: any) => {
         if (["-", "+", "e", "E"].includes(e.key)) {
             e.preventDefault();
@@ -170,10 +164,14 @@ export default function CreateContractModal({
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                        <label
+                            htmlFor="tenant_id"
+                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                        >
                             Assign to Tenant
                         </label>
                         <SearchableSelect
+                            id="tenant_id"
                             value={data.tenant_id}
                             onChange={(val: any) => setData("tenant_id", val)}
                             options={tenantOptions}
@@ -188,15 +186,19 @@ export default function CreateContractModal({
                     </div>
 
                     <div>
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                        <label
+                            htmlFor="floor_id"
+                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                        >
                             Select Facility Level
                         </label>
                         <div className="mb-2">
                             <SearchableSelect
+                                id="floor_id"
                                 value={selectedFloorId}
                                 onChange={(val: any) => {
                                     setSelectedFloorId(val);
-                                    setData("stall_id", ""); // Clear stall when floor changes
+                                    setData("stall_id", "");
                                 }}
                                 options={floorOptions}
                                 placeholder="Search facility level..."
@@ -204,10 +206,14 @@ export default function CreateContractModal({
                             />
                         </div>
 
-                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                        <label
+                            htmlFor="stall_id"
+                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                        >
                             Target Stall
                         </label>
                         <SearchableSelect
+                            id="stall_id"
                             value={data.stall_id}
                             onChange={(val: any) => setData("stall_id", val)}
                             options={stallOptions}
@@ -237,10 +243,15 @@ export default function CreateContractModal({
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="start_date"
+                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 Start Date
                             </label>
                             <input
+                                id="start_date"
+                                name="start_date"
                                 type="date"
                                 value={data.start_date}
                                 onChange={(e) =>
@@ -249,12 +260,22 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-blue-600 focus:ring-0"
                                 required
                             />
+                            {errors.start_date && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.start_date}
+                                </p>
+                            )}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="end_date"
+                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 End Date
                             </label>
                             <input
+                                id="end_date"
+                                name="end_date"
                                 type="date"
                                 value={data.end_date}
                                 onChange={(e) =>
@@ -263,11 +284,19 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-blue-600 focus:ring-0"
                                 required
                             />
+                            {errors.end_date && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.end_date}
+                                </p>
+                            )}
                         </div>
 
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs font-black text-slate-800 uppercase tracking-wide cursor-pointer">
+                                <label
+                                    htmlFor="monthly_rent"
+                                    className="text-xs font-black text-slate-800 uppercase tracking-wide cursor-pointer"
+                                >
                                     Monthly Rent (₱)
                                 </label>
                                 <button
@@ -298,6 +327,8 @@ export default function CreateContractModal({
                                 </button>
                             </div>
                             <input
+                                id="monthly_rent"
+                                name="monthly_rent"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -310,12 +341,22 @@ export default function CreateContractModal({
                                 className={`w-full border-2 rounded-lg px-4 py-2 text-sm font-black transition-colors focus:ring-0 ${isRentLocked ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" : "bg-rose-50 border-rose-400 text-rose-900 focus:border-rose-600"}`}
                                 required
                             />
+                            {errors.monthly_rent && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.monthly_rent}
+                                </p>
+                            )}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="deposit_required"
+                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 Required Deposit (Bond)
                             </label>
                             <input
+                                id="deposit_required"
+                                name="deposit_required"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -327,6 +368,11 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-black focus:border-blue-600 focus:ring-0"
                                 placeholder="₱ 0.00"
                             />
+                            {errors.deposit_required && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.deposit_required}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -341,10 +387,15 @@ export default function CreateContractModal({
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="deposit_paid"
+                                className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 Actual Deposit (Advance Rent)
                             </label>
                             <input
+                                id="deposit_paid"
+                                name="deposit_paid"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -356,10 +407,18 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-black text-emerald-900 focus:border-emerald-600 focus:ring-0"
                                 placeholder="₱ 0.00"
                             />
+                            {errors.deposit_paid && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.deposit_paid}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <div className="flex justify-between items-end mb-1">
-                                <label className="text-xs font-black text-emerald-900 uppercase tracking-wide block cursor-pointer">
+                                <label
+                                    htmlFor="deposit_reference"
+                                    className="text-xs font-black text-emerald-900 uppercase tracking-wide block cursor-pointer"
+                                >
                                     O.R. / Reference #
                                 </label>
                                 <span
@@ -369,6 +428,8 @@ export default function CreateContractModal({
                                 </span>
                             </div>
                             <input
+                                id="deposit_reference"
+                                name="deposit_reference"
                                 type="text"
                                 maxLength={255}
                                 value={data.deposit_reference}
@@ -378,6 +439,11 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-bold text-emerald-900 focus:border-emerald-600 focus:ring-0"
                                 placeholder="e.g. OR-12345"
                             />
+                            {errors.deposit_reference && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.deposit_reference}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -392,10 +458,15 @@ export default function CreateContractModal({
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="document_status"
+                                className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 Document Status
                             </label>
                             <CustomSelect
+                                id="document_status"
+                                name="document_status"
                                 value={data.document_status}
                                 onChange={(e: any) =>
                                     setData(
@@ -422,12 +493,22 @@ export default function CreateContractModal({
                                 <option value="For Signing">For Signing</option>
                                 <option value="Signed">Signed</option>
                             </CustomSelect>
+                            {errors.document_status && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.document_status}
+                                </p>
+                            )}
                         </div>
                         <div>
-                            <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
+                            <label
+                                htmlFor="permit_status"
+                                className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer"
+                            >
                                 Permit Status
                             </label>
                             <CustomSelect
+                                id="permit_status"
+                                name="permit_status"
                                 value={data.permit_status}
                                 onChange={(e: any) =>
                                     setData(
@@ -465,10 +546,18 @@ export default function CreateContractModal({
                                 <option value="Valid">Valid</option>
                                 <option value="Closed">Closed</option>
                             </CustomSelect>
+                            {errors.permit_status && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.permit_status}
+                                </p>
+                            )}
                         </div>
                         <div className="col-span-1 md:col-span-2">
                             <div className="flex justify-between items-end mb-1">
-                                <label className="text-xs font-black text-blue-900 uppercase tracking-wide block cursor-pointer">
+                                <label
+                                    htmlFor="remarks"
+                                    className="text-xs font-black text-blue-900 uppercase tracking-wide block cursor-pointer"
+                                >
                                     Remarks
                                 </label>
                                 <span
@@ -478,6 +567,8 @@ export default function CreateContractModal({
                                 </span>
                             </div>
                             <textarea
+                                id="remarks"
+                                name="remarks"
                                 maxLength={255}
                                 value={data.remarks}
                                 onChange={(e) =>
@@ -487,6 +578,11 @@ export default function CreateContractModal({
                                 className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 custom-scrollbar"
                                 placeholder="Add notes about this contract..."
                             ></textarea>
+                            {errors.remarks && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.remarks}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
