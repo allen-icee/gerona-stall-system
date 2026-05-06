@@ -1,8 +1,9 @@
 <?php
-//app\Http\Controllers\PenaltyController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Penalty;
+use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class PenaltyController extends Controller
         ]);
     }
 
-    public function process(Request $request, Penalty $penalty)
+    public function process(Request $request, Penalty $penalty, PenaltyService $penaltyService)
     {
         $validated = $request->validate([
             'status' => 'required|in:approved,waived',
@@ -45,20 +46,7 @@ class PenaltyController extends Controller
             'admin_notes' => 'nullable|string|max:255'
         ]);
 
-        $finalAmount = $validated['status'] === 'waived' ? 0 : ($validated['adjusted_amount'] ?? $penalty->original_amount);
-
-        $newNotes = $penalty->notes;
-        if (!empty($validated['admin_notes'])) {
-            $newNotes .= "\n[Admin Review]: " . $validated['admin_notes'];
-        }
-
-        $penalty->update([
-            'status' => $validated['status'],
-            'adjusted_amount' => $finalAmount,
-            'notes' => $newNotes,
-            'approved_by' => Auth::id(),
-            'approved_at' => now()
-        ]);
+        $penaltyService->processPenalty($penalty, $validated, Auth::id() ?? 1);
 
         $message = $validated['status'] === 'approved'
             ? 'Penalty successfully approved and added to tenant balance.'

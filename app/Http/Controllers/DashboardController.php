@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StallStatus;
 use App\Models\Stall;
 use App\Models\Contract;
 use App\Models\Payment;
@@ -17,7 +18,6 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Safe role check (Prevents the getRoleNames error)
         $userRole = $user->role ?? (method_exists($user, 'getRoleNames') ? $user->getRoleNames()->first() : 'staff');
 
         $totalStalls = Stall::count();
@@ -48,6 +48,7 @@ class DashboardController extends Controller
 
         $buildingSummary = $buildings->map(function ($building) {
             $stalls = $building->stalls;
+
             $tally = [
                 'name' => $building->name,
                 'total' => $stalls->count(),
@@ -64,36 +65,38 @@ class DashboardController extends Controller
 
             foreach ($stalls as $stall) {
                 $label = $stall->computed_status['label'];
+
                 switch ($label) {
-                    case 'VACANT':
+                    case StallStatus::VACANT->value:
                         $tally['vacant']++;
                         break;
-                    case 'FOR CONTRACT':
+                    case StallStatus::FOR_CONTRACT->value:
                         $tally['for_contract']++;
                         break;
-                    case 'FOR SIGNING':
+                    case StallStatus::FOR_SIGNING->value:
                         $tally['for_signing']++;
                         break;
-                    case 'WAITING FOR BUSINESS PERMIT':
+                    case StallStatus::WAITING_PERMIT->value:
                         $tally['waiting_permit']++;
                         break;
-                    case 'ON PROCESS':
+                    case StallStatus::ON_PROCESS->value:
                         $tally['on_process']++;
                         break;
-                    case 'FOR CONFIRMATION':
+                    case StallStatus::FOR_CONFIRMATION->value:
                         $tally['for_confirmation']++;
                         break;
-                    case 'UNPAID PERMIT':
+                    case StallStatus::UNPAID_PERMIT->value:
                         $tally['unpaid']++;
                         break;
-                    case 'SIGNED CONTRACT':
+                    case StallStatus::SIGNED_CONTRACT->value:
                         $tally['signed_valid']++;
                         break;
-                    case 'CLOSED':
+                    case StallStatus::CLOSED->value:
                         $tally['closed']++;
                         break;
                 }
             }
+
             return $tally;
         });
 
@@ -104,7 +107,9 @@ class DashboardController extends Controller
             ->map(function ($contract) {
                 return [
                     'stall_code' => $contract->stall->stall_code ?? 'N/A',
-                    'tenant_name' => $contract->tenant ? $contract->tenant->first_name . ' ' . $contract->tenant->last_name : 'No Tenant',
+                    'tenant_name' => $contract->tenant
+                        ? $contract->tenant->first_name . ' ' . $contract->tenant->last_name
+                        : 'No Tenant',
                     'action' => 'Contract Updated',
                     'date' => $contract->updated_at->format('M d, Y'),
                 ];
@@ -121,7 +126,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Auto-detect LAN IPv4 Address
         $serverIp = gethostbyname(gethostname());
 
         return inertia('Dashboard', [

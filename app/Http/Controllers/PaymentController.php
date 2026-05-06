@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Models\Contract;
 use App\Models\Building;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -72,34 +73,23 @@ class PaymentController extends Controller
             'buildings' => $buildings,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
             'stats' => $stats,
-
-            // 🔥 DEPENDENCY GUARDRAIL COUNT 🔥
             'contracts_count' => \App\Models\Contract::count(),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PaymentService $paymentService)
     {
         $validated = $request->validate([
             'contract_id' => 'required|exists:contracts,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
             'payment_type' => 'required|in:rent,deposit,violation',
-            'month' => 'nullable|string|max:20',
-            'year' => 'nullable|integer|min:2000',
+            'month' => 'required_if:payment_type,rent|nullable|integer|between:1,12',
+            'year' => 'required_if:payment_type,rent|nullable|integer|min:2000',
             'or_number' => 'required|string|unique:payments,or_number',
         ]);
 
-        $payment = Payment::create([
-            'contract_id' => $validated['contract_id'],
-            'amount' => $validated['amount'],
-            'payment_type' => $validated['payment_type'],
-            'payment_date' => $validated['payment_date'],
-            'month' => $validated['month'],
-            'year' => $validated['year'],
-            'or_number' => $validated['or_number'],
-            'encoded_by' => Auth::id(),
-        ]);
+        $payment = $paymentService->createPayment($validated, Auth::id() ?? 1);
 
         return redirect()->back()->with([
             'success' => 'Official Receipt successfully recorded!',
@@ -107,26 +97,25 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function update(Request $request, Payment $payment)
+    public function update(Request $request, Payment $payment, PaymentService $paymentService)
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
             'payment_type' => 'required|in:rent,deposit,violation',
-            'month' => 'nullable|string|max:20',
-            'year' => 'nullable|integer|min:2000',
+            'month' => 'required_if:payment_type,rent|nullable|integer|between:1,12',
+            'year' => 'required_if:payment_type,rent|nullable|integer|min:2000',
             'or_number' => 'required|string|unique:payments,or_number,' . $payment->id,
         ]);
 
-        $payment->update($validated);
+        $paymentService->updatePayment($payment, $validated);
+
         return redirect()->back()->with('success', 'Payment record successfully updated!');
     }
 
-    public function destroy(Payment $payment)
+    public function destroy(Payment $payment, PaymentService $paymentService)
     {
-        DB::transaction(function () use ($payment) {
-            $payment->delete();
-        });
+        $paymentService->deletePayment($payment);
         return redirect()->back()->with('success', 'Payment record successfully deleted.');
     }
 
@@ -167,6 +156,8 @@ class PaymentController extends Controller
 
         $exportData = [];
         foreach ($payments as $payment) {
+            $monthName = $payment->month ? Carbon::createFromFormat('!m', $payment->month)->format('F') : 'N/A';
+
             $exportData[] = [
                 'or_number' => $payment->or_number,
                 'payment_type' => strtoupper($payment->payment_type),
@@ -175,7 +166,7 @@ class PaymentController extends Controller
                 'stall_code' => $payment->contract->stall->stall_code ?? '',
                 'amount' => $payment->amount,
                 'payment_date' => $payment->payment_date,
-                'month' => $payment->month ?? 'N/A',
+                'month' => $monthName,
                 'year' => $payment->year ?? 'N/A',
             ];
         }
@@ -223,29 +214,33 @@ class PaymentController extends Controller
 
     public function print(Payment $payment)
     {
-        // 1. Load all the necessary relationships
-        $payment->load(['contract.tenant', 'contract.stall.floor.building', 'encoder']);
+        $payment->load(['contract.tenant', 'contract.stall', 'encoder']);
 
-        // 2. Format the data into the exact structure Print.tsx expects
+        $monthName = $payment->month ? Carbon::createFromFormat('!m', $payment->month)->format('F') : '';
+
+        // FIX: STRICTLY ONLY THE SECTION NAME FOR ADDRESS
+        $stall = $payment->contract->stall;
+
+        // This ensures ONLY "OLD PUBLIC MARKET" shows up without duplication
+        $locationAddress = trim($stall->floor->name ?? '');
+
         $record = [
             'business_name' => $payment->contract->tenant->company_name ?? 'Individual/Personal',
-            'address' => $payment->contract->tenant->address ?? $payment->contract->stall->floor->building->name ?? 'N/A',
+            'address' => $locationAddress ?: 'NO SECTION ASSIGNED',
             'owner' => trim(($payment->contract->tenant->first_name ?? '') . ' ' . ($payment->contract->tenant->last_name ?? '')),
             'monthly_rent' => (float) ($payment->contract->monthly_rent ?? 0),
 
-            // 3. Pass the single payment to populate the first row of the receipt
             'payments' => [
                 [
-                    'month_year' => ($payment->month && $payment->year) ? $payment->month . ' ' . $payment->year : \Carbon\Carbon::parse($payment->payment_date)->format('F Y'),
+                    'month_year' => ($payment->month && $payment->year) ? $monthName . ' ' . $payment->year : Carbon::parse($payment->payment_date)->format('F Y'),
                     'amount' => (float) $payment->amount,
                     'or_number' => $payment->or_number,
-                    'date' => \Carbon\Carbon::parse($payment->payment_date)->format('m/d/Y'),
+                    'date' => Carbon::parse($payment->payment_date)->format('m/d/Y'),
                     'mode' => ucfirst($payment->payment_type ?? 'Cash')
                 ]
             ]
         ];
 
-        // 4. Send it as 'record' instead of 'payment'
         return Inertia::render('Payments/Print', [
             'record' => $record
         ]);

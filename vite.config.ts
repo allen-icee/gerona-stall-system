@@ -4,7 +4,6 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
-    // Load env file based on `mode` in the current working directory.
     const env = loadEnv(mode, process.cwd(), "");
 
     return {
@@ -14,14 +13,18 @@ export default defineConfig(({ mode }) => {
                 refresh: true,
             }),
             react(),
-            tailwindcss(), // ✅ Tailwind v4 plugin
+            tailwindcss(),
         ],
+
         server: {
             host: "0.0.0.0",
+            port: 5173,
+            strictPort: true,
             cors: true,
+
             hmr: {
-                // Use the IP from .env, or fallback to localhost if it's not set
-                host: env.VITE_HMR_HOST || "localhost",
+                host: env.VITE_HMR_HOST || "192.168.100.7",
+                port: 5173,
             },
         },
     };

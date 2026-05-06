@@ -7,10 +7,11 @@ use App\Models\Stall;
 use App\Models\Tenant;
 use App\Models\Building;
 use App\Models\Payment;
+use App\Services\ContractService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
-use App\Imports\ContractsImport; // <-- Make sure app/Imports/ContractsImport.php exists!
+use App\Imports\ContractsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -75,14 +76,12 @@ class ContractController extends Controller
             'availableStalls' => $availableStalls,
             'buildings' => $buildings,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
-
-            // DEPENDENCY COUNTS FOR REACT UI LOCKDOWN
             'stalls_count' => \App\Models\Stall::count(),
             'tenants_count' => \App\Models\Tenant::count(),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ContractService $contractService)
     {
         $validated = $request->validate([
             'stall_id' => 'required|exists:stalls,id',
@@ -100,51 +99,20 @@ class ContractController extends Controller
             'old_contract_id' => 'nullable|exists:contracts,id'
         ]);
 
+        $isRenewal = $validated['is_renewal'] ?? false;
+        $oldContractId = $validated['old_contract_id'] ?? null;
+
+        // Remove transient fields before passing to the model creator
+        unset($validated['is_renewal'], $validated['old_contract_id']);
+
         $validated['is_active'] = true;
         $validated['document_status'] = $validated['document_status'] ?? 'For Contract';
         $validated['permit_status'] = $validated['permit_status'] ?? 'Waiting';
 
-        DB::transaction(function () use ($validated, $request) {
+        // Delegate business logic to the service
+        $contractService->createContract($validated, $isRenewal, $oldContractId, Auth::id() ?? 1);
 
-            $depositPaid = $validated['deposit_paid'] ?? null;
-            $depositRef = $validated['deposit_reference'] ?? null;
-            unset($validated['deposit_paid'], $validated['deposit_reference']);
-
-            if ($request->boolean('is_renewal') && $request->filled('old_contract_id')) {
-                $oldContract = Contract::find($request->old_contract_id);
-                $gracePeriodEnds = Carbon::parse($oldContract->end_date)->addHours(24);
-
-                if (now()->greaterThan($gracePeriodEnds)) {
-                    $validated['monthly_rent'] = $validated['monthly_rent'] * 1.20; // 20% Penalty Note
-                    $validated['remarks'] = ($validated['remarks'] ?? '') . ' [SYSTEM: 20% Late Renewal Penalty Applied]';
-                }
-
-                $oldContract->update([
-                    'is_active' => false,
-                    'permit_status' => 'Closed',
-                    'document_status' => 'Archived'
-                ]);
-            }
-
-            unset($validated['is_renewal'], $validated['old_contract_id']);
-
-            $contract = Contract::create($validated);
-
-            if ($depositPaid > 0) {
-                Payment::create([
-                    'contract_id' => $contract->id,
-                    'amount' => $depositPaid,
-                    'payment_date' => now(),
-                    'month' => now()->format('F'), // ✅ Adds the month string (e.g., "April")
-                    'year' => now()->format('Y'),  // ✅ Adds the year integer (e.g., 2026)
-                    'payment_type' => 'deposit',
-                    'or_number' => $depositRef ?? 'SYS-DEP-' . strtoupper(uniqid()),
-                    'encoded_by' => Auth::id() ?? 1,
-                ]);
-            }
-        });
-
-        $msg = $request->boolean('is_renewal') ? 'Contract renewed! Old contract archived.' : 'Contract drafted successfully!';
+        $msg = $isRenewal ? 'Contract renewed! Old contract archived.' : 'Contract drafted successfully!';
         return redirect()->back()->with('success', $msg);
     }
 
@@ -164,12 +132,11 @@ class ContractController extends Controller
         return redirect()->back()->with('success', 'Contract operations updated!');
     }
 
-    public function destroy(Contract $contract)
+    public function destroy(Contract $contract, ContractService $contractService)
     {
-        DB::transaction(function () use ($contract) {
-            \App\Models\Payment::where('contract_id', $contract->id)->delete();
-            $contract->delete();
-        });
+        // Delegate deletion logic to the service
+        $contractService->deleteContract($contract);
+
         return redirect()->back()->with('success', 'Contract deleted. Stall is automatically Vacant.');
     }
 

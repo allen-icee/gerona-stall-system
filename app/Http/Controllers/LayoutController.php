@@ -1,5 +1,5 @@
 <?php
-//app\Http\Controllers\LayoutController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Building;
@@ -111,14 +111,20 @@ class LayoutController extends Controller
                 'total_cols' => $request->total_cols,
             ]);
 
-            $layout->cells()->delete();
+            // Safely delete ONLY cells that fall outside the new grid dimensions (if the grid was shrunk)
+            $layout->cells()
+                ->where(function ($query) use ($request) {
+                    $query->where('row_number', '>', $request->total_rows)
+                        ->orWhere('column_number', '>', $request->total_cols);
+                })
+                ->delete();
 
-            $newCells = [];
+            $upsertData = [];
             $now = now();
             $cols = $request->total_cols;
 
             foreach ($request->cells as $index => $cell) {
-                $newCells[] = [
+                $upsertData[] = [
                     'layout_id' => $layout->id,
                     'row_number' => floor($index / $cols) + 1,
                     'column_number' => ($index % $cols) + 1,
@@ -130,12 +136,16 @@ class LayoutController extends Controller
                 ];
             }
 
-            foreach (array_chunk($newCells, 500) as $chunk) {
-                LayoutCell::insert($chunk);
+            // Safely upsert in chunks to prevent memory limits without wiping the table first
+            foreach (array_chunk($upsertData, 500) as $chunk) {
+                LayoutCell::upsert(
+                    $chunk,
+                    ['layout_id', 'row_number', 'column_number'], // Unique constraints to match
+                    ['type', 'stall_id', 'text', 'updated_at']    // Columns to update if match found
+                );
             }
         });
 
         return redirect()->back()->with('success', 'Map layout updated successfully!');
     }
-    
 }

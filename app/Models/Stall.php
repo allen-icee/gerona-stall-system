@@ -1,7 +1,8 @@
 <?php
-//app\Models\Stall.php
+
 namespace App\Models;
 
+use App\Enums\StallStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -52,12 +53,6 @@ class Stall extends Model
         return $this->hasMany(Contract::class)->where('is_active', true);
     }
 
-    public function currentTenants()
-    {
-        return $this->belongsToMany(Tenant::class, 'contracts', 'stall_id', 'tenant_id')
-            ->wherePivot('is_active', true);
-    }
-
     public function getComputedMonthlyRentAttribute()
     {
         return $this->current_monthly_rental;
@@ -68,55 +63,44 @@ class Stall extends Model
         $contracts = $this->activeContracts;
 
         if ($contracts->isEmpty()) {
-            return [
-                'label' => 'VACANT',
-                'color' => '#00ff00'
-            ];
+            $status = StallStatus::VACANT;
+            return ['label' => $status->value, 'color' => $status->color()];
         }
 
         $contract = $contracts->first();
 
         if ($contract->permit_status === 'Closed') {
-            return [
-                'label' => 'CLOSED',
-                'color' => '#f4cccc'
-            ];
+            $status = StallStatus::CLOSED;
+            return ['label' => $status->value, 'color' => $status->color()];
         }
 
         if ($contract->document_status === 'For Contract') {
-            return [
-                'label' => 'FOR CONTRACT',
-                'color' => '#ffff00'
-            ];
+            $status = StallStatus::FOR_CONTRACT;
+            return ['label' => $status->value, 'color' => $status->color()];
         }
 
         if ($contract->document_status === 'For Signing') {
-            return [
-                'label' => 'FOR SIGNING',
-                'color' => '#00ffff'
-            ];
+            $status = StallStatus::FOR_SIGNING;
+            return ['label' => $status->value, 'color' => $status->color()];
         }
 
         if ($contract->document_status === 'Signed') {
-            switch ($contract->permit_status) {
-                case 'Waiting':
-                    return ['label' => 'WAITING FOR BUSINESS PERMIT', 'color' => '#ff00ff'];
-                case 'On Process':
-                    return ['label' => 'ON PROCESS', 'color' => '#999999'];
-                case 'For Confirmation':
-                    return ['label' => 'FOR CONFIRMATION', 'color' => '#9900ff'];
-                case 'Unpaid':
-                    return ['label' => 'UNPAID PERMIT', 'color' => '#ff0000'];
-                case 'Valid':
-                    return ['label' => 'SIGNED CONTRACT', 'color' => '#ffffff'];
-            }
+            $status = match ($contract->permit_status) {
+                'Waiting' => StallStatus::WAITING_PERMIT,
+                'On Process' => StallStatus::ON_PROCESS,
+                'For Confirmation' => StallStatus::FOR_CONFIRMATION,
+                'Unpaid' => StallStatus::UNPAID_PERMIT,
+                'Valid' => StallStatus::SIGNED_CONTRACT,
+                default => StallStatus::UNKNOWN,
+            };
+
+            return ['label' => $status->value, 'color' => $status->color()];
         }
 
-        return [
-            'label' => 'UNKNOWN DATA',
-            'color' => '#000000'
-        ];
+        $status = StallStatus::UNKNOWN;
+        return ['label' => $status->value, 'color' => $status->color()];
     }
+
     public function status(): BelongsTo
     {
         return $this->belongsTo(Status::class, 'status_id');

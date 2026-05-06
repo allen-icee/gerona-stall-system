@@ -1,5 +1,5 @@
 <?php
-//app\Http\Controllers\ReportController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
@@ -8,6 +8,8 @@ use App\Models\Building;
 use App\Models\Stall;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class ReportController extends Controller
 {
@@ -72,11 +74,22 @@ class ReportController extends Controller
             $withBalance = $direction === 'asc' ? $withBalance->sortBy('tenant_name') : $withBalance->sortByDesc('tenant_name');
         }
 
+        // Collection Pagination
+        $page = Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 20;
+        $paginatedBalances = new LengthAwarePaginator(
+            $withBalance->forPage($page, $perPage)->values(),
+            $withBalance->count(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+
         $buildings = Building::orderBy('name', 'asc')->get();
         $stalls = Stall::orderBy('stall_code', 'asc')->get();
 
         return Inertia::render('Reports/Balances', [
-            'balances' => $withBalance->values(),
+            'balances' => $paginatedBalances,
             'buildings' => $buildings,
             'stalls' => $stalls,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),
@@ -124,11 +137,22 @@ class ReportController extends Controller
             $closures = $direction === 'asc' ? $closures->sortBy('tenant_name') : $closures->sortByDesc('tenant_name');
         }
 
+        // Collection Pagination
+        $page = Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 20;
+        $paginatedClosures = new LengthAwarePaginator(
+            $closures->forPage($page, $perPage)->values(),
+            $closures->count(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+
         $buildings = Building::orderBy('name', 'asc')->get();
         $stalls = Stall::orderBy('stall_code', 'asc')->get();
 
         return Inertia::render('Reports/Closures', [
-            'closures' => $closures->values(),
+            'closures' => $paginatedClosures,
             'buildings' => $buildings,
             'stalls' => $stalls,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),
@@ -200,7 +224,8 @@ class ReportController extends Controller
         $csvData = "MONTH PAID,PRICE,DATE,O.R. NUMBER,NAME,LOCATION,MARKET STALL,RENTAL PENALTY\n";
 
         foreach ($payments as $p) {
-            $month = '"' . str_replace('"', '""', $p->month . ' ' . $p->year) . '"';
+            $monthName = $p->month ? \Carbon\Carbon::createFromFormat('!m', $p->month)->format('F') : 'N/A';
+            $month = '"' . str_replace('"', '""', $monthName . ' ' . $p->year) . '"';
             $price = '"' . str_replace('"', '""', $p->amount) . '"';
             $date = '"' . str_replace('"', '""', $p->payment_date) . '"';
             $or = '"' . str_replace('"', '""', $p->or_number) . '"';

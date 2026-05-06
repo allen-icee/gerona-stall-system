@@ -1,5 +1,5 @@
 <?php
-//app\Console\Commands\GenerateLatePenalties.php
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -30,7 +30,8 @@ class GenerateLatePenalties extends Command
 
         $targetDate = Carbon::now()->subMonth();
         $targetMonthString = $targetDate->format('Y-m');
-        $targetMonthName = strtoupper($targetDate->format('F'));
+        $targetMonthInt = $targetDate->month; // 1-12 format for database querying
+        $targetMonthName = strtoupper($targetDate->format('F')); // Human readable for notes
         $targetYear = $targetDate->year;
 
         $activeContracts = Contract::where('is_active', true)->get();
@@ -55,7 +56,7 @@ class GenerateLatePenalties extends Command
 
                 $paidAmount = $contract->payments()
                     ->where('payment_type', 'rent')
-                    ->where('month', $targetMonthName)
+                    ->where('month', $targetMonthInt) // Use integer for querying
                     ->where('year', $targetYear)
                     ->sum('amount');
 
