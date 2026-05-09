@@ -1,4 +1,3 @@
-//resources\js\Pages\Reports\Closures.tsx
 import { useState, useEffect } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -79,8 +78,7 @@ export default function ClosuresReport({
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">
-                            Tenants flagged for severe delinquency (&gt;₱10k) or
-                            closed business permits.
+                            Tenants flagged for severe delinquency (&gt;₱10k).
                         </p>
                     </div>
                 </div>
@@ -145,9 +143,6 @@ export default function ClosuresReport({
                                         Stall Code
                                     </th>
                                     <th className="px-4 py-3 border-r border-red-800 text-center">
-                                        Permit Status
-                                    </th>
-                                    <th className="px-4 py-3 border-r border-red-800 text-center">
                                         Total Debt
                                     </th>
                                     <th className="px-4 py-3 text-center">
@@ -159,7 +154,7 @@ export default function ClosuresReport({
                                 {closures.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={5}
                                             className="px-6 py-12 text-center text-slate-400 font-bold bg-slate-50"
                                         >
                                             <Icon
@@ -207,14 +202,6 @@ export default function ClosuresReport({
                                             </td>
                                             <td className="px-4 py-4 text-center border-r border-red-100 font-bold text-blue-700">
                                                 {record.stall_code}
-                                            </td>
-                                            <td className="px-4 py-4 text-center border-r border-red-100">
-                                                <span
-                                                    className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md border ${record.permit_status === "Closed" ? "bg-red-100 text-red-800 border-red-300" : "bg-slate-100 text-slate-600 border-slate-300"}`}
-                                                >
-                                                    {record.permit_status ||
-                                                        "Unknown"}
-                                                </span>
                                             </td>
                                             <td className="px-4 py-4 text-center border-r border-red-100 font-black text-red-700 text-base">
                                                 ₱{" "}

@@ -25,16 +25,15 @@ class LayoutController extends Controller
                 'cells' => function ($query) {
                     $query->orderBy('row_number', 'asc')->orderBy('column_number', 'asc');
                 },
-                // Phase 3: Inject Real-Time Status into the Map JSON
-                'cells.stall.status',
+                // The 'status' relation has been safely removed here!
                 'cells.stall.activeContracts.tenant'
             ])
                 ->where('floor_id', $floor_id)
                 ->first();
 
-            // Phase 3: Inject Real-Time Status into the standalone stalls array
+            // The 'status' relation has been safely removed here as well!
             $stalls = Stall::where('floor_id', $floor_id)
-                ->with(['status', 'activeContracts.tenant'])
+                ->with(['activeContracts.tenant'])
                 ->get();
         }
 
@@ -86,24 +85,19 @@ class LayoutController extends Controller
             'cells' => 'required|array'
         ]);
 
-        // --- PRE-CHECK GUARDRAIL ---
-        // 1. Pluck all non-null stall_ids from the incoming JSON map
         $stallIds = collect($request->cells)->pluck('stall_id')->filter()->unique();
 
         if ($stallIds->isNotEmpty()) {
-            // 2. Verify all extracted IDs actually exist AND belong to this specific floor
             $validStallCount = Stall::whereIn('id', $stallIds)
                 ->where('floor_id', $layout->floor_id)
                 ->count();
 
-            // 3. If the counts don't match, the JSON is out of sync with the DB. Abort.
             if ($validStallCount !== $stallIds->count()) {
                 return redirect()->back()->withErrors([
-                    'error' => 'Map sync failed. The layout contains stalls that do not exist in the database for this floor. Please upload the Stalls Excel file first.'
+                    'error' => 'Map sync failed. The layout contains stalls that do not exist.'
                 ]);
             }
         }
-        // ---------------------------
 
         DB::transaction(function () use ($request, $layout) {
             $layout->update([
@@ -111,7 +105,6 @@ class LayoutController extends Controller
                 'total_cols' => $request->total_cols,
             ]);
 
-            // Safely delete ONLY cells that fall outside the new grid dimensions (if the grid was shrunk)
             $layout->cells()
                 ->where(function ($query) use ($request) {
                     $query->where('row_number', '>', $request->total_rows)
@@ -131,17 +124,18 @@ class LayoutController extends Controller
                     'type' => $cell['type'] ?? 'vacant',
                     'stall_id' => $cell['stall_id'] ?? null,
                     'text' => $cell['text'] ?? null,
+                    'col_span' => $cell['colSpan'] ?? 1, // Added!
+                    'row_span' => $cell['rowSpan'] ?? 1, // Added!
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
             }
 
-            // Safely upsert in chunks to prevent memory limits without wiping the table first
             foreach (array_chunk($upsertData, 500) as $chunk) {
                 LayoutCell::upsert(
                     $chunk,
-                    ['layout_id', 'row_number', 'column_number'], // Unique constraints to match
-                    ['type', 'stall_id', 'text', 'updated_at']    // Columns to update if match found
+                    ['layout_id', 'row_number', 'column_number'],
+                    ['type', 'stall_id', 'text', 'col_span', 'row_span', 'updated_at'] // Added!
                 );
             }
         });

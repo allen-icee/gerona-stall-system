@@ -1,4 +1,3 @@
-//resources/js/Pages/Layouts/Partials/InteractiveGrid.tsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
@@ -16,14 +15,10 @@ export default function InteractiveGrid({
     onDeleteRow,
     onInsertCol,
     onDeleteCol,
-    onQuickPaint,
-    paintMode, // 🔥 Inherited from Mapper
-    setPaintMode, // 🔥 Inherited from Mapper
 }: any) {
     const [zoom, setZoom] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isLegendOpen, setIsLegendOpen] = useState(false);
     const [tooltip, setTooltip] = useState({
         show: false,
         x: 0,
@@ -37,64 +32,7 @@ export default function InteractiveGrid({
     );
     const [selectedSpanIndex, setSelectedSpanIndex] = useState<number | null>(
         null,
-    ); // 🔥 Replaces selectedTextIndex
-
-    const paintStatuses = [
-        {
-            id: "vacant",
-            color: "#00ff00",
-            label: "Vacant",
-            icon: "solar:check-circle-bold",
-        },
-        {
-            id: "signed",
-            color: "#ffffff",
-            label: "Signed",
-            icon: "solar:pen-new-square-bold",
-        },
-        {
-            id: "for_contract",
-            color: "#ffff00",
-            label: "For Contract",
-            icon: "solar:document-text-bold",
-        },
-        {
-            id: "for_signing",
-            color: "#00ffff",
-            label: "For Signing",
-            icon: "solar:pen-bold",
-        },
-        {
-            id: "waiting_permit",
-            color: "#ff00ff",
-            label: "Waiting Permit",
-            icon: "solar:clock-circle-bold",
-        },
-        {
-            id: "on_process",
-            color: "#999999",
-            label: "On Process",
-            icon: "solar:settings-bold",
-        },
-        {
-            id: "confirm_permit",
-            color: "#9900ff",
-            label: "Confirm Permit",
-            icon: "solar:verified-check-bold",
-        },
-        {
-            id: "unpaid",
-            color: "#ff0000",
-            label: "Unpaid",
-            icon: "solar:danger-triangle-bold",
-        },
-        {
-            id: "closed",
-            color: "#f4cccc",
-            label: "Closed / Locked",
-            icon: "solar:lock-bold",
-        },
-    ];
+    );
 
     useEffect(() => {
         const container = containerRef.current;
@@ -125,7 +63,6 @@ export default function InteractiveGrid({
                 }
             }
             if (e.key === "Escape") {
-                setPaintMode(null);
                 setSelectedMapStallId(null);
                 setSelectedSpanIndex(null);
             }
@@ -150,15 +87,12 @@ export default function InteractiveGrid({
     const cellSize = 56 * zoom;
     const headerSize = 30;
 
-    // ----- UNIVERSAL SPAN MERGING ENGINE -----
     const { hiddenCells, cellSpans } = useMemo(() => {
         const hidden = new Set<number>();
         const spans = new Map<number, { colSpan: number; rowSpan: number }>();
 
         gridCells.forEach((cell: any, i: number) => {
             if (hidden.has(i)) return;
-
-            // 🔥 FIX: Check array to allow walkway, wall, etc. to span!
             const isSpannable = [
                 "text",
                 "wall",
@@ -173,7 +107,6 @@ export default function InteractiveGrid({
                 spans.set(i, { colSpan, rowSpan });
                 const r = Math.floor(i / gridDims.cols);
                 const c = i % gridDims.cols;
-
                 for (let dr = 0; dr < rowSpan; dr++) {
                     for (let dc = 0; dc < colSpan; dc++) {
                         if (dr === 0 && dc === 0) continue;
@@ -209,7 +142,6 @@ export default function InteractiveGrid({
         return true;
     };
 
-    // ----- SPAN EXPAND/SHRINK LOGIC -----
     const handleExpandSpanRight = (index: number) => {
         const newCells = [...gridCells];
         const cell = { ...newCells[index] };
@@ -262,7 +194,6 @@ export default function InteractiveGrid({
         setGridCells(newCells);
     };
 
-    // ----- STALL EXPAND LOGIC -----
     const placedStalls = useMemo(() => {
         const map = new Map();
         gridCells.forEach((cell: any, index: number) => {
@@ -350,33 +281,8 @@ export default function InteractiveGrid({
                 setSelectedSpanIndex(null);
             }}
         >
-            {paintMode && (
-                <div
-                    className="absolute top-0 left-0 w-full bg-slate-900 text-white py-2 z-[60] flex items-center justify-center gap-4 animate-fade-in-down shadow-lg border-b-4"
-                    style={{ borderColor: paintMode.color }}
-                >
-                    <Icon
-                        icon="solar:format-painter-bold-duotone"
-                        className="w-5 h-5 animate-pulse"
-                        style={{ color: paintMode.color }}
-                    />
-                    <span className="text-sm font-black tracking-widest uppercase">
-                        Paint Mode Active:{" "}
-                        <span style={{ color: paintMode.color }}>
-                            {paintMode.label}
-                        </span>
-                    </span>
-                    <button
-                        onClick={() => setPaintMode(null)}
-                        className="ml-4 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-widest cursor-pointer"
-                    >
-                        [ Cancel ]
-                    </button>
-                </div>
-            )}
-
             <div
-                className={`absolute left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-96 max-w-[90%] pointer-events-none transition-all duration-300 ${paintMode ? "top-14" : "top-6"}`}
+                className={`absolute left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-96 max-w-[90%] pointer-events-none transition-all duration-300 top-6`}
             >
                 <div className="relative shadow-2xl rounded-full w-full mb-4 pointer-events-auto border-2 border-slate-300">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -393,34 +299,6 @@ export default function InteractiveGrid({
                         className="w-full bg-white rounded-full pl-11 pr-4 py-3 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
-            </div>
-
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border-2 border-slate-200 flex flex-col gap-2 items-center pointer-events-auto max-h-[80vh] overflow-y-auto custom-scrollbar">
-                <div className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 border-b-2 border-slate-200 pb-1 w-full text-center">
-                    Paint
-                </div>
-                {paintStatuses.map((status) => (
-                    <button
-                        key={status.id}
-                        onClick={() => {
-                            setPaintMode(
-                                paintMode?.id === status.id ? null : status,
-                            );
-                            setSelectedMapStallId(null);
-                        }}
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer border-2 shrink-0 ${paintMode?.id === status.id ? "scale-110 shadow-lg ring-4 ring-offset-2" : "hover:scale-105 border-transparent shadow-sm"}`}
-                        style={{
-                            backgroundColor: status.color,
-                            ["--tw-ring-color" as any]: status.color,
-                        }}
-                        title={`Paint as ${status.label}`}
-                    >
-                        <Icon
-                            icon={status.icon}
-                            className={`w-6 h-6 ${paintMode?.id === status.id ? "text-slate-900" : "text-slate-800/70"}`}
-                        />
-                    </button>
-                ))}
             </div>
 
             <div className="absolute bottom-6 left-6 z-50 flex flex-col items-start gap-2 pointer-events-auto">
@@ -482,7 +360,7 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            <div className="absolute bottom-6 right-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300 pointer-events-auto">
+            <div className="absolute right-6 bottom-6 z-40 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-xl border-2 border-slate-300 pointer-events-auto">
                 <button
                     onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
                     className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer"
@@ -514,7 +392,7 @@ export default function InteractiveGrid({
 
             <div
                 ref={containerRef}
-                className={`w-full h-full p-12 overflow-auto flex transition-all ${paintMode ? "cursor-crosshair" : "cursor-default"}`}
+                className="w-full h-full p-12 overflow-auto flex transition-all cursor-default"
             >
                 <div className="m-auto bg-white p-6 rounded-2xl shadow-2xl border-4 border-slate-300 inline-block transition-all duration-300 ease-out">
                     <div className="relative">
@@ -543,7 +421,6 @@ export default function InteractiveGrid({
                                                     e.stopPropagation();
                                                     onInsertCol(c);
                                                 }}
-                                                title="Insert Column Before"
                                                 className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
                                             >
                                                 <Icon
@@ -556,7 +433,6 @@ export default function InteractiveGrid({
                                                     e.stopPropagation();
                                                     onDeleteCol(c);
                                                 }}
-                                                title="Delete Column"
                                                 className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
                                             >
                                                 <Icon
@@ -583,7 +459,6 @@ export default function InteractiveGrid({
                                         onInsertCol(gridDims.cols);
                                     }}
                                     className="text-slate-400 hover:text-white hover:bg-blue-500 bg-slate-50 border border-slate-200 shadow-sm rounded p-1 transition-all cursor-pointer"
-                                    title="Add Column at End"
                                 >
                                     <Icon
                                         icon="solar:add-square-bold"
@@ -608,7 +483,6 @@ export default function InteractiveGrid({
                                                         e.stopPropagation();
                                                         onInsertRow(r);
                                                     }}
-                                                    title="Insert Row Above"
                                                     className="text-blue-500 hover:text-blue-700 bg-blue-50 p-0.5 rounded transition-colors cursor-pointer"
                                                 >
                                                     <Icon
@@ -621,7 +495,6 @@ export default function InteractiveGrid({
                                                         e.stopPropagation();
                                                         onDeleteRow(r);
                                                     }}
-                                                    title="Delete Row"
                                                     className="text-rose-500 hover:text-rose-700 bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
                                                 >
                                                     <Icon
@@ -649,7 +522,6 @@ export default function InteractiveGrid({
                                                 const spans = cellSpans.get(
                                                     globalIndex,
                                                 ) || { colSpan: 1, rowSpan: 1 };
-
                                                 let cellStyle =
                                                     "bg-slate-50 border-slate-200 border-dashed hover:bg-slate-100 border-b border-r relative group";
                                                 let content: any = "";
@@ -720,7 +592,6 @@ export default function InteractiveGrid({
                                                     );
                                                 }
 
-                                                // Apply glowing selection border to any merged item
                                                 if (isSelectedSpan) {
                                                     cellStyle +=
                                                         " ring-4 ring-blue-500 ring-offset-1 shadow-xl z-[50] scale-[1.02] border-blue-600 border-solid border-2";
@@ -734,43 +605,39 @@ export default function InteractiveGrid({
                                                         }
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (!paintMode) {
-                                                                setSelectedMapStallId(
-                                                                    null,
-                                                                );
-                                                                onCellClick(
+                                                            setSelectedMapStallId(
+                                                                null,
+                                                            );
+                                                            onCellClick(
+                                                                globalIndex,
+                                                            );
+                                                            if (
+                                                                [
+                                                                    "text",
+                                                                    "wall",
+                                                                    "walkway",
+                                                                    "restroom",
+                                                                    "stairs",
+                                                                ].includes(
+                                                                    activeTool,
+                                                                ) ||
+                                                                [
+                                                                    "text",
+                                                                    "wall",
+                                                                    "walkway",
+                                                                    "restroom",
+                                                                    "stairs",
+                                                                ].includes(
+                                                                    cell.type,
+                                                                )
+                                                            ) {
+                                                                setSelectedSpanIndex(
                                                                     globalIndex,
                                                                 );
-
-                                                                // Automatically select the spanned item if drawing it, or if clicking an existing spannable item
-                                                                if (
-                                                                    [
-                                                                        "text",
-                                                                        "wall",
-                                                                        "walkway",
-                                                                        "restroom",
-                                                                        "stairs",
-                                                                    ].includes(
-                                                                        activeTool,
-                                                                    ) ||
-                                                                    [
-                                                                        "text",
-                                                                        "wall",
-                                                                        "walkway",
-                                                                        "restroom",
-                                                                        "stairs",
-                                                                    ].includes(
-                                                                        cell.type,
-                                                                    )
-                                                                ) {
-                                                                    setSelectedSpanIndex(
-                                                                        globalIndex,
-                                                                    );
-                                                                } else {
-                                                                    setSelectedSpanIndex(
-                                                                        null,
-                                                                    );
-                                                                }
+                                                            } else {
+                                                                setSelectedSpanIndex(
+                                                                    null,
+                                                                );
                                                             }
                                                         }}
                                                         className={`transition-all select-none cursor-pointer ${cellStyle}`}
@@ -789,7 +656,6 @@ export default function InteractiveGrid({
                                                                 content
                                                             ))}
 
-                                                        {/* 🔥 UNIVERSAL EXPAND/SHRINK BUTTONS (Applies to CR, Stairs, Wall, Text, Walkway) */}
                                                         {isSelectedSpan && (
                                                             <>
                                                                 <div className="absolute -right-8 top-1/2 -translate-y-1/2 flex flex-col gap-1 bg-slate-800 p-1 rounded-lg shadow-xl z-[60] pointer-events-auto border border-slate-600">
@@ -857,7 +723,6 @@ export default function InteractiveGrid({
                                                     </div>
                                                 );
                                             })}
-
                                         <div
                                             style={{
                                                 gridColumn: gridDims.cols + 2,
@@ -897,8 +762,22 @@ export default function InteractiveGrid({
                             const width = (s.maxC - s.minC + 1) * cellSize;
                             const height = (s.maxR - s.minR + 1) * cellSize;
 
-                            const dbColor =
-                                s.stall.computed_status?.color || "#ffffff";
+                            let dbColor =
+                                s.stall.computed_status?.color || "#10B981";
+                            let textColor = dbColor;
+                            let bgColor = `${dbColor}20`;
+                            let borderColor = dbColor;
+
+                            // Handle Occupied (White) so it isn't invisible
+                            if (
+                                dbColor.toLowerCase() === "#ffffff" ||
+                                dbColor.toLowerCase() === "#fff"
+                            ) {
+                                textColor = "#334155";
+                                bgColor = "#f8fafc";
+                                borderColor = "#cbd5e1";
+                            }
+
                             const isSelected =
                                 selectedMapStallId === s.stall.id;
 
@@ -927,7 +806,7 @@ export default function InteractiveGrid({
                                 }
                             }
 
-                            const overlayStyle = `absolute rounded-md flex flex-col items-center justify-center transition-all cursor-pointer border-2 ${isSelected ? "ring-4 ring-blue-500 border-blue-600 z-[55] shadow-2xl scale-[1.02]" : "border-slate-800 shadow-sm hover:scale-[1.01] z-30 hover:shadow-lg hover:border-slate-500"} ${isHighlighted ? "ring-4 ring-amber-400 scale-110 z-[60] shadow-2xl" : ""} ${isDimmed ? "opacity-25 grayscale" : ""}`;
+                            const overlayStyle = `absolute rounded-md flex flex-col items-center justify-center transition-all cursor-pointer border-2 ${isSelected ? "ring-4 ring-blue-500 border-blue-600 z-[55] shadow-2xl scale-[1.02]" : "shadow-sm hover:scale-[1.01] z-30 hover:shadow-lg"} ${isHighlighted ? "ring-4 ring-amber-400 scale-110 z-[60] shadow-2xl" : ""} ${isDimmed ? "opacity-25 grayscale" : ""}`;
 
                             return (
                                 <div
@@ -936,16 +815,13 @@ export default function InteractiveGrid({
                                         e.stopPropagation();
                                         if (activeTool === "vacant") {
                                             handleRemoveStall(s.stall.id);
-                                        } else if (paintMode) {
-                                            // 🔥 PASS THE FULL OBJECT FOR OPTIMISTIC UPDATE
-                                            onQuickPaint(s.stall.id, paintMode);
                                         } else {
                                             setSelectedSpanIndex(null);
                                             setSelectedMapStallId(s.stall.id);
                                         }
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!paintMode && !isSelected)
+                                        if (!isSelected)
                                             setTooltip({
                                                 show: true,
                                                 x: e.clientX,
@@ -954,7 +830,7 @@ export default function InteractiveGrid({
                                             });
                                     }}
                                     onMouseMove={(e) => {
-                                        if (!paintMode && tooltip.show)
+                                        if (tooltip.show)
                                             setTooltip((prev) => ({
                                                 ...prev,
                                                 x: e.clientX,
@@ -975,22 +851,25 @@ export default function InteractiveGrid({
                                         left,
                                         width,
                                         height,
-                                        backgroundColor: dbColor,
+                                        backgroundColor: bgColor,
+                                        borderColor: borderColor,
                                     }}
                                 >
                                     <span
-                                        className="font-black text-slate-900 drop-shadow-md truncate px-1"
+                                        className="font-black drop-shadow-md truncate px-1"
                                         style={{
                                             fontSize: `${Math.max(10, 12 * zoom)}px`,
+                                            color: textColor,
                                         }}
                                     >
                                         {s.stall.stall_code}
                                     </span>
                                     {s.stall.active_contract?.tenant && (
                                         <span
-                                            className="text-slate-800 font-bold drop-shadow-md truncate w-full text-center px-1 tracking-tight"
+                                            className="font-bold drop-shadow-md truncate w-full text-center px-1 tracking-tight"
                                             style={{
                                                 fontSize: `${Math.max(8, 10 * zoom)}px`,
+                                                color: textColor,
                                             }}
                                         >
                                             {
@@ -1000,7 +879,7 @@ export default function InteractiveGrid({
                                         </span>
                                     )}
 
-                                    {isSelected && !paintMode && (
+                                    {isSelected && (
                                         <>
                                             <div className="absolute -right-8 top-1/2 -translate-y-1/2 flex flex-col gap-1 bg-slate-800 p-1 rounded-lg shadow-xl pointer-events-auto">
                                                 <button
@@ -1078,8 +957,7 @@ export default function InteractiveGrid({
                 </div>
             </div>
 
-            {!paintMode &&
-                tooltip.show &&
+            {tooltip.show &&
                 tooltip.data &&
                 createPortal(
                     <div
@@ -1092,7 +970,6 @@ export default function InteractiveGrid({
                             setTooltip({ show: false, x: 0, y: 0, data: null })
                         }
                     >
-                        {/* ... Tooltip code untouched ... */}
                         <div className="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon

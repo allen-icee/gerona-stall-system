@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Penalty;
-use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -13,12 +12,6 @@ class PenaltyController extends Controller
     public function index(Request $request)
     {
         $query = Penalty::with(['contract.tenant', 'contract.stall.floor.building', 'approver']);
-
-        $status = $request->input('status', 'pending');
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
 
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
@@ -34,24 +27,34 @@ class PenaltyController extends Controller
 
         return Inertia::render('Penalties/Index', [
             'penalties' => $penalties,
-            'filters' => ['status' => $status, 'search' => $request->search],
+            'filters' => ['search' => $request->search],
         ]);
     }
 
-    public function process(Request $request, Penalty $penalty, PenaltyService $penaltyService)
+    // New method: Manually Create a Penalty
+    public function store(Request $request)
     {
         $validated = $request->validate([
-            'status' => 'required|in:approved,waived',
-            'adjusted_amount' => 'nullable|numeric|min:0',
-            'admin_notes' => 'nullable|string|max:255'
+            'contract_id' => 'required|exists:contracts,id',
+            'month_covered' => 'required|string',
+            'original_amount' => 'required|numeric|min:1',
+            'notes' => 'nullable|string|max:255'
         ]);
 
-        $penaltyService->processPenalty($penalty, $validated, Auth::id() ?? 1);
+        $validated['status'] = 'approved'; // Instantly active
+        $validated['is_auto_generated'] = false; // Manually added by admin
+        $validated['approved_by'] = Auth::id() ?? 1;
+        $validated['approved_at'] = now();
 
-        $message = $validated['status'] === 'approved'
-            ? 'Penalty successfully approved and added to tenant balance.'
-            : 'Penalty has been officially waived.';
+        Penalty::create($validated);
 
-        return redirect()->back()->with('success', $message);
+        return redirect()->back()->with('success', 'Late penalty applied to tenant ledger.');
+    }
+
+    // New method: Waive/Delete a mistake penalty
+    public function destroy(Penalty $penalty)
+    {
+        $penalty->delete();
+        return redirect()->back()->with('success', 'Penalty removed/waived.');
     }
 }

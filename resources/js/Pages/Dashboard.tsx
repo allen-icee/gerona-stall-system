@@ -137,7 +137,7 @@ export default function Dashboard({
                             />
                         </div>
                         <span className="font-bold text-sm text-gray-700 group-hover:text-blue-900">
-                            Draft Contract
+                            Assign Stall
                         </span>
                     </Link>
 
@@ -191,34 +191,13 @@ export default function Dashboard({
                                         Building Name
                                     </th>
                                     <th className="px-3 py-3 border-r border-slate-200 text-slate-800">
-                                        Total
+                                        Total Stalls
+                                    </th>
+                                    <th className="px-3 py-3 border-r border-slate-200 text-slate-800">
+                                        Occupied
                                     </th>
                                     <th className="px-3 py-3 border-r border-slate-200 text-emerald-600 bg-emerald-50/50">
                                         Vacant
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-amber-600">
-                                        For Contract
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-cyan-600">
-                                        For Signing
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-fuchsia-600 bg-fuchsia-50/50">
-                                        Wait Permit
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-slate-500">
-                                        On Process
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-purple-600">
-                                        Confirm Permit
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-rose-600 bg-rose-50/50">
-                                        Unpaid
-                                    </th>
-                                    <th className="px-3 py-3 border-r border-slate-200 text-blue-600">
-                                        Valid/Signed
-                                    </th>
-                                    <th className="px-3 py-3 text-slate-400">
-                                        Closed
                                     </th>
                                 </tr>
                             </thead>
@@ -235,32 +214,11 @@ export default function Dashboard({
                                             <td className="px-3 py-3 border-r border-slate-100 font-bold">
                                                 {bldg.total}
                                             </td>
+                                            <td className="px-3 py-3 border-r border-slate-100 font-bold text-slate-700">
+                                                {bldg.occupied}
+                                            </td>
                                             <td className="px-3 py-3 border-r border-slate-100 bg-emerald-50/30 text-emerald-700 font-bold">
                                                 {bldg.vacant}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 text-amber-700">
-                                                {bldg.for_contract}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 text-cyan-700">
-                                                {bldg.for_signing}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 bg-fuchsia-50/30 text-fuchsia-700 font-bold">
-                                                {bldg.waiting_permit}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 text-slate-600">
-                                                {bldg.on_process}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 text-purple-700">
-                                                {bldg.for_confirmation}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 bg-rose-50/30 text-rose-700 font-bold">
-                                                {bldg.unpaid}
-                                            </td>
-                                            <td className="px-3 py-3 border-r border-slate-100 text-blue-700 font-bold">
-                                                {bldg.signed_valid}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-400">
-                                                {bldg.closed}
                                             </td>
                                         </tr>
                                     ),
@@ -365,7 +323,7 @@ export default function Dashboard({
                                 )
                             ) : (
                                 <li className="text-sm font-bold text-slate-400 italic">
-                                    No contracts expiring within 30 days.
+                                    No assignments expiring within 30 days.
                                 </li>
                             )}
                         </ul>

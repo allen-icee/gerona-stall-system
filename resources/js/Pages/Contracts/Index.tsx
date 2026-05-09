@@ -4,7 +4,6 @@ import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CreateContractModal from "./Partials/CreateContractModal";
 import EditContractModal from "./Partials/EditContractModal";
-import RenewContractModal from "./Partials/RenewContractModal";
 import Modal from "@/Components/Modal";
 import CustomSelect from "@/Components/CustomSelect";
 
@@ -14,8 +13,8 @@ export default function ContractsIndex({
     availableStalls,
     buildings,
     filters,
-    stalls_count = 1, // Fallbacks injected
-    tenants_count = 1, // Fallbacks injected
+    stalls_count = 1,
+    tenants_count = 1,
 }: any) {
     const { permissions = [] } = (usePage().props as any).auth;
     const canManageContracts = permissions.includes("manage contracts");
@@ -26,7 +25,6 @@ export default function ContractsIndex({
             ? `${filters.sort}_${filters.direction}`
             : "created_at_desc",
     );
-
     const [filterBuilding, setFilterBuilding] = useState(
         filters?.building_id || "",
     );
@@ -35,22 +33,16 @@ export default function ContractsIndex({
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<any>(null);
-    const [renewingContract, setRenewingContract] = useState<any>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<"standard" | "ledger">("standard");
 
-    // DEPENDENCY GUARDRAIL LOGIC
     const isImportDisabled = stalls_count === 0 || tenants_count === 0;
     let importTooltip = "Import from Excel";
     if (stalls_count === 0 && tenants_count === 0)
         importTooltip =
             "🔒 Action Locked: You must import Stalls and Tenants first.";
-    else if (stalls_count === 0)
-        importTooltip = "🔒 Action Locked: You must import Stalls first.";
-    else if (tenants_count === 0)
-        importTooltip = "🔒 Action Locked: You must import Tenants first.";
 
     const sortOptions = [
         { value: "created_at_desc", label: "Recently Drafted" },
@@ -70,7 +62,6 @@ export default function ContractsIndex({
             label: new Date(0, i).toLocaleString("default", { month: "long" }),
         })),
     ];
-
     const currentYear = new Date().getFullYear();
     const yearOptions = [
         { value: "", label: "All Years" },
@@ -157,7 +148,7 @@ export default function ContractsIndex({
 
     return (
         <AuthenticatedLayout>
-            <Head title="Lease Contracts & Ledger" />
+            <Head title="Stall Assignments" />
 
             <Modal
                 show={deletingId !== null}
@@ -172,11 +163,11 @@ export default function ContractsIndex({
                         />
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-2">
-                        Delete Contract?
+                        Delete Assignment?
                     </h3>
                     <p className="text-sm text-slate-700 font-medium mb-6">
-                        Are you sure you want to terminate this contract? The
-                        stall will become <strong>Vacant</strong>.
+                        Are you sure? The stall will become{" "}
+                        <strong>Vacant</strong>.
                     </p>
                     <div className="flex justify-center gap-3">
                         <button
@@ -189,7 +180,7 @@ export default function ContractsIndex({
                             onClick={handleDelete}
                             className="px-4 py-2 bg-rose-600 border-2 border-rose-700 text-white font-bold rounded-lg hover:bg-rose-700"
                         >
-                            Yes, Terminate
+                            Yes, Remove
                         </button>
                     </div>
                 </div>
@@ -204,7 +195,7 @@ export default function ContractsIndex({
                                     icon="solar:document-text-bold-duotone"
                                     className="w-7 h-7 text-blue-700"
                                 />
-                                Master Contracts
+                                Stall Assignments
                             </h3>
                             <span
                                 className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-black border-2 border-blue-200 flex items-center gap-1.5"
@@ -218,8 +209,7 @@ export default function ContractsIndex({
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">
-                            Manage operations, paper trails, and financial
-                            ledgers.
+                            Manage tenant placements and billing cycles.
                         </p>
                     </div>
 
@@ -233,7 +223,7 @@ export default function ContractsIndex({
                                     icon="solar:folder-with-files-bold-duotone"
                                     className="w-4 h-4 inline mr-1"
                                 />{" "}
-                                EEDO View
+                                Assignments
                             </button>
                             <button
                                 onClick={() => setViewMode("ledger")}
@@ -243,7 +233,7 @@ export default function ContractsIndex({
                                     icon="solar:wallet-money-bold-duotone"
                                     className="w-4 h-4 inline mr-1"
                                 />{" "}
-                                Treasury Ledger
+                                Ledger
                             </button>
                         </div>
 
@@ -257,7 +247,7 @@ export default function ContractsIndex({
                                     className="w-5 h-5"
                                 />
                                 <span className="hidden sm:inline">
-                                    Draft Contract
+                                    Assign Stall
                                 </span>
                             </button>
                         )}
@@ -320,7 +310,7 @@ export default function ContractsIndex({
                     <button
                         onClick={handleExport}
                         className="flex items-center justify-center p-2 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 shrink-0"
-                        title="Export Filtered Contracts"
+                        title="Export Filtered"
                     >
                         <Icon
                             icon="solar:export-bold-duotone"
@@ -328,7 +318,6 @@ export default function ContractsIndex({
                         />
                     </button>
 
-                    {/* LOCKDOWN: File Input and Import Button */}
                     <input
                         type="file"
                         className="hidden"
@@ -342,11 +331,7 @@ export default function ContractsIndex({
                             !isImportDisabled && fileInputRef.current?.click()
                         }
                         disabled={isImportDisabled}
-                        className={`flex items-center justify-center p-2 rounded-lg border-2 shrink-0 transition-colors ${
-                            isImportDisabled
-                                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                                : "text-amber-700 bg-amber-100 border-amber-300 hover:bg-amber-200"
-                        }`}
+                        className={`flex items-center justify-center p-2 rounded-lg border-2 shrink-0 transition-colors ${isImportDisabled ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-amber-700 bg-amber-100 border-amber-300 hover:bg-amber-200"}`}
                         title={importTooltip}
                     >
                         <Icon
@@ -360,7 +345,6 @@ export default function ContractsIndex({
                     </button>
                 </div>
 
-                {/* THE TABLE */}
                 <div className="bg-white border-2 border-slate-300 shadow-sm rounded-xl overflow-hidden flex flex-col mt-4">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-sm whitespace-nowrap">
@@ -374,13 +358,10 @@ export default function ContractsIndex({
                                             Tenant / Stall
                                         </th>
                                         <th className="px-4 py-4 text-center">
+                                            Billing Cycle
+                                        </th>
+                                        <th className="px-4 py-4 text-center">
                                             Period
-                                        </th>
-                                        <th className="px-4 py-4 text-center bg-amber-50">
-                                            Document Status
-                                        </th>
-                                        <th className="px-4 py-4 text-center bg-fuchsia-50">
-                                            Permit Status
                                         </th>
                                         <th className="px-4 py-4 text-center">
                                             Actions
@@ -394,12 +375,6 @@ export default function ContractsIndex({
                                             Entity Details
                                         </th>
                                         <th className="px-4 py-3 text-center bg-rose-900/50 border-r border-slate-700 text-rose-300">
-                                            Variance (Dep)
-                                        </th>
-                                        <th className="px-4 py-3 text-center bg-rose-900/50 border-r border-slate-700 text-rose-300">
-                                            Penalties
-                                        </th>
-                                        <th className="px-4 py-3 text-center bg-rose-900/50 border-r-2 border-slate-700 text-rose-300">
                                             Out. Balance
                                         </th>
                                         {monthsList.map((m) => (
@@ -422,7 +397,7 @@ export default function ContractsIndex({
                                     <tr>
                                         <td
                                             colSpan={
-                                                viewMode === "standard" ? 6 : 17
+                                                viewMode === "standard" ? 5 : 15
                                             }
                                             className="px-6 py-12 text-center text-slate-400 font-bold"
                                         >
@@ -430,7 +405,7 @@ export default function ContractsIndex({
                                                 icon="solar:folder-error-bold-duotone"
                                                 className="w-12 h-12 mx-auto mb-2 opacity-50"
                                             />
-                                            No contracts found.
+                                            No assignments found.
                                         </td>
                                     </tr>
                                 ) : (
@@ -470,6 +445,13 @@ export default function ContractsIndex({
                                                                 </span>
                                                             </div>
                                                         </td>
+                                                        <td className="px-4 py-4 border-r border-slate-200 bg-amber-50/30 text-center">
+                                                            <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-md border bg-amber-100 text-amber-800 border-amber-300">
+                                                                Day{" "}
+                                                                {contract.due_day ||
+                                                                    31}
+                                                            </span>
+                                                        </td>
                                                         <td className="px-4 py-4 text-center border-r border-slate-200">
                                                             <div className="font-bold text-slate-800 text-xs">
                                                                 {
@@ -480,26 +462,9 @@ export default function ContractsIndex({
                                                                 to
                                                             </div>
                                                             <div className="font-bold text-slate-800 text-xs">
-                                                                {
-                                                                    contract.end_date
-                                                                }
+                                                                {contract.end_date ||
+                                                                    "N/A"}
                                                             </div>
-                                                        </td>
-                                                        <td className="px-4 py-4 border-r border-slate-200 bg-amber-50/30 text-center">
-                                                            <span
-                                                                className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md border ${contract.document_status === "Signed" ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-amber-100 text-amber-800 border-amber-300"}`}
-                                                            >
-                                                                {contract.document_status ||
-                                                                    "Unknown"}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 border-r border-slate-200 bg-fuchsia-50/30 text-center">
-                                                            <span
-                                                                className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md border ${contract.permit_status === "Valid" ? "bg-emerald-100 text-emerald-800 border-emerald-300" : contract.permit_status === "Unpaid" ? "bg-rose-100 text-rose-800 border-rose-300" : "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300"}`}
-                                                            >
-                                                                {contract.permit_status ||
-                                                                    "Waiting"}
-                                                            </span>
                                                         </td>
                                                     </>
                                                 )}
@@ -531,26 +496,6 @@ export default function ContractsIndex({
                                                                 }
                                                                 /mo
                                                             </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center bg-rose-50/30 border-r border-slate-200">
-                                                            <span
-                                                                className={`font-black text-xs ${contract.deposit_variance > 0 ? "text-rose-600" : "text-emerald-600"}`}
-                                                            >
-                                                                {contract.deposit_variance >
-                                                                0
-                                                                    ? `₱ ${Number(contract.deposit_variance).toLocaleString()}`
-                                                                    : "CLEARED"}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center bg-rose-50/30 border-r border-slate-200">
-                                                            <span
-                                                                className={`font-black text-xs ${contract.penalty_balance > 0 ? "text-rose-600" : "text-emerald-600"}`}
-                                                            >
-                                                                {contract.penalty_balance >
-                                                                0
-                                                                    ? `₱ ${Number(contract.penalty_balance).toLocaleString()}`
-                                                                    : "CLEARED"}
-                                                            </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-center bg-rose-50/30 border-r-2 border-slate-300">
                                                             <span
@@ -590,20 +535,6 @@ export default function ContractsIndex({
                                                         <div className="flex justify-center gap-1.5">
                                                             <button
                                                                 onClick={() =>
-                                                                    setRenewingContract(
-                                                                        contract,
-                                                                    )
-                                                                }
-                                                                className="p-1.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition-colors"
-                                                                title="Renew Contract"
-                                                            >
-                                                                <Icon
-                                                                    icon="solar:restart-circle-bold-duotone"
-                                                                    className="w-4 h-4"
-                                                                />
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
                                                                     setEditingContract(
                                                                         contract,
                                                                     )
@@ -623,7 +554,7 @@ export default function ContractsIndex({
                                                                     )
                                                                 }
                                                                 className="p-1.5 bg-rose-100 text-rose-700 rounded hover:bg-rose-200 transition-colors"
-                                                                title="Delete"
+                                                                title="Remove Assignment"
                                                             >
                                                                 <Icon
                                                                     icon="solar:trash-bin-trash-bold"
@@ -633,15 +564,10 @@ export default function ContractsIndex({
                                                         </div>
                                                     ) : (
                                                         <div className="flex justify-center">
-                                                            <span
-                                                                title="Read Only"
-                                                                className="flex items-center justify-center"
-                                                            >
-                                                                <Icon
-                                                                    icon="solar:lock-password-bold-duotone"
-                                                                    className="w-5 h-5 text-slate-300"
-                                                                />
-                                                            </span>
+                                                            <Icon
+                                                                icon="solar:lock-password-bold-duotone"
+                                                                className="w-5 h-5 text-slate-300"
+                                                            />
                                                         </div>
                                                     )}
                                                 </td>
@@ -665,11 +591,6 @@ export default function ContractsIndex({
                 show={editingContract !== null}
                 onClose={() => setEditingContract(null)}
                 contract={editingContract}
-            />
-            <RenewContractModal
-                show={renewingContract !== null}
-                onClose={() => setRenewingContract(null)}
-                contract={renewingContract}
             />
         </AuthenticatedLayout>
     );

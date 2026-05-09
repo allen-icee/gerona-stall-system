@@ -5,7 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-
     public function up()
     {
         Schema::create('layout_cells', function (Blueprint $table) {
@@ -15,6 +14,7 @@ return new class extends Migration {
             $table->integer('column_number');
             $table->string('type')->default('stall');
             $table->foreignId('stall_id')->nullable()->constrained('stalls')->nullOnDelete();
+            $table->string('text')->nullable();
             $table->timestamps();
         });
     }

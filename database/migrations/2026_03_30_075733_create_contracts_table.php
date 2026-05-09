@@ -5,7 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-
     public function up()
     {
         Schema::create('contracts', function (Blueprint $table) {
@@ -14,13 +13,11 @@ return new class extends Migration {
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
 
             $table->date('start_date');
-            $table->date('end_date');
+            $table->date('end_date')->nullable();
+            $table->integer('due_day')->default(31);
 
             $table->decimal('monthly_rent', 10, 2);
-            $table->decimal('security_deposit', 10, 2)->nullable();
-
             $table->boolean('is_active')->default(true);
-            $table->string('permit_status')->default('PENDING');
 
             $table->timestamps();
         });

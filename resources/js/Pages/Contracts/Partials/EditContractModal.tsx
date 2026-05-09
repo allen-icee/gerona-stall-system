@@ -1,4 +1,3 @@
-//resources\js\Pages\Contracts\Partials\EditContractModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -10,16 +9,12 @@ export default function EditContractModal({ show, onClose, contract }: any) {
         useForm({
             start_date: "",
             end_date: "",
+            due_day: 31,
             monthly_rent: "",
-            deposit_required: "",
-            document_status: "",
-            permit_status: "",
-            remarks: "",
         });
 
     const formRef = useRef<HTMLFormElement>(null);
     useEnterTab(formRef);
-
     const [isRentLocked, setIsRentLocked] = useState(true);
 
     useEffect(() => {
@@ -27,11 +22,8 @@ export default function EditContractModal({ show, onClose, contract }: any) {
             setData({
                 start_date: contract.start_date || "",
                 end_date: contract.end_date || "",
+                due_day: contract.due_day || 31,
                 monthly_rent: contract.monthly_rent || "",
-                deposit_required: contract.deposit_required || "",
-                document_status: contract.document_status || "For Contract",
-                permit_status: contract.permit_status || "Waiting",
-                remarks: contract.remarks || "",
             });
             setIsRentLocked(true);
         }
@@ -51,14 +43,14 @@ export default function EditContractModal({ show, onClose, contract }: any) {
     };
 
     return (
-        <Modal show={show} onClose={closeModal} maxWidth="3xl">
+        <Modal show={show} onClose={closeModal} maxWidth="2xl">
             <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
                 <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
                     <Icon
                         icon="solar:pen-bold-duotone"
                         className="w-6 h-6 text-amber-500"
                     />
-                    Edit Contract Details
+                    Edit Assignment
                 </h2>
                 <button
                     onClick={closeModal}
@@ -109,7 +101,7 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                             icon="solar:calendar-date-bold-duotone"
                             className="w-4 h-4"
                         />{" "}
-                        Terms & Fees
+                        Assignment Details
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -125,10 +117,15 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                                 className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-amber-600 focus:ring-0"
                                 required
                             />
+                            {errors.start_date && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.start_date}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                End Date
+                                End Date (Optional)
                             </label>
                             <input
                                 type="date"
@@ -137,8 +134,12 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                                     setData("end_date", e.target.value)
                                 }
                                 className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-amber-600 focus:ring-0"
-                                required
                             />
+                            {errors.end_date && (
+                                <p className="text-rose-600 text-xs font-bold mt-1">
+                                    {errors.end_date}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -182,94 +183,22 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                         </div>
 
                         <div>
-                            <label className="text-xs font-black text-amber-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Required Deposit (Bond)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={data.deposit_required}
-                                onChange={(e) =>
-                                    setData("deposit_required", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-black focus:border-amber-600 focus:ring-0"
-                                placeholder="₱ 0.00"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-xl border-2 border-blue-200">
-                    <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon
-                            icon="solar:folder-with-files-bold-duotone"
-                            className="w-4 h-4"
-                        />{" "}
-                        EEDO Status Update
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Document Status
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                                Billing Due Day
                             </label>
                             <select
-                                value={data.document_status}
+                                value={data.due_day}
                                 onChange={(e) =>
-                                    setData("document_status", e.target.value)
+                                    setData("due_day", parseInt(e.target.value))
                                 }
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
+                                className="w-full bg-white border-2 border-amber-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-amber-600 focus:ring-0 cursor-pointer"
+                                required
                             >
-                                <option value="For Contract">
-                                    For Contract
+                                <option value={15}>15th of the Month</option>
+                                <option value={31}>
+                                    End of the Month (Last Day)
                                 </option>
-                                <option value="For Signing">For Signing</option>
-                                <option value="Signed">Signed</option>
                             </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer">
-                                Permit Status
-                            </label>
-                            <select
-                                value={data.permit_status}
-                                onChange={(e) =>
-                                    setData("permit_status", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
-                            >
-                                <option value="Waiting">
-                                    Waiting for Permit
-                                </option>
-                                <option value="On Process">On Process</option>
-                                <option value="For Confirmation">
-                                    For Confirmation
-                                </option>
-                                <option value="Unpaid">Unpaid</option>
-                                <option value="Valid">Valid</option>
-                                <option value="Closed">Closed</option>
-                            </select>
-                        </div>
-                        <div className="col-span-1 md:col-span-2">
-                            <div className="flex justify-between items-end mb-1">
-                                <label className="text-xs font-black text-blue-900 uppercase tracking-wide block cursor-pointer">
-                                    Remarks
-                                </label>
-                                <span
-                                    className={`text-[10px] font-bold ${data.remarks?.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
-                                >
-                                    {data.remarks?.length || 0}/255
-                                </span>
-                            </div>
-                            <textarea
-                                maxLength={255}
-                                value={data.remarks}
-                                onChange={(e) =>
-                                    setData("remarks", e.target.value)
-                                }
-                                rows={2}
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 custom-scrollbar"
-                                placeholder="Add notes about this contract..."
-                            ></textarea>
                         </div>
                     </div>
                 </div>
@@ -287,7 +216,7 @@ export default function EditContractModal({ show, onClose, contract }: any) {
                         disabled={processing}
                         className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
                     >
-                        Update Contract
+                        Update Assignment
                     </button>
                 </div>
             </form>

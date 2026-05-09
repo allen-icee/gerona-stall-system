@@ -1,4 +1,3 @@
-//resources/js/Pages/Layouts/Partials/MapSideBar.tsx
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import SearchableSelect from "@/Components/SearchableSelect";
@@ -20,8 +19,6 @@ export default function MapSidebar({
     setCustomText,
     onExport,
     onImport,
-    paintMode,
-    setPaintMode,
 }: any) {
     const fileRef = useRef<HTMLInputElement>(null);
 
@@ -97,7 +94,6 @@ export default function MapSidebar({
 
     const handleToolSelect = (tool: string) => {
         setActiveTool(tool);
-        setPaintMode(null);
     };
 
     return (
@@ -110,10 +106,9 @@ export default function MapSidebar({
                         <Icon
                             icon="solar:map-bold-duotone"
                             className="w-6 h-6 text-amber-500"
-                        />
+                        />{" "}
                         Map Controls
                     </h2>
-
                     <div className="mb-2 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-2 block cursor-pointer">
                             Select Facility Level
@@ -137,7 +132,7 @@ export default function MapSidebar({
                             <div className="grid grid-cols-2 gap-2 mb-4">
                                 <button
                                     onClick={() => handleToolSelect("stall")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "stall" && !paintMode ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "stall" ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:shop-bold-duotone"
@@ -147,7 +142,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("walkway")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "walkway" && !paintMode ? "border-slate-800 bg-slate-200 text-slate-800 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "walkway" ? "border-slate-800 bg-slate-200 text-slate-800 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:signpost-2-bold-duotone"
@@ -157,7 +152,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("restroom")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "restroom" && !paintMode ? "border-cyan-600 bg-cyan-50 text-cyan-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "restroom" ? "border-cyan-600 bg-cyan-50 text-cyan-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:users-group-two-rounded-bold-duotone"
@@ -167,7 +162,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("stairs")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "stairs" && !paintMode ? "border-purple-600 bg-purple-50 text-purple-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "stairs" ? "border-purple-600 bg-purple-50 text-purple-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:double-alt-arrow-up-bold-duotone"
@@ -177,7 +172,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("wall")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "wall" && !paintMode ? "border-slate-900 bg-slate-800 text-white shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "wall" ? "border-slate-900 bg-slate-800 text-white shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:minus-square-bold"
@@ -187,7 +182,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("text")}
-                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "text" && !paintMode ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "text" ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:text-field-bold-duotone"
@@ -197,7 +192,7 @@ export default function MapSidebar({
                                 </button>
                                 <button
                                     onClick={() => handleToolSelect("vacant")}
-                                    className={`col-span-2 p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "vacant" && !paintMode ? "border-rose-600 bg-rose-50 text-rose-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                                    className={`col-span-2 p-3 rounded-lg border-2 font-bold text-[10px] tracking-wide uppercase flex flex-col items-center gap-1 transition-all ${activeTool === "vacant" ? "border-rose-600 bg-rose-50 text-rose-700 shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                                 >
                                     <Icon
                                         icon="solar:eraser-bold-duotone"
@@ -207,7 +202,7 @@ export default function MapSidebar({
                                 </button>
                             </div>
 
-                            {activeTool === "stall" && !paintMode && (
+                            {activeTool === "stall" && (
                                 <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl animate-fade-in">
                                     <label className="text-xs font-black text-blue-900 uppercase tracking-wide mb-2 block cursor-pointer">
                                         Which Stall?
@@ -234,7 +229,7 @@ export default function MapSidebar({
                                 </div>
                             )}
 
-                            {activeTool === "text" && !paintMode && (
+                            {activeTool === "text" && (
                                 <div className="mb-6 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl animate-fade-in">
                                     <label className="text-xs font-black text-indigo-900 uppercase tracking-wide mb-2 block cursor-pointer">
                                         What Text?
@@ -271,7 +266,6 @@ export default function MapSidebar({
                             />{" "}
                             Update Map Layout
                         </button>
-
                         <div className="grid grid-cols-2 gap-2 mt-2">
                             <button
                                 onClick={onExport}

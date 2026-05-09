@@ -23,6 +23,41 @@ interface Props {
 export default function Print({ record }: Props) {
     const TOTAL_ROWS = 29;
 
+    // ==========================================
+    // 🎛️ MASTER LAYOUT CONTROLLER 🎛️
+    // ==========================================
+    const LAYOUT = {
+        // 1. Page Positioning (Move the whole block around the paper)
+        page: {
+            paddingTop: "1.32cm",
+            paddingBottom: "2.7cm",
+            paddingLeft: "1.35cm",
+            paddingRight: "3.45cm",
+        },
+        // 2. The Horizontal Lines
+        lines: {
+            topDividerThickness: "3px", // The main line under Business Name
+            topDividerMarginTop: "0px", // Space above the line
+            topDividerMarginBottom: "0px", // Space below the line
+            addressUnderlineThickness: "1px", // Lines under address/owner
+        },
+        // 3. Spacing Between Sections
+        spacing: {
+            aboveTitle: "0px", // Space above "STALL RENTAL"
+            belowTitle: "24px", // Space below "STALL RENTAL"
+            aboveTable: "24px", // Space between Address info and the Table
+        },
+        // 4. Table Dimensions (No more 'fr'! Use exact cm, in, or px)
+        table: {
+            // Adjust these to perfectly match your scanned image columns!
+            columnWidths: ["3.32cm", "3.34cm", "3.36cm", "3.38cm", "auto"],
+            headerHeight: "77px", // Independent header height
+            rowHeight: "22px", // Height of each data row
+            borderThickness: "3px", // The thick outer border of the table
+        },
+    };
+    // ==========================================
+
     const [headerData, setHeaderData] = useState({
         businessName: record?.business_name || "",
         monthlyRent: record?.monthly_rent
@@ -116,6 +151,7 @@ export default function Print({ record }: Props) {
                 `}
             </style>
 
+            {/* Print Controls Navbar */}
             <div className="w-full max-w-[8.5in] mb-6 print:hidden space-y-4">
                 <div className="flex justify-between items-center px-4">
                     <Link
@@ -171,7 +207,12 @@ export default function Print({ record }: Props) {
                 </div>
             </div>
 
-            <div className="w-[8.5in] h-[25.5cm] bg-white shadow-2xl print:shadow-none relative flex flex-col pl-[1.5cm] pr-[3.5cm] pb-[2.7cm] pt-[1.5cm]">
+            {/* MAIN PRINTABLE PAPER */}
+            <div
+                className="w-[8.5in] h-[25.5cm] bg-white shadow-2xl print:shadow-none relative flex flex-col"
+                style={LAYOUT.page}
+            >
+                {/* Tracing Guide Image */}
                 {showGuide && (
                     <img
                         src={guideImage}
@@ -182,8 +223,9 @@ export default function Print({ record }: Props) {
                 )}
 
                 <div className="relative z-10 w-full h-full flex flex-col font-mono">
-                    <div className="w-full mt-6 flex flex-col">
-                        <div className="flex justify-between items-end px-2 h-8 relative">
+                    {/* TOP SECTION: Business Name & Rent */}
+                    <div className="w-full mt-0 flex flex-col">
+                        <div className="flex justify-between items-end px-0 h-0 relative">
                             <div className="w-[60%] flex justify-center relative h-full">
                                 <TransparentInput
                                     value={headerData.businessName}
@@ -203,28 +245,52 @@ export default function Print({ record }: Props) {
                             </div>
                         </div>
 
-                        <div className="w-full border-b-[2px] border-black mt-1"></div>
+                        {/* THE LINE you wanted to control */}
+                        <div
+                            className="w-full border-black"
+                            style={{
+                                borderBottomWidth:
+                                    LAYOUT.lines.topDividerThickness,
+                                marginTop: LAYOUT.lines.topDividerMarginTop,
+                                marginBottom:
+                                    LAYOUT.lines.topDividerMarginBottom,
+                            }}
+                        ></div>
 
-                        <div className="flex justify-between px-2 text-[8pt] font-sans pt-1 font-bold">
+                        <div className="flex justify-between px-2 text-[9pt] font-sans font-bold">
                             <div className="w-[60%] text-center uppercase">
                                 BUSINESS NAME
                             </div>
                             <div className="w-[30%] text-center">
-                                Mothly Rent
+                                Monthly Rent
                             </div>
                         </div>
                     </div>
 
-                    <div className="text-center mt-3 mb-6">
-                        <h1 className="text-[18pt] font-black tracking-widest font-sans uppercase">
+                    {/* TITLE: STALL RENTAL */}
+                    <div
+                        className="text-center"
+                        style={{
+                            marginTop: LAYOUT.spacing.aboveTitle,
+                            marginBottom: LAYOUT.spacing.belowTitle,
+                        }}
+                    >
+                        <h1 className="text-[14pt] font-bold tracking-wider font-sans uppercase">
                             STALL RENTAL
                         </h1>
                     </div>
 
-                    <div className="flex justify-between mt-4 text-[9pt] font-sans px-2">
+                    {/* ADDRESS & OWNER SECTION */}
+                    <div className="flex justify-between text-[9pt] font-sans px-2">
                         <div className="flex items-end gap-2 w-[45%]">
                             <span className="font-bold">ADDRESS:</span>
-                            <div className="flex-1 border-b border-black relative h-5">
+                            <div
+                                className="flex-1 border-black relative h-5"
+                                style={{
+                                    borderBottomWidth:
+                                        LAYOUT.lines.addressUnderlineThickness,
+                                }}
+                            >
                                 <TransparentInput
                                     value={headerData.address}
                                     onChange={(v) =>
@@ -238,7 +304,13 @@ export default function Print({ record }: Props) {
                             <span className="font-bold whitespace-nowrap">
                                 BUSINESS OWNER:
                             </span>
-                            <div className="flex-1 border-b border-black relative h-5">
+                            <div
+                                className="flex-1 border-black relative h-5"
+                                style={{
+                                    borderBottomWidth:
+                                        LAYOUT.lines.addressUnderlineThickness,
+                                }}
+                            >
                                 <TransparentInput
                                     value={headerData.owner}
                                     onChange={(v) =>
@@ -250,83 +322,90 @@ export default function Print({ record }: Props) {
                         </div>
                     </div>
 
-                    <div className="mt-6 flex-1 flex flex-col border-[3px] border-black overflow-hidden">
-                        <div className="grid grid-cols-5 text-center text-[8pt] font-bold border-b border-black bg-slate-50/30">
-                            {[
-                                "MONTH/YEAR",
-                                "AMOUNT",
-                                "O.R No.",
-                                "DATE",
-                                "MODE OF PAYMENT",
-                            ].map((h, i) => (
-                                <div
-                                    key={i}
-                                    className={`border-r border-black py-3 px-1 flex flex-col items-center justify-center ${i === 4 ? "border-r-0" : ""}`}
-                                >
-                                    <div className="border border-gray-400 w-full py-1 leading-none">
-                                        {h}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    {/* PERFECTLY ALIGNED TABLE */}
+                    <div
+                        className="flex-1 flex flex-col overflow-hidden"
+                        style={{ marginTop: LAYOUT.spacing.aboveTable }}
+                    >
+                        <table
+                            className="w-full border-collapse border-black text-[8pt] font-bold text-center fixed-table"
+                            style={{
+                                borderStyle: "solid",
+                                borderWidth: LAYOUT.table.borderThickness,
+                                tableLayout: "fixed",
+                            }}
+                        >
+                            {/* This <colgroup> is the magic that locks columns in place */}
+                            <colgroup>
+                                {LAYOUT.table.columnWidths.map((width, i) => (
+                                    <col key={i} style={{ width: width }} />
+                                ))}
+                            </colgroup>
 
-                        <div className="flex-1 flex flex-col">
-                            {rows.map((row, i) => (
-                                <div
-                                    key={i}
-                                    className="grid grid-cols-5 border-b border-black last:border-b-0 h-[22px]"
+                            {/* Table Header */}
+                            <thead className="bg-slate-50/30">
+                                <tr
+                                    style={{
+                                        height: LAYOUT.table.headerHeight,
+                                    }}
                                 >
-                                    <div className="border-r border-black relative">
-                                        <TransparentInput
-                                            value={row.month_year}
-                                            onChange={(v) =>
-                                                handleRowChange(
-                                                    i,
-                                                    "month_year",
-                                                    v,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="border-r border-black relative">
-                                        <TransparentInput
-                                            value={row.amount}
-                                            onChange={(v) =>
-                                                handleRowChange(i, "amount", v)
-                                            }
-                                        />
-                                    </div>
-                                    <div className="border-r border-black relative">
-                                        <TransparentInput
-                                            value={row.or_number}
-                                            onChange={(v) =>
-                                                handleRowChange(
-                                                    i,
-                                                    "or_number",
-                                                    v,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="border-r border-black relative">
-                                        <TransparentInput
-                                            value={row.date}
-                                            onChange={(v) =>
-                                                handleRowChange(i, "date", v)
-                                            }
-                                        />
-                                    </div>
-                                    <div className="relative">
-                                        <TransparentInput
-                                            value={row.mode}
-                                            onChange={(v) =>
-                                                handleRowChange(i, "mode", v)
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    {[
+                                        "MONTH/YEAR",
+                                        "AMOUNT",
+                                        "O.R No.",
+                                        "DATE",
+                                        "MODE OF PAYMENT",
+                                    ].map((h, i) => (
+                                        <th
+                                            key={i}
+                                            className="border border-black p-0 align-middle"
+                                        >
+                                            <div className="px-1 leading-none">
+                                                {h}
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+
+                            {/* Table Body */}
+                            <tbody>
+                                {rows.map((row, i) => (
+                                    <tr
+                                        key={i}
+                                        style={{
+                                            height: LAYOUT.table.rowHeight,
+                                        }}
+                                    >
+                                        {(
+                                            [
+                                                "month_year",
+                                                "amount",
+                                                "or_number",
+                                                "date",
+                                                "mode",
+                                            ] as const
+                                        ).map((field, colIndex) => (
+                                            <td
+                                                key={colIndex}
+                                                className="border border-black relative p-0"
+                                            >
+                                                <TransparentInput
+                                                    value={row[field]}
+                                                    onChange={(v) =>
+                                                        handleRowChange(
+                                                            i,
+                                                            field,
+                                                            v,
+                                                        )
+                                                    }
+                                                />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

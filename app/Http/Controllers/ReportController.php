@@ -107,25 +107,17 @@ class ReportController extends Controller
 
         $contracts = $query->get();
 
+        // Removed the deleted permit_status requirement
         $closures = $contracts->filter(function ($contract) {
-            return $contract->permit_status === 'Closed' || $contract->total_outstanding >= 10000;
+            return $contract->total_outstanding >= 10000;
         })->map(function ($contract) {
-            if ($contract->permit_status === 'Closed') {
-                $reason = 'Permit Revoked / Closed by LGU';
-                $severity = 'critical';
-            } else {
-                $reason = 'Severe Delinquency (Owes ₱' . number_format($contract->total_outstanding, 2) . ')';
-                $severity = 'high';
-            }
-
             return [
                 'id' => $contract->id,
                 'tenant_name' => $contract->tenant->last_name . ', ' . $contract->tenant->first_name,
                 'stall_code' => $contract->stall->stall_code ?? 'N/A',
-                'permit_status' => $contract->permit_status,
                 'total_outstanding' => $contract->total_outstanding,
-                'reason' => $reason,
-                'severity' => $severity
+                'reason' => 'Severe Delinquency (Owes ₱' . number_format($contract->total_outstanding, 2) . ')',
+                'severity' => 'high' // Can change to critical if preferred
             ];
         });
 
@@ -138,14 +130,14 @@ class ReportController extends Controller
         }
 
         // Collection Pagination
-        $page = Paginator::resolveCurrentPage() ?: 1;
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
         $perPage = 20;
-        $paginatedClosures = new LengthAwarePaginator(
+        $paginatedClosures = new \Illuminate\Pagination\LengthAwarePaginator(
             $closures->forPage($page, $perPage)->values(),
             $closures->count(),
             $perPage,
             $page,
-            ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
         $buildings = Building::orderBy('name', 'asc')->get();

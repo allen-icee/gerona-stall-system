@@ -13,11 +13,15 @@ class Stall extends Model
         'building_id',
         'floor_id',
         'stall_code',
+        'section',
+        'classification',
+        'stall_type',
         'size_sqm',
         'current_monthly_rental',
         'current_rate_per_sqm',
         'proposed_monthly_rental',
-        'proposed_rate_per_sqm'
+        'proposed_rate_per_sqm',
+        'fixed_rate'
     ];
 
     protected $casts = [
@@ -26,11 +30,13 @@ class Stall extends Model
         'current_rate_per_sqm' => 'float',
         'proposed_monthly_rental' => 'float',
         'proposed_rate_per_sqm' => 'float',
+        'fixed_rate' => 'float',
     ];
 
     protected $appends = [
         'computed_status',
-        'computed_monthly_rent'
+        'computed_monthly_rent',
+        'active_contract'
     ];
 
     public function floor()
@@ -53,11 +59,18 @@ class Stall extends Model
         return $this->hasMany(Contract::class)->where('is_active', true);
     }
 
+    // Helper to easily grab the occupant for the frontend Maps & Tables
+    public function getActiveContractAttribute()
+    {
+        return $this->activeContracts->first();
+    }
+
     public function getComputedMonthlyRentAttribute()
     {
         return $this->current_monthly_rental;
     }
 
+    // THE MAGIC HAPPENS HERE: Simple Vacant vs Occupied check
     public function getComputedStatusAttribute()
     {
         $contracts = $this->activeContracts;
@@ -67,42 +80,7 @@ class Stall extends Model
             return ['label' => $status->value, 'color' => $status->color()];
         }
 
-        $contract = $contracts->first();
-
-        if ($contract->permit_status === 'Closed') {
-            $status = StallStatus::CLOSED;
-            return ['label' => $status->value, 'color' => $status->color()];
-        }
-
-        if ($contract->document_status === 'For Contract') {
-            $status = StallStatus::FOR_CONTRACT;
-            return ['label' => $status->value, 'color' => $status->color()];
-        }
-
-        if ($contract->document_status === 'For Signing') {
-            $status = StallStatus::FOR_SIGNING;
-            return ['label' => $status->value, 'color' => $status->color()];
-        }
-
-        if ($contract->document_status === 'Signed') {
-            $status = match ($contract->permit_status) {
-                'Waiting' => StallStatus::WAITING_PERMIT,
-                'On Process' => StallStatus::ON_PROCESS,
-                'For Confirmation' => StallStatus::FOR_CONFIRMATION,
-                'Unpaid' => StallStatus::UNPAID_PERMIT,
-                'Valid' => StallStatus::SIGNED_CONTRACT,
-                default => StallStatus::UNKNOWN,
-            };
-
-            return ['label' => $status->value, 'color' => $status->color()];
-        }
-
-        $status = StallStatus::UNKNOWN;
+        $status = StallStatus::OCCUPIED;
         return ['label' => $status->value, 'color' => $status->color()];
-    }
-
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(Status::class, 'status_id');
     }
 }

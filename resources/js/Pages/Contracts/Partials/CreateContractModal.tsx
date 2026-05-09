@@ -3,7 +3,6 @@ import { useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import Modal from "@/Components/Modal";
 import SearchableSelect from "@/Components/SearchableSelect";
-import CustomSelect from "@/Components/CustomSelect";
 import { useEnterTab } from "@/hooks/useEnterTab";
 
 export default function CreateContractModal({
@@ -18,13 +17,8 @@ export default function CreateContractModal({
             stall_id: "",
             start_date: "",
             end_date: "",
+            due_day: 31,
             monthly_rent: "",
-            deposit_required: "",
-            document_status: "For Contract",
-            permit_status: "Waiting",
-            deposit_paid: "",
-            deposit_reference: "",
-            remarks: "",
         });
 
     const formRef = useRef<HTMLFormElement>(null);
@@ -107,11 +101,7 @@ export default function CreateContractModal({
                 const rent = parseFloat(
                     selectedStall.computed_monthly_rent,
                 ).toFixed(2);
-                setData((prev) => ({
-                    ...prev,
-                    monthly_rent: rent,
-                    deposit_required: rent,
-                }));
+                setData((prev) => ({ ...prev, monthly_rent: rent }));
                 setIsRentLocked(true);
             }
         }
@@ -131,20 +121,18 @@ export default function CreateContractModal({
     };
 
     const preventNegativeInput = (e: any) => {
-        if (["-", "+", "e", "E"].includes(e.key)) {
-            e.preventDefault();
-        }
+        if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
     };
 
     return (
-        <Modal show={show} onClose={closeModal} maxWidth="3xl">
+        <Modal show={show} onClose={closeModal} maxWidth="2xl">
             <div className="px-6 py-4 bg-slate-200 border-b-2 border-slate-300 flex items-center justify-between rounded-t-2xl">
                 <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
                     <Icon
                         icon="solar:document-add-bold-duotone"
                         className="w-6 h-6 text-blue-700"
                     />
-                    Draft Lease Contract
+                    Assign Tenant to Stall
                 </h2>
                 <button
                     onClick={closeModal}
@@ -164,10 +152,7 @@ export default function CreateContractModal({
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label
-                            htmlFor="tenant_id"
-                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                        >
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Assign to Tenant
                         </label>
                         <SearchableSelect
@@ -186,10 +171,7 @@ export default function CreateContractModal({
                     </div>
 
                     <div>
-                        <label
-                            htmlFor="floor_id"
-                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                        >
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Select Facility Level
                         </label>
                         <div className="mb-2">
@@ -200,16 +182,12 @@ export default function CreateContractModal({
                                     setSelectedFloorId(val);
                                     setData("stall_id", "");
                                 }}
-                                options={floorOptions}
+                                options={floorOptions as any}
                                 placeholder="Search facility level..."
                                 theme="blue"
                             />
                         </div>
-
-                        <label
-                            htmlFor="stall_id"
-                            className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                        >
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                             Target Stall
                         </label>
                         <SearchableSelect
@@ -238,20 +216,15 @@ export default function CreateContractModal({
                         <Icon
                             icon="solar:calendar-date-bold-duotone"
                             className="w-4 h-4"
-                        />
-                        Basic Details
+                        />{" "}
+                        Assignment Details
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label
-                                htmlFor="start_date"
-                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                            >
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
                                 Start Date
                             </label>
                             <input
-                                id="start_date"
-                                name="start_date"
                                 type="date"
                                 value={data.start_date}
                                 onChange={(e) =>
@@ -267,22 +240,16 @@ export default function CreateContractModal({
                             )}
                         </div>
                         <div>
-                            <label
-                                htmlFor="end_date"
-                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                            >
-                                End Date
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                                End Date (Optional)
                             </label>
                             <input
-                                id="end_date"
-                                name="end_date"
                                 type="date"
                                 value={data.end_date}
                                 onChange={(e) =>
                                     setData("end_date", e.target.value)
                                 }
                                 className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-blue-600 focus:ring-0"
-                                required
                             />
                             {errors.end_date && (
                                 <p className="text-rose-600 text-xs font-bold mt-1">
@@ -293,10 +260,7 @@ export default function CreateContractModal({
 
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label
-                                    htmlFor="monthly_rent"
-                                    className="text-xs font-black text-slate-800 uppercase tracking-wide cursor-pointer"
-                                >
+                                <label className="text-xs font-black text-slate-800 uppercase tracking-wide cursor-pointer">
                                     Monthly Rent (₱)
                                 </label>
                                 <button
@@ -327,8 +291,6 @@ export default function CreateContractModal({
                                 </button>
                             </div>
                             <input
-                                id="monthly_rent"
-                                name="monthly_rent"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -347,240 +309,27 @@ export default function CreateContractModal({
                                 </p>
                             )}
                         </div>
-                        <div>
-                            <label
-                                htmlFor="deposit_required"
-                                className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer"
-                            >
-                                Required Deposit (Bond)
-                            </label>
-                            <input
-                                id="deposit_required"
-                                name="deposit_required"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                onKeyDown={preventNegativeInput}
-                                value={data.deposit_required}
-                                onChange={(e) =>
-                                    setData("deposit_required", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-black focus:border-blue-600 focus:ring-0"
-                                placeholder="₱ 0.00"
-                            />
-                            {errors.deposit_required && (
-                                <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.deposit_required}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
 
-                <div className="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-200">
-                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon
-                            icon="solar:wallet-money-bold-duotone"
-                            className="w-4 h-4"
-                        />
-                        Treasury Data (Initial Payment)
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label
-                                htmlFor="deposit_paid"
-                                className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1 block cursor-pointer"
-                            >
-                                Actual Deposit (Advance Rent)
+                            <label className="text-xs font-black text-slate-800 uppercase tracking-wide mb-1 block cursor-pointer">
+                                Billing Due Day
                             </label>
-                            <input
-                                id="deposit_paid"
-                                name="deposit_paid"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                onKeyDown={preventNegativeInput}
-                                value={data.deposit_paid}
+                            <select
+                                value={data.due_day}
                                 onChange={(e) =>
-                                    setData("deposit_paid", e.target.value)
+                                    setData("due_day", parseInt(e.target.value))
                                 }
-                                className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-black text-emerald-900 focus:border-emerald-600 focus:ring-0"
-                                placeholder="₱ 0.00"
-                            />
-                            {errors.deposit_paid && (
-                                <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.deposit_paid}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <div className="flex justify-between items-end mb-1">
-                                <label
-                                    htmlFor="deposit_reference"
-                                    className="text-xs font-black text-emerald-900 uppercase tracking-wide block cursor-pointer"
-                                >
-                                    O.R. / Reference #
-                                </label>
-                                <span
-                                    className={`text-[10px] font-bold ${data.deposit_reference?.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
-                                >
-                                    {data.deposit_reference?.length || 0}/255
-                                </span>
-                            </div>
-                            <input
-                                id="deposit_reference"
-                                name="deposit_reference"
-                                type="text"
-                                maxLength={255}
-                                value={data.deposit_reference}
-                                onChange={(e) =>
-                                    setData("deposit_reference", e.target.value)
-                                }
-                                className="w-full bg-white border-2 border-emerald-300 rounded-lg px-4 py-2 text-sm font-bold text-emerald-900 focus:border-emerald-600 focus:ring-0"
-                                placeholder="e.g. OR-12345"
-                            />
-                            {errors.deposit_reference && (
-                                <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.deposit_reference}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-xl border-2 border-blue-200">
-                    <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon
-                            icon="solar:folder-with-files-bold-duotone"
-                            className="w-4 h-4"
-                        />
-                        EEDO / Admin Operations
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label
-                                htmlFor="document_status"
-                                className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer"
+                                className="w-full bg-white border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-bold focus:border-blue-600 focus:ring-0 cursor-pointer"
+                                required
                             >
-                                Document Status
-                            </label>
-                            <CustomSelect
-                                id="document_status"
-                                name="document_status"
-                                value={data.document_status}
-                                onChange={(e: any) =>
-                                    setData(
-                                        "document_status",
-                                        e.target?.value ?? e,
-                                    )
-                                }
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
-                                options={[
-                                    {
-                                        label: "For Contract",
-                                        value: "For Contract",
-                                    },
-                                    {
-                                        label: "For Signing",
-                                        value: "For Signing",
-                                    },
-                                    { label: "Signed", value: "Signed" },
-                                ]}
-                            >
-                                <option value="For Contract">
-                                    For Contract
+                                <option value={15}>15th of the Month</option>
+                                <option value={31}>
+                                    End of the Month (Last Day)
                                 </option>
-                                <option value="For Signing">For Signing</option>
-                                <option value="Signed">Signed</option>
-                            </CustomSelect>
-                            {errors.document_status && (
+                            </select>
+                            {errors.due_day && (
                                 <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.document_status}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label
-                                htmlFor="permit_status"
-                                className="text-xs font-black text-blue-900 uppercase tracking-wide mb-1 block cursor-pointer"
-                            >
-                                Permit Status
-                            </label>
-                            <CustomSelect
-                                id="permit_status"
-                                name="permit_status"
-                                value={data.permit_status}
-                                onChange={(e: any) =>
-                                    setData(
-                                        "permit_status",
-                                        e.target?.value ?? e,
-                                    )
-                                }
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 cursor-pointer"
-                                options={[
-                                    {
-                                        label: "Waiting for Permit",
-                                        value: "Waiting",
-                                    },
-                                    {
-                                        label: "On Process",
-                                        value: "On Process",
-                                    },
-                                    {
-                                        label: "For Confirmation",
-                                        value: "For Confirmation",
-                                    },
-                                    { label: "Unpaid", value: "Unpaid" },
-                                    { label: "Valid", value: "Valid" },
-                                    { label: "Closed", value: "Closed" },
-                                ]}
-                            >
-                                <option value="Waiting">
-                                    Waiting for Permit
-                                </option>
-                                <option value="On Process">On Process</option>
-                                <option value="For Confirmation">
-                                    For Confirmation
-                                </option>
-                                <option value="Unpaid">Unpaid</option>
-                                <option value="Valid">Valid</option>
-                                <option value="Closed">Closed</option>
-                            </CustomSelect>
-                            {errors.permit_status && (
-                                <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.permit_status}
-                                </p>
-                            )}
-                        </div>
-                        <div className="col-span-1 md:col-span-2">
-                            <div className="flex justify-between items-end mb-1">
-                                <label
-                                    htmlFor="remarks"
-                                    className="text-xs font-black text-blue-900 uppercase tracking-wide block cursor-pointer"
-                                >
-                                    Remarks
-                                </label>
-                                <span
-                                    className={`text-[10px] font-bold ${data.remarks?.length >= 255 ? "text-rose-600" : "text-slate-400"}`}
-                                >
-                                    {data.remarks?.length || 0}/255
-                                </span>
-                            </div>
-                            <textarea
-                                id="remarks"
-                                name="remarks"
-                                maxLength={255}
-                                value={data.remarks}
-                                onChange={(e) =>
-                                    setData("remarks", e.target.value)
-                                }
-                                rows={2}
-                                className="w-full bg-white border-2 border-blue-300 rounded-lg px-4 py-2 text-sm font-bold text-blue-900 focus:border-blue-600 focus:ring-0 custom-scrollbar"
-                                placeholder="Add notes about this contract..."
-                            ></textarea>
-                            {errors.remarks && (
-                                <p className="text-rose-600 text-xs font-bold mt-1">
-                                    {errors.remarks}
+                                    {errors.due_day}
                                 </p>
                             )}
                         </div>
@@ -600,7 +349,7 @@ export default function CreateContractModal({
                         disabled={processing}
                         className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-black uppercase text-xs disabled:opacity-50 transition-colors shadow-sm"
                     >
-                        Finalize Contract
+                        Save Assignment
                     </button>
                 </div>
             </form>

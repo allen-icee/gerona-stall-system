@@ -12,11 +12,14 @@ return new class extends Migration {
             $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
 
             $table->decimal('amount', 10, 2);
-            $table->date('payment_date');
-            $table->string('month');
+            $table->string('payment_type')->default('rent');
+            $table->date('payment_date')->nullable();
+
+            $table->integer('month');
             $table->integer('year');
-            $table->string('or_number')->unique();
-            $table->foreignId('encoded_by')->constrained('users');
+            $table->string('or_number')->nullable();
+
+            $table->foreignId('encoded_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

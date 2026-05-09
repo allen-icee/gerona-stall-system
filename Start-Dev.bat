@@ -1,12 +1,10 @@
 @echo off
-TITLE Gerona Stall Ledger System - DO NOT CLOSE!
-:: Changes the color to Red Background with Bright White Text to scream "WARNING"
-COLOR 4F
+TITLE Gerona Stall Ledger System (DEVELOPMENT)
+:: Changes the color to Blue Background with Bright White Text
+COLOR 1F
 
 echo ==========================================================
-echo      CRITICAL: DO NOT CLOSE THIS WINDOW!
-echo   Closing this window will shut down the entire system.
-echo   Please minimize this window instead.
+echo       DEVELOPMENT MODE (Vite + Laravel)
 echo ==========================================================
 echo Shoutout To My Dearest Beloved Miss
 echo.
@@ -16,7 +14,6 @@ call Backup-Database.bat
 echo.
 
 echo [2/3] Starting Laravel Server in the background...
-:: The /B flag starts the process without opening a new command prompt window
 start /B php artisan serve --host=0.0.0.0 --port=8000
 
 echo [3/3] Starting Vite frontend in the background...
@@ -24,13 +21,12 @@ start /B npm run dev
 
 echo.
 echo ==========================================================
-echo       GERONA SYSTEM IS NOW LIVE ON THE NETWORK
+echo       DEVELOPMENT SERVERS ARE RUNNING
 echo ==========================================================
 echo.
-echo To safely stop the servers at the end of the day, press any key...
+echo To safely stop the servers, press any key...
 pause >nul
 
-:: If the user presses a key, it will cleanly kill the hidden background processes
 echo.
 echo Shutting down servers safely...
 taskkill /F /IM php.exe /T >nul 2>&1

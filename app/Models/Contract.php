@@ -1,5 +1,5 @@
 <?php
-//app\Models\Contract.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -12,37 +12,27 @@ class Contract extends Model
         'tenant_id',
         'start_date',
         'end_date',
+        'due_day', // Added from Phase 1!
         'monthly_rent',
-        'deposit_required',
         'is_active',
-        'permit_status',
-        'document_status',
-        'remarks',
-        'payables_with_penalty',
-        'business_permit_fee',
-        'is_new_owner'
     ];
 
     protected $casts = [
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
-        'is_new_owner' => 'boolean',
         'monthly_rent' => 'decimal:2',
-        'deposit_required' => 'decimal:2',
-        'payables_with_penalty' => 'decimal:2',
-        'business_permit_fee' => 'decimal:2',
+        'due_day' => 'integer',
     ];
 
     protected $appends = [
-        'total_paid',
+        'rent_paid',
+        'expected_rent',
         'outstanding_balance',
-        'deposit_variance',
         'penalty_balance',
         'total_outstanding',
         'monthly_matrix'
     ];
-
 
     public function tenant()
     {
@@ -64,27 +54,14 @@ class Contract extends Model
         return $this->hasMany(Penalty::class, 'contract_id', 'id');
     }
 
+    // --- MATH & LEDGER CALCULATIONS ---
+
     public function getRentPaidAttribute()
     {
-        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'rent')->sum('amount');
+        if ($this->relationLoaded('payments')) {
+            return $this->payments->where('payment_type', 'rent')->sum('amount');
+        }
         return $this->payments()->where('payment_type', 'rent')->sum('amount');
-    }
-
-    public function getDepositPaidAttribute()
-    {
-        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'deposit')->sum('amount');
-        return $this->payments()->where('payment_type', 'deposit')->sum('amount');
-    }
-
-    public function getPenaltyPaidAttribute()
-    {
-        if ($this->relationLoaded('payments')) return $this->payments->where('payment_type', 'violation')->sum('amount');
-        return $this->payments()->where('payment_type', 'violation')->sum('amount');
-    }
-
-    public function getTotalPaidAttribute()
-    {
-        return $this->rent_paid + $this->deposit_paid + $this->penalty_paid;
     }
 
     public function getMonthsActiveAttribute()
@@ -101,21 +78,27 @@ class Contract extends Model
         return $this->months_active * $this->monthly_rent;
     }
 
-    public function getPenaltyIncurredAttribute()
-    {
-
-        if ($this->relationLoaded('penalties')) return $this->penalties->where('status', 'approved')->sum('adjusted_amount');
-        return $this->penalties()->where('status', 'approved')->sum('adjusted_amount');
-    }
-
     public function getOutstandingBalanceAttribute()
     {
         return max(0, $this->expected_rent - $this->rent_paid);
     }
 
-    public function getDepositVarianceAttribute()
+    // --- PENALTY MATH ---
+
+    public function getPenaltyIncurredAttribute()
     {
-        return max(0, ($this->deposit_required ?? 0) - $this->deposit_paid);
+        if ($this->relationLoaded('penalties')) {
+            return $this->penalties->where('status', 'approved')->sum('original_amount');
+        }
+        return $this->penalties()->where('status', 'approved')->sum('original_amount');
+    }
+
+    public function getPenaltyPaidAttribute()
+    {
+        if ($this->relationLoaded('payments')) {
+            return $this->payments->where('payment_type', 'violation')->sum('amount');
+        }
+        return $this->payments()->where('payment_type', 'violation')->sum('amount');
     }
 
     public function getPenaltyBalanceAttribute()
@@ -125,31 +108,22 @@ class Contract extends Model
 
     public function getTotalOutstandingAttribute()
     {
-
-        return $this->outstanding_balance + $this->deposit_variance + $this->penalty_balance + ($this->payables_with_penalty ?? 0);
+        return $this->outstanding_balance + $this->penalty_balance;
     }
+
+    // --- MATRIX FOR REACT FRONTEND ---
 
     public function getMonthlyMatrixAttribute()
     {
-        $matrix = [
-            'JAN' => 0,
-            'FEB' => 0,
-            'MAR' => 0,
-            'APR' => 0,
-            'MAY' => 0,
-            'JUN' => 0,
-            'JUL' => 0,
-            'AUG' => 0,
-            'SEP' => 0,
-            'OCT' => 0,
-            'NOV' => 0,
-            'DEC' => 0
-        ];
+        $matrix = ['JAN' => 0, 'FEB' => 0, 'MAR' => 0, 'APR' => 0, 'MAY' => 0, 'JUN' => 0, 'JUL' => 0, 'AUG' => 0, 'SEP' => 0, 'OCT' => 0, 'NOV' => 0, 'DEC' => 0];
 
         if ($this->relationLoaded('payments') || $this->payments()->exists()) {
             foreach ($this->payments as $payment) {
                 if ($payment->payment_type === 'rent' && !empty($payment->month)) {
-                    $monthIndex = substr(strtoupper($payment->month), 0, 3);
+                    // Convert Integer Month (1-12) to Text (JAN-DEC)
+                    $monthName = Carbon::createFromFormat('!m', $payment->month)->format('M');
+                    $monthIndex = strtoupper($monthName);
+
                     if (isset($matrix[$monthIndex])) {
                         $matrix[$monthIndex] += $payment->amount;
                     }

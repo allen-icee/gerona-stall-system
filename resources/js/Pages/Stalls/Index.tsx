@@ -1,4 +1,3 @@
-//resources/js/Pages/Stalls/Index.tsx
 import { useState, useEffect, useRef } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -22,14 +21,11 @@ export default function StallsIndex({
             ? filters.search
             : "",
     );
-
-    // Protected against the native JS sort() function bug
     const [sortFilter, setSortFilter] = useState(
         filters?.sort && typeof filters.sort === "string"
             ? `${filters.sort}_${filters.direction}`
             : "stall_code_asc",
     );
-
     const [filterBuilding, setFilterBuilding] = useState(
         filters?.building_id || "",
     );
@@ -58,12 +54,10 @@ export default function StallsIndex({
     const isFirstRender = useRef(true);
 
     useEffect(() => {
-        // Block the first accidental search
         if (isFirstRender.current) {
             isFirstRender.current = false;
             return;
         }
-
         const delay = setTimeout(() => {
             const [sortBy, filterDirection] = sortFilter.split("_");
             router.get(
@@ -88,11 +82,9 @@ export default function StallsIndex({
         if (
             selectedStalls.length === stalls.data.length &&
             stalls.data.length > 0
-        ) {
+        )
             setSelectedStalls([]);
-        } else {
-            setSelectedStalls(stalls.data.map((stall: any) => stall.id));
-        }
+        else setSelectedStalls(stalls.data.map((stall: any) => stall.id));
     };
 
     const handleSelectStall = (id: number) => {
@@ -103,9 +95,7 @@ export default function StallsIndex({
         );
     };
 
-    const confirmBulkDelete = () => {
-        setIsBulkDeleteModalOpen(true);
-    };
+    const confirmBulkDelete = () => setIsBulkDeleteModalOpen(true);
 
     const executeBulkDelete = () => {
         router.post(
@@ -122,14 +112,12 @@ export default function StallsIndex({
     };
 
     const confirmDelete = (id: number) => setDeletingId(id);
-
     const handleDelete = () => {
-        if (deletingId) {
+        if (deletingId)
             router.delete(route("stalls.destroy", deletingId), {
                 preserveScroll: true,
                 onFinish: () => setDeletingId(null),
             });
-        }
     };
 
     const handleExport = (e: React.MouseEvent) => {
@@ -165,13 +153,12 @@ export default function StallsIndex({
         }
     };
 
-    const handleTogglePricing = () => {
+    const handleTogglePricing = () =>
         router.post(
             route("system.toggle_pricing"),
             {},
             { preserveScroll: true },
         );
-    };
 
     const totalStalls = stalls.total || stalls.data.length;
 
@@ -290,7 +277,7 @@ export default function StallsIndex({
                                 <Icon
                                     icon="solar:shop-bold-duotone"
                                     className="w-7 h-7 text-blue-700"
-                                />
+                                />{" "}
                                 Manage Stalls
                             </h3>
                             <span
@@ -300,7 +287,7 @@ export default function StallsIndex({
                                 <Icon
                                     icon="solar:database-bold-duotone"
                                     className="w-4 h-4"
-                                />
+                                />{" "}
                                 {totalStalls}
                             </span>
                         </div>
@@ -338,7 +325,6 @@ export default function StallsIndex({
                                 Proposed Rates
                             </button>
                         </div>
-
                         <button
                             onClick={() => setIsCreateOpen(true)}
                             className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 border-2 border-blue-900 text-white font-black uppercase text-xs tracking-wide px-5 py-2.5 rounded-lg shadow-sm transition-colors shrink-0 whitespace-nowrap cursor-pointer"
@@ -346,7 +332,7 @@ export default function StallsIndex({
                             <Icon
                                 icon="solar:shop-bold-duotone"
                                 className="w-5 h-5"
-                            />
+                            />{" "}
                             <span className="hidden sm:inline">Add Stall</span>
                         </button>
                     </div>
@@ -361,7 +347,6 @@ export default function StallsIndex({
                             theme="blue"
                         />
                     </div>
-
                     <div className="w-48 z-30">
                         <CustomSelect
                             value={filterBuilding}
@@ -371,7 +356,6 @@ export default function StallsIndex({
                             theme="blue"
                         />
                     </div>
-
                     <div className="relative flex-1 min-w-[200px]">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Icon
@@ -387,7 +371,6 @@ export default function StallsIndex({
                             placeholder="Search stalls..."
                         />
                     </div>
-
                     <button
                         onClick={handleExport}
                         className="flex items-center justify-center p-2 text-emerald-700 bg-emerald-100 rounded-lg border-2 border-emerald-300 hover:bg-emerald-200 shrink-0 cursor-pointer"
@@ -398,7 +381,6 @@ export default function StallsIndex({
                             className="w-5 h-5"
                         />
                     </button>
-
                     <input
                         type="file"
                         className="hidden"
@@ -406,7 +388,6 @@ export default function StallsIndex({
                         onChange={handleFileChange}
                         accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                     />
-
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         className="flex items-center justify-center p-2 text-amber-700 bg-amber-100 rounded-lg border-2 border-amber-300 hover:bg-amber-200 shrink-0 cursor-pointer"
@@ -429,13 +410,7 @@ export default function StallsIndex({
                                             type="button"
                                             onClick={handleSelectAll}
                                             aria-label="Select all records"
-                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                stalls.data.length > 0 &&
-                                                selectedStalls.length ===
-                                                    stalls.data.length
-                                                    ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110"
-                                                    : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                            }`}
+                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${stalls.data.length > 0 && selectedStalls.length === stalls.data.length ? "bg-blue-600 border-blue-600 text-white shadow-inner scale-110" : "bg-white border-slate-400 text-transparent hover:border-blue-400 hover:bg-blue-50"}`}
                                         >
                                             <Icon
                                                 icon="solar:check-read-bold"
@@ -476,7 +451,7 @@ export default function StallsIndex({
                                             <Icon
                                                 icon="solar:ghost-broken"
                                                 className="w-10 h-10 mx-auto mb-2 opacity-50 text-slate-300"
-                                            />
+                                            />{" "}
                                             No stalls found in the registry.
                                         </td>
                                     </tr>
@@ -492,7 +467,6 @@ export default function StallsIndex({
                                                 selectedStalls.includes(
                                                     stall.id,
                                                 );
-
                                             const activeMonthly =
                                                 useProposedPricing
                                                     ? stall.proposed_monthly_rental
@@ -501,6 +475,13 @@ export default function StallsIndex({
                                                 useProposedPricing
                                                     ? stall.proposed_rate_per_sqm
                                                     : stall.current_rate_per_sqm;
+
+                                            // Handle White Occupied styling for the table row
+                                            const isWhite =
+                                                statusObj.color.toLowerCase() ===
+                                                    "#ffffff" ||
+                                                statusObj.color.toLowerCase() ===
+                                                    "#fff";
 
                                             return (
                                                 <tr
@@ -525,11 +506,7 @@ export default function StallsIndex({
                                                                     stall.id,
                                                                 )
                                                             }
-                                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${
-                                                                isSelected
-                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110"
-                                                                    : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"
-                                                            }`}
+                                                            className={`w-4 h-4 mx-auto rounded flex items-center justify-center transition-all duration-200 border cursor-pointer ${isSelected ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-110" : "bg-white border-slate-300 text-transparent hover:border-blue-400 hover:bg-blue-50"}`}
                                                         >
                                                             <Icon
                                                                 icon="solar:check-read-bold"
@@ -544,7 +521,6 @@ export default function StallsIndex({
                                                     <td className="px-4 py-2 font-black text-slate-900 border-r border-slate-200 text-center text-base">
                                                         {stall.stall_code}
                                                     </td>
-
                                                     <td className="px-4 py-2 font-black text-slate-700 text-center border-r border-slate-200">
                                                         {stall.size_sqm ? (
                                                             <span className="bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-[10px] sm:text-xs">
@@ -557,7 +533,6 @@ export default function StallsIndex({
                                                             </span>
                                                         )}
                                                     </td>
-
                                                     <td className="px-4 py-2 text-center border-r border-slate-200">
                                                         <div
                                                             className={`text-sm font-black ${useProposedPricing ? "text-amber-600" : "text-emerald-700"}`}
@@ -574,19 +549,21 @@ export default function StallsIndex({
                                                             / sqm
                                                         </div>
                                                     </td>
-
                                                     <td className="px-4 py-2 text-center border-r border-slate-200">
                                                         <span
                                                             className="inline-block px-2.5 py-0.5 rounded border-2 font-black text-[9px] uppercase tracking-wider shadow-sm"
                                                             style={{
-                                                                backgroundColor: `${statusObj.color}20`,
+                                                                backgroundColor:
+                                                                    isWhite
+                                                                        ? "#f8fafc"
+                                                                        : `${statusObj.color}20`,
                                                                 borderColor:
-                                                                    statusObj.color,
-                                                                color:
-                                                                    statusObj.color ===
-                                                                    "#ffffff"
-                                                                        ? "#000000"
+                                                                    isWhite
+                                                                        ? "#cbd5e1"
                                                                         : statusObj.color,
+                                                                color: isWhite
+                                                                    ? "#334155"
+                                                                    : statusObj.color,
                                                             }}
                                                         >
                                                             {statusObj.label}
@@ -653,7 +630,6 @@ export default function StallsIndex({
                             </tbody>
                         </table>
                     </div>
-                    {/* Pagination */}
                     {stalls.links && stalls.links.length > 3 && (
                         <div className="px-4 py-3 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-center">
                             <Pagination links={stalls.links} />

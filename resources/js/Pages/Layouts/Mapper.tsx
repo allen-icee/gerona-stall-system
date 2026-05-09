@@ -1,4 +1,3 @@
-//resources/js/Pages/Layouts/Mapper.tsx
 import { useState, useEffect } from "react";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
@@ -21,12 +20,6 @@ export default function Mapper({
     const [customText, setCustomText] = useState("");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-    const [paintMode, setPaintMode] = useState<{
-        id: string;
-        color: string;
-        label: string;
-    } | null>(null);
-
     const [gridCells, setGridCells] = useState<any[]>([]);
     const [gridDims, setGridDims] = useState({ rows: 0, cols: 0 });
 
@@ -44,11 +37,13 @@ export default function Mapper({
 
     useEffect(() => {
         if (layout && layout.cells) {
-            setGridCells(layout.cells);
-            setGridDims({
-                rows: layout.total_rows,
-                cols: layout.total_cols,
-            });
+            const hydratedCells = layout.cells.map((c: any) => ({
+                ...c,
+                colSpan: c.col_span || 1,
+                rowSpan: c.row_span || 1,
+            }));
+            setGridCells(hydratedCells);
+            setGridDims({ rows: layout.total_rows, cols: layout.total_cols });
         } else {
             setGridCells([]);
             setGridDims({ rows: 0, cols: 0 });
@@ -127,7 +122,6 @@ export default function Mapper({
 
         const newCells = [...gridCells];
         const cell = newCells[cellIndex];
-
         cell.type = activeTool;
         cell.stall_id = activeTool === "stall" ? selectedStallId : null;
 
@@ -142,7 +136,6 @@ export default function Mapper({
             cell.stall = null;
             cell.text = null;
         }
-
         setGridCells(newCells);
     };
 
@@ -184,7 +177,12 @@ export default function Mapper({
             icon: "solar:history-bold-duotone",
             iconColor: "text-amber-500",
             onConfirm: () => {
-                setGridCells([...layout.cells]);
+                const hydratedCells = layout.cells.map((c: any) => ({
+                    ...c,
+                    colSpan: c.col_span || 1,
+                    rowSpan: c.row_span || 1,
+                }));
+                setGridCells(hydratedCells);
                 setGridDims({
                     rows: layout.total_rows,
                     cols: layout.total_cols,
@@ -192,34 +190,6 @@ export default function Mapper({
                 closeDialog();
             },
         });
-    };
-
-    // 🔥 OPTIMISTIC UI RESTORED: Visually patches the map color instantly!
-    const handleQuickPaint = (stallId: string, statusObj: any) => {
-        setGridCells((prev) =>
-            prev.map((cell) => {
-                if (cell.type === "stall" && cell.stall_id == stallId) {
-                    return {
-                        ...cell,
-                        stall: {
-                            ...cell.stall,
-                            computed_status: {
-                                id: statusObj.id,
-                                color: statusObj.color,
-                                label: statusObj.label,
-                            },
-                        },
-                    };
-                }
-                return cell;
-            }),
-        );
-
-        router.post(
-            route("stalls.quick-status", stallId),
-            { status: statusObj.id },
-            { preserveScroll: true, preserveState: true },
-        );
     };
 
     const insertRow = (rowIndex: number) => {
@@ -281,6 +251,7 @@ export default function Mapper({
         );
     };
 
+    // 🔥 WIPE-PROOF EXPORT: Now exports the Stall Code alongside the ID
     const handleExport = () => {
         const data = {
             total_rows: gridDims.rows,
@@ -288,6 +259,7 @@ export default function Mapper({
             cells: gridCells.map((c) => ({
                 type: c.type,
                 stall_id: c.stall_id,
+                stall_code: c.stall?.stall_code || null, // Magic fix
                 text: c.text,
                 colSpan: c.colSpan || 1,
                 rowSpan: c.rowSpan || 1,
@@ -306,10 +278,10 @@ export default function Mapper({
         URL.revokeObjectURL(url);
     };
 
+    // 🔥 SMART IMPORT: Searches by Stall Code first to survive DB resets
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
@@ -321,12 +293,33 @@ export default function Mapper({
                 ) {
                     const hydratedCells = json.cells.map((cell: any) => {
                         let stallObj = null;
-                        if (cell.type === "stall" && cell.stall_id) {
-                            stallObj =
-                                stalls.find(
-                                    (s: any) => s.id == cell.stall_id,
-                                ) || null;
+
+                        if (cell.type === "stall") {
+                            // 1. Try to find by Stall Code first (survives database wipes)
+                            if (cell.stall_code) {
+                                stallObj =
+                                    stalls.find(
+                                        (s: any) =>
+                                            s.stall_code === cell.stall_code,
+                                    ) || null;
+                            }
+                            // 2. Fallback to old ID method if code isn't there
+                            if (!stallObj && cell.stall_id) {
+                                stallObj =
+                                    stalls.find(
+                                        (s: any) => s.id == cell.stall_id,
+                                    ) || null;
+                            }
+
+                            // 3. Update the cell with the correct LOCAL database ID, or turn it vacant if deleted
+                            if (stallObj) {
+                                cell.stall_id = stallObj.id;
+                            } else {
+                                cell.type = "vacant";
+                                cell.stall_id = null;
+                            }
                         }
+
                         return {
                             ...cell,
                             id: `imported-${Math.random()}`,
@@ -434,17 +427,12 @@ export default function Mapper({
                     setCustomText={setCustomText}
                     onExport={handleExport}
                     onImport={handleImport}
-                    paintMode={paintMode}
-                    setPaintMode={setPaintMode}
                 />
 
                 <div className="flex-1 bg-slate-200 overflow-hidden relative flex items-center justify-center">
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="absolute top-4 left-4 z-[90] bg-white p-2.5 rounded-xl shadow-lg border-2 border-slate-300 text-slate-700 hover:text-blue-600 hover:border-blue-400 transition-colors cursor-pointer"
-                        title={
-                            isSidebarOpen ? "Collapse Toolbar" : "Expand Tools"
-                        }
                     >
                         <Icon
                             icon={
@@ -492,9 +480,6 @@ export default function Mapper({
                             onDeleteRow={deleteRow}
                             onInsertCol={insertCol}
                             onDeleteCol={deleteCol}
-                            onQuickPaint={handleQuickPaint}
-                            paintMode={paintMode}
-                            setPaintMode={setPaintMode}
                         />
                     )}
                 </div>

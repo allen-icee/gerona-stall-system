@@ -6,15 +6,10 @@ use App\Models\Contract;
 use App\Models\Stall;
 use App\Models\Tenant;
 use App\Models\Building;
-use App\Models\Payment;
-use App\Services\ContractService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use App\Imports\ContractsImport;
 use Maatwebsite\Excel\Facades\Excel;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 
 class ContractController extends Controller
 {
@@ -76,110 +71,52 @@ class ContractController extends Controller
             'availableStalls' => $availableStalls,
             'buildings' => $buildings,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year']),
-            'stalls_count' => \App\Models\Stall::count(),
-            'tenants_count' => \App\Models\Tenant::count(),
+            'stalls_count' => Stall::count(),
+            'tenants_count' => Tenant::count(),
         ]);
     }
 
-    public function store(Request $request, ContractService $contractService)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'stall_id' => 'required|exists:stalls,id',
             'tenant_id' => 'required|exists:tenants,id',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'end_date' => 'nullable|date|after:start_date',
+            'due_day' => 'required|integer|in:15,31',
             'monthly_rent' => 'required|numeric|min:0',
-            'deposit_required' => 'nullable|numeric|min:0',
-            'document_status' => 'nullable|string',
-            'permit_status' => 'nullable|string',
-            'deposit_paid' => 'nullable|numeric|min:0',
-            'deposit_reference' => 'nullable|string',
-            'remarks' => 'nullable|string',
-            'is_renewal' => 'nullable|boolean',
-            'old_contract_id' => 'nullable|exists:contracts,id'
         ]);
 
-        $isRenewal = $validated['is_renewal'] ?? false;
-        $oldContractId = $validated['old_contract_id'] ?? null;
-
-        // Remove transient fields before passing to the model creator
-        unset($validated['is_renewal'], $validated['old_contract_id']);
-
         $validated['is_active'] = true;
-        $validated['document_status'] = $validated['document_status'] ?? 'For Contract';
-        $validated['permit_status'] = $validated['permit_status'] ?? 'Waiting';
+        Contract::create($validated);
 
-        // Delegate business logic to the service
-        $contractService->createContract($validated, $isRenewal, $oldContractId, Auth::id() ?? 1);
-
-        $msg = $isRenewal ? 'Contract renewed! Old contract archived.' : 'Contract drafted successfully!';
-        return redirect()->back()->with('success', $msg);
+        return redirect()->back()->with('success', 'Tenant assigned to stall successfully!');
     }
 
     public function update(Request $request, Contract $contract)
     {
         $validated = $request->validate([
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'end_date' => 'nullable|date|after:start_date',
+            'due_day' => 'required|integer|in:15,31',
             'monthly_rent' => 'required|numeric|min:0',
-            'deposit_required' => 'nullable|numeric|min:0',
-            'document_status' => 'nullable|string',
-            'permit_status' => 'nullable|string',
-            'remarks' => 'nullable|string',
         ]);
 
         $contract->update($validated);
-        return redirect()->back()->with('success', 'Contract operations updated!');
+        return redirect()->back()->with('success', 'Stall assignment updated!');
     }
 
-    public function destroy(Contract $contract, ContractService $contractService)
+    public function destroy(Contract $contract)
     {
-        // Delegate deletion logic to the service
-        $contractService->deleteContract($contract);
-
-        return redirect()->back()->with('success', 'Contract deleted. Stall is automatically Vacant.');
+        $contract->delete();
+        return redirect()->back()->with('success', 'Assignment removed. Stall is automatically Vacant.');
     }
 
     public function export(Request $request)
     {
-        $query = Contract::with(['stall', 'tenant']);
-
-        if ($request->filled('search')) {
-            $searchTerm = '%' . $request->search . '%';
-            $query->whereHas('tenant', function ($q) use ($searchTerm) {
-                $q->where('first_name', 'like', $searchTerm)->orWhere('last_name', 'like', $searchTerm);
-            })->orWhereHas('stall', function ($q) use ($searchTerm) {
-                $q->where('stall_code', 'like', $searchTerm);
-            });
-        }
-
-        if ($request->filled('building_id')) {
-            $query->whereHas('stall.floor', function ($q) use ($request) {
-                $q->where('building_id', $request->building_id);
-            });
-        }
-        if ($request->filled('month')) {
-            $query->whereMonth('start_date', $request->month);
-        }
-        if ($request->filled('year')) {
-            $query->whereYear('start_date', $request->year);
-        }
-
-        $allowedSorts = ['tenant_name', 'stall_code', 'start_date', 'created_at'];
-        $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'created_at';
-        $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
-
-        if ($sortBy === 'tenant_name') {
-            $query->join('tenants', 'contracts.tenant_id', '=', 'tenants.id')->select('contracts.*')->orderBy('tenants.last_name', $direction);
-        } elseif ($sortBy === 'stall_code') {
-            $query->join('stalls', 'contracts.stall_id', '=', 'stalls.id')->select('contracts.*')->orderBy('stalls.stall_code', $direction);
-        } else {
-            $query->orderBy('contracts.' . $sortBy, $direction);
-        }
-
-        $contracts = $query->get();
-
+        $contracts = Contract::with(['stall', 'tenant'])->get();
         $exportData = [];
+
         foreach ($contracts as $contract) {
             $exportData[] = [
                 'tenant_first_name' => $contract->tenant->first_name ?? '',
@@ -187,8 +124,8 @@ class ContractController extends Controller
                 'stall_code' => $contract->stall->stall_code ?? '',
                 'start_date' => $contract->start_date,
                 'end_date' => $contract->end_date,
+                'due_day' => $contract->due_day,
                 'monthly_rent' => $contract->monthly_rent,
-                'deposit_required' => $contract->deposit_required ?? 0,
             ];
         }
 
@@ -204,19 +141,11 @@ class ContractController extends Controller
             }
             public function headings(): array
             {
-                return [
-                    'tenant_first_name',
-                    'tenant_last_name',
-                    'stall_code',
-                    'start_date',
-                    'end_date',
-                    'monthly_rent',
-                    'deposit_required'
-                ];
+                return ['First Name', 'Last Name', 'Stall Code', 'Start Date', 'End Date', 'Due Day', 'Monthly Rent'];
             }
         };
 
-        $filename = 'contracts_' . now()->format('Y-m-d') . '.xlsx';
+        $filename = 'stall_assignments_' . now()->format('Y-m-d') . '.xlsx';
         return Excel::download($export, $filename);
     }
 
@@ -225,7 +154,7 @@ class ContractController extends Controller
         $request->validate(['file' => 'required|mimes:csv,txt,xlsx,xls|max:2048']);
         try {
             Excel::import(new ContractsImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Contracts synced successfully!');
+            return redirect()->back()->with('success', 'Assignments synced successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Import failed.');
         }

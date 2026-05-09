@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\StallStatus;
 use App\Models\Stall;
 use App\Models\Contract;
 use App\Models\Payment;
@@ -25,14 +24,11 @@ class DashboardController extends Controller
             $query->where('is_active', true);
         })->count();
 
+        // Simplified to only track what matters now
         $stats = [
             'total_stalls' => $totalStalls,
             'occupied' => $totalStalls - $vacantStalls,
             'vacant' => $vacantStalls,
-            'maintenance' => Stall::whereHas('contracts', function ($q) {
-                $q->where('is_active', true)->where('permit_status', 'Waiting');
-            })->count(),
-
             'today_collection' => Payment::whereDate('payment_date', Carbon::today())->sum('amount'),
             'month_collection' => Payment::whereMonth('payment_date', Carbon::now()->month)
                 ->whereYear('payment_date', Carbon::now()->year)
@@ -46,58 +42,20 @@ class DashboardController extends Controller
             }
         ])->get();
 
+        // Cleaned up tallying logic - no more complex enums
         $buildingSummary = $buildings->map(function ($building) {
             $stalls = $building->stalls;
 
-            $tally = [
+            $vacantCount = $stalls->filter(function ($stall) {
+                return empty($stall->activeContracts) || $stall->activeContracts->isEmpty();
+            })->count();
+
+            return [
                 'name' => $building->name,
                 'total' => $stalls->count(),
-                'vacant' => 0,
-                'for_contract' => 0,
-                'for_signing' => 0,
-                'waiting_permit' => 0,
-                'on_process' => 0,
-                'for_confirmation' => 0,
-                'unpaid' => 0,
-                'signed_valid' => 0,
-                'closed' => 0,
+                'vacant' => $vacantCount,
+                'occupied' => $stalls->count() - $vacantCount,
             ];
-
-            foreach ($stalls as $stall) {
-                $label = $stall->computed_status['label'];
-
-                switch ($label) {
-                    case StallStatus::VACANT->value:
-                        $tally['vacant']++;
-                        break;
-                    case StallStatus::FOR_CONTRACT->value:
-                        $tally['for_contract']++;
-                        break;
-                    case StallStatus::FOR_SIGNING->value:
-                        $tally['for_signing']++;
-                        break;
-                    case StallStatus::WAITING_PERMIT->value:
-                        $tally['waiting_permit']++;
-                        break;
-                    case StallStatus::ON_PROCESS->value:
-                        $tally['on_process']++;
-                        break;
-                    case StallStatus::FOR_CONFIRMATION->value:
-                        $tally['for_confirmation']++;
-                        break;
-                    case StallStatus::UNPAID_PERMIT->value:
-                        $tally['unpaid']++;
-                        break;
-                    case StallStatus::SIGNED_CONTRACT->value:
-                        $tally['signed_valid']++;
-                        break;
-                    case StallStatus::CLOSED->value:
-                        $tally['closed']++;
-                        break;
-                }
-            }
-
-            return $tally;
         });
 
         $recentActivity = Contract::with(['stall', 'tenant'])
@@ -110,13 +68,14 @@ class DashboardController extends Controller
                     'tenant_name' => $contract->tenant
                         ? $contract->tenant->first_name . ' ' . $contract->tenant->last_name
                         : 'No Tenant',
-                    'action' => 'Contract Updated',
+                    'action' => 'Stall Assigned/Updated',
                     'date' => $contract->updated_at->format('M d, Y'),
                 ];
             });
 
         $expiringContracts = Contract::with('stall')
             ->where('is_active', true)
+            ->whereNotNull('end_date') // Protects against indefinite (null) assignments
             ->where('end_date', '<=', Carbon::now()->addDays(30))
             ->get()
             ->map(function ($contract) {
