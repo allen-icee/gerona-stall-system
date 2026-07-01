@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -31,12 +32,14 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'nullable|string|max:255|unique:' . User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
+            'username' => $request->username ?: $this->uniqueUsernameFromEmail($request->email),
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
@@ -46,5 +49,19 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    private function uniqueUsernameFromEmail(string $email): string
+    {
+        $base = Str::slug(Str::before($email, '@'), '_') ?: 'user';
+        $username = $base;
+        $suffix = 1;
+
+        while (User::where('username', $username)->exists()) {
+            $username = $base . '_' . $suffix;
+            $suffix++;
+        }
+
+        return $username;
     }
 }

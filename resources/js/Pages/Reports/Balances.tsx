@@ -11,6 +11,9 @@ export default function BalancesReport({
     stalls,
     filters,
 }: any) {
+    const balanceData = Array.isArray(balances) ? balances : balances?.data || [];
+    const balanceCount = balances?.total ?? balanceData.length;
+
     const [search, setSearch] = useState(filters?.search || "");
     const [sortFilter, setSortFilter] = useState(
         filters?.sort
@@ -42,7 +45,10 @@ export default function BalancesReport({
 
     useEffect(() => {
         const delay = setTimeout(() => {
-            const [sortBy, filterDirection] = sortFilter.split("_");
+            const lastUnderscore = sortFilter.lastIndexOf("_");
+            const sortBy = sortFilter.slice(0, lastUnderscore);
+            const filterDirection = sortFilter.slice(lastUnderscore + 1);
+
             router.get(
                 route("reports.balances"),
                 {
@@ -74,8 +80,8 @@ export default function BalancesReport({
                                 Delinquent Accounts & Balances
                             </h3>
                             <span className="bg-rose-100 text-rose-800 text-xs px-3 py-1 rounded-full font-black border-2 border-rose-200">
-                                {balances.length} Active{" "}
-                                {balances.length === 1 ? "Record" : "Records"}
+                                {balanceCount} Active{" "}
+                                {balanceCount === 1 ? "Record" : "Records"}
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">
@@ -169,7 +175,7 @@ export default function BalancesReport({
                                 </tr>
                             </thead>
                             <tbody className="divide-y-2 divide-slate-200">
-                                {balances.length === 0 ? (
+                                {balanceData.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={6}
@@ -186,7 +192,7 @@ export default function BalancesReport({
                                         </td>
                                     </tr>
                                 ) : (
-                                    balances.map((record: any) => (
+                                    balanceData.map((record: any) => (
                                         <tr
                                             key={record.id}
                                             className="hover:bg-rose-50/50 transition-colors"

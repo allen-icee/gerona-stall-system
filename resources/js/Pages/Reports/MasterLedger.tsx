@@ -1,12 +1,12 @@
 //resources\js\Pages\Reports\MasterLedger.tsx
-import { useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import { Icon } from "@iconify/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 
-export default function MasterLedger({ ledgerData }: any) {
+export default function MasterLedger({ ledger, ledgerData }: any) {
     // For local dev, fallback to empty array if props aren't passed yet
-    const data = ledgerData?.data || [];
+    const reportData = ledgerData || ledger;
+    const data = Array.isArray(reportData) ? reportData : reportData?.data || [];
 
     const handleExport = () => {
         window.location.href = route("reports.master_ledger.export");

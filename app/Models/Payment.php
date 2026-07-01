@@ -9,6 +9,7 @@ class Payment extends Model
     protected $fillable = [
         'contract_id',
         'amount',
+        'payment_type',
         'payment_date',
         'month',
         'year',
@@ -18,6 +19,8 @@ class Payment extends Model
 
     protected $casts = [
         'payment_date' => 'date:Y-m-d',
+        'month' => 'integer',
+        'year' => 'integer',
     ];
 
     public function contract()

@@ -11,6 +11,10 @@ echo ==========================================================
 echo Shoutout To My Dearest Beloved Miss
 echo.
 
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Get-LanIp.ps1"`) do set "SERVER_IP=%%I"
+if "%SERVER_IP%"=="" set "SERVER_IP=127.0.0.1"
+set "APP_URL=http://%SERVER_IP%:8000"
+
 echo [1/3] Running Daily Database Backup...
 call Backup-Database.bat
 echo.
@@ -32,6 +36,9 @@ echo.
 echo ==========================================================
 echo       GERONA SYSTEM IS NOW LIVE ON THE NETWORK
 echo ==========================================================
+echo.
+echo Server computer URL: http://localhost:8000
+echo Staff LAN URL:       http://%SERVER_IP%:8000
 echo.
 echo To safely stop the server at the end of the day, press any key...
 pause >nul

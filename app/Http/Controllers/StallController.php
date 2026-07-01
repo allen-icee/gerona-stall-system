@@ -293,7 +293,11 @@ class StallController extends Controller
 
     public function quickStatus(Request $request, Stall $stall)
     {
-        $status = $request->input('status');
+        $validated = $request->validate([
+            'status' => 'required|in:vacant,closed,maintenance,signed,for_contract,for_signing,waiting_permit,on_process,confirm_permit',
+        ]);
+
+        $status = $validated['status'];
 
         DB::transaction(function () use ($stall, $status) {
             $activeContract = \App\Models\Contract::where('stall_id', $stall->id)->where('is_active', true)->first();
@@ -341,7 +345,15 @@ class StallController extends Controller
 
     public function bulkUpdate(Request $request)
     {
-        $request->validate(['ids' => 'required|array']);
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:stalls,id',
+            'size_sqm' => 'nullable|numeric|min:0',
+            'current_monthly_rental' => 'nullable|numeric|min:0',
+            'current_rate_per_sqm' => 'nullable|numeric|min:0',
+            'proposed_monthly_rental' => 'nullable|numeric|min:0',
+            'proposed_rate_per_sqm' => 'nullable|numeric|min:0',
+        ]);
 
         $updateData = [];
         $fields = ['size_sqm', 'current_monthly_rental', 'current_rate_per_sqm', 'proposed_monthly_rental', 'proposed_rate_per_sqm'];
@@ -365,7 +377,10 @@ class StallController extends Controller
 
     public function bulkDestroy(Request $request)
     {
-        $request->validate(['ids' => 'required|array']);
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:stalls,id',
+        ]);
 
         DB::transaction(function () use ($request) {
             $contractIds = \App\Models\Contract::whereIn('stall_id', $request->ids)->pluck('id');

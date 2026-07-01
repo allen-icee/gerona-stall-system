@@ -32,6 +32,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('system_controls_tables');
+        Schema::dropIfExists('audit_logs');
+        Schema::dropIfExists('feature_flags');
     }
 };

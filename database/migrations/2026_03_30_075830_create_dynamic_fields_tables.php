@@ -31,6 +31,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('dynamic_fields_tables');
+        Schema::dropIfExists('field_values');
+        Schema::dropIfExists('field_definitions');
     }
 };

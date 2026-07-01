@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), "");
+    const hmrHost = env.VITE_HMR_HOST || undefined;
 
     return {
         plugins: [
@@ -23,7 +24,7 @@ export default defineConfig(({ mode }) => {
             cors: true,
 
             hmr: {
-                host: env.VITE_HMR_HOST || "192.168.100.7",
+                host: hmrHost,
                 port: 5173,
             },
         },

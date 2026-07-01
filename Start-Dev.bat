@@ -9,6 +9,11 @@ echo ==========================================================
 echo Shoutout To My Dearest Beloved Miss
 echo.
 
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Get-LanIp.ps1"`) do set "SERVER_IP=%%I"
+if "%SERVER_IP%"=="" set "SERVER_IP=127.0.0.1"
+set "APP_URL=http://%SERVER_IP%:8000"
+set "VITE_HMR_HOST=%SERVER_IP%"
+
 echo [1/3] Running Daily Database Backup...
 call Backup-Database.bat
 echo.
@@ -17,12 +22,16 @@ echo [2/3] Starting Laravel Server in the background...
 start /B php artisan serve --host=0.0.0.0 --port=8000
 
 echo [3/3] Starting Vite frontend in the background...
-start /B npm run dev
+start /B npm run dev:vite
 
 echo.
 echo ==========================================================
 echo       DEVELOPMENT SERVERS ARE RUNNING
 echo ==========================================================
+echo.
+echo Server computer URL: http://localhost:8000
+echo Staff LAN URL:       http://%SERVER_IP%:8000
+echo Vite dev server:     http://%SERVER_IP%:5173
 echo.
 echo To safely stop the servers, press any key...
 pause >nul

@@ -1,58 +1,114 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Gerona Stall Ledger System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+The Gerona Stall Ledger System is a comprehensive web and desktop application designed to manage market stalls, tenant contracts, and payments. It streamlines stall allocations, tracks leasing agreements, and provides real-time insights into tenant ledgers and financial transactions. Built for municipal or private market administration, the system ensures accurate record-keeping and robust payment monitoring.
+
+---
+
+## ✨ Features
+
+- **Stall & Layout Management:** Visually manage buildings, floors, and individual stall layouts.
+- **Tenant & Contract Tracking:** Register tenants and maintain active leasing contracts securely.
+- **Payment & Ledger System:** Track payments, generate ledgers, and automate penalty calculations.
+- **Role-Based Access Control:** Secure authentication and authorization for different administrative roles.
+- **Cross-Platform Access:** Accessible via a modern web interface or a dedicated desktop client application.
+
+---
+
+<h3>Languages & Tools (⌐■_■)</h3>
+
+<p align="left">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/laravel/laravel-original.svg" width="35" title="Laravel"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" width="35" title="React"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/electron/electron-original.svg" width="35" title="Electron"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/php/php-original.svg" width="35" title="PHP"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" width="35" title="TypeScript"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg" width="35" title="JavaScript"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/tailwindcss/tailwindcss-original.svg" width="35" title="Tailwind CSS"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/sqlite/sqlite-original.svg" width="35" title="SQLite"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/mysql/mysql-original.svg" width="35" title="MySQL"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vitejs/vitejs-original.svg" width="35" title="Vite"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/npm/npm-original-wordmark.svg" width="35" title="npm"/>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/composer/composer-original.svg" width="35" title="Composer"/>
 </p>
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Getting Started
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Prerequisites
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP >= 8.3
+- Node.js >= 20.x
+- Composer
+- SQLite or MySQL Database
 
-## Learning Laravel
+### Installation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. Clone the repository
+2. Install PHP dependencies:
+   ```sh
+   composer install
+   ```
+3. Install NPM dependencies:
+   ```sh
+   npm install
+   ```
+4. Copy the environment variables configuration:
+   ```sh
+   cp .env.example .env
+   ```
+5. Generate the application key:
+   ```sh
+   php artisan key:generate
+   ```
+6. Run database migrations:
+   ```sh
+   php artisan migrate
+   ```
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Environment Variables
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```env
+APP_NAME=
+APP_ENV=
+APP_KEY=
+APP_DEBUG=
+APP_URL=
+DB_CONNECTION=
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Run
 
-## Contributing
+To run the web application locally:
+```sh
+npm run dev
+```
+*(This concurrently starts the Laravel server and the Vite development server)*
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+To run the desktop client:
+```sh
+cd gerona-ledger-client
+npm install
+npm start
+```
 
-## Code of Conduct
+For Windows LAN deployment, you can alternatively use the bundled batch scripts:
+```sh
+Start-Dev.bat
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 📄 License
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Copyright (c) 2026 Allen Icee Dequiros
 
-## License
+This project is shared for portfolio, educational, and learning purposes.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+You are welcome to study the codebase and use it as inspiration for your own projects.
+
+Copying substantial portions of this project, redistributing it, submitting it as your own work, or creating direct clones is not permitted without explicit permission.
+
+If this project inspires your work, please build your own implementation rather than copying the source code.
+
+All rights reserved.

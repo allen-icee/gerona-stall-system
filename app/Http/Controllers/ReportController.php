@@ -184,13 +184,29 @@ class ReportController extends Controller
         $sortBy = in_array($request->input('sort'), $allowedSorts) ? $request->input('sort') : 'payment_date';
         $direction = strtolower($request->input('direction')) === 'asc' ? 'asc' : 'desc';
 
-        $ledger = $query->orderBy($sortBy, $direction)->paginate(20)->withQueryString();
+        $payments = $query->orderBy($sortBy, $direction)->paginate(20)->withQueryString();
+        $payments->getCollection()->transform(function ($payment) {
+            $monthName = $payment->month ? \Carbon\Carbon::createFromFormat('!m', $payment->month)->format('F') : 'N/A';
+
+            return [
+                'id' => $payment->id,
+                'month_paid' => trim($monthName . ' ' . ($payment->year ?? '')),
+                'price' => $payment->amount,
+                'date' => optional($payment->payment_date)->format('M d, Y') ?? 'N/A',
+                'or_number' => $payment->or_number ?? 'N/A',
+                'name' => trim(($payment->contract->tenant->last_name ?? '') . ', ' . ($payment->contract->tenant->first_name ?? ''), ', ') ?: 'N/A',
+                'location' => $payment->contract->stall->floor->building->name ?? 'N/A',
+                'stall' => $payment->contract->stall->stall_code ?? 'N/A',
+                'penalty' => $payment->payment_type === 'violation' ? $payment->amount : 0,
+            ];
+        });
 
         $buildings = Building::orderBy('name', 'asc')->get();
         $stalls = Stall::orderBy('stall_code', 'asc')->get();
 
         return Inertia::render('Reports/MasterLedger', [
-            'ledger' => $ledger,
+            'ledger' => $payments,
+            'ledgerData' => $payments,
             'buildings' => $buildings,
             'stalls' => $stalls,
             'filters' => $request->only(['search', 'sort', 'direction', 'building_id', 'month', 'year', 'stall_id']),

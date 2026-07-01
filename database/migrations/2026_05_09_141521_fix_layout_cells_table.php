@@ -10,12 +10,14 @@ return new class extends Migration {
     {
         // 1. Wipe out duplicate cells so we can safely apply the unique constraint
         DB::statement('
-            DELETE t1 FROM layout_cells t1
-            INNER JOIN layout_cells t2
-            WHERE t1.id > t2.id
-            AND t1.layout_id = t2.layout_id
-            AND t1.row_number = t2.row_number
-            AND t1.column_number = t2.column_number
+            DELETE FROM layout_cells
+            WHERE id NOT IN (
+                SELECT id FROM (
+                    SELECT MIN(id) AS id
+                    FROM layout_cells
+                    GROUP BY layout_id, row_number, column_number
+                ) AS cells_to_keep
+            )
         ');
 
         Schema::table('layout_cells', function (Blueprint $table) {

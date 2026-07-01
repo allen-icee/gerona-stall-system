@@ -82,7 +82,7 @@ Route::middleware('auth')->group(function () {
         Route::get('payments/export', [PaymentController::class, 'export'])->name('payments.export');
         Route::post('payments/import', [PaymentController::class, 'import'])->name('payments.import');
         Route::get('payments/{payment}/print', [PaymentController::class, 'print'])->name('payments.print');
-        Route::resource('payments', PaymentController::class);
+        Route::resource('payments', PaymentController::class)->except(['create', 'show', 'edit']);
     });
 
     Route::middleware(['can:view contracts'])->group(function () {

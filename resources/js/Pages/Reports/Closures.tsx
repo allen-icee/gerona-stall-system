@@ -10,6 +10,9 @@ export default function ClosuresReport({
     stalls,
     filters,
 }: any) {
+    const closureData = Array.isArray(closures) ? closures : closures?.data || [];
+    const closureCount = closures?.total ?? closureData.length;
+
     const [search, setSearch] = useState(filters?.search || "");
     const [sortFilter, setSortFilter] = useState(
         filters?.sort
@@ -41,7 +44,10 @@ export default function ClosuresReport({
 
     useEffect(() => {
         const delay = setTimeout(() => {
-            const [sortBy, filterDirection] = sortFilter.split("_");
+            const lastUnderscore = sortFilter.lastIndexOf("_");
+            const sortBy = sortFilter.slice(0, lastUnderscore);
+            const filterDirection = sortFilter.slice(lastUnderscore + 1);
+
             router.get(
                 route("reports.closures"),
                 {
@@ -73,8 +79,8 @@ export default function ClosuresReport({
                                 Action Required: Closures
                             </h3>
                             <span className="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full font-black border-2 border-red-200">
-                                {closures.length}{" "}
-                                {closures.length === 1 ? "Alert" : "Alerts"}
+                                {closureCount}{" "}
+                                {closureCount === 1 ? "Alert" : "Alerts"}
                             </span>
                         </div>
                         <p className="text-sm font-bold text-slate-500">
@@ -151,7 +157,7 @@ export default function ClosuresReport({
                                 </tr>
                             </thead>
                             <tbody className="divide-y-2 divide-red-100">
-                                {closures.length === 0 ? (
+                                {closureData.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={5}
@@ -168,7 +174,7 @@ export default function ClosuresReport({
                                         </td>
                                     </tr>
                                 ) : (
-                                    closures.map((record: any) => (
+                                    closureData.map((record: any) => (
                                         <tr
                                             key={record.id}
                                             className="hover:bg-red-50 transition-colors"

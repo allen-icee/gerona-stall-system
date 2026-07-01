@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Penalty;
+use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -23,11 +24,15 @@ class PenaltyController extends Controller
             });
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $penalties = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
 
         return Inertia::render('Penalties/Index', [
             'penalties' => $penalties,
-            'filters' => ['search' => $request->search],
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
 
@@ -49,6 +54,19 @@ class PenaltyController extends Controller
         Penalty::create($validated);
 
         return redirect()->back()->with('success', 'Late penalty applied to tenant ledger.');
+    }
+
+    public function process(Request $request, Penalty $penalty, PenaltyService $penaltyService)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:approved,waived',
+            'adjusted_amount' => 'required_if:status,approved|nullable|numeric|min:0',
+            'admin_notes' => 'required_if:status,waived|nullable|string|max:1000',
+        ]);
+
+        $penaltyService->processPenalty($penalty, $validated, Auth::id() ?? 1);
+
+        return redirect()->back()->with('success', 'Penalty review saved.');
     }
 
     // New method: Waive/Delete a mistake penalty

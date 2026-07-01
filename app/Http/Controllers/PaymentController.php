@@ -77,6 +77,8 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizePaymentMonth($request);
+
         $validated = $request->validate([
             'contract_id' => 'required|exists:contracts,id',
             'amount' => 'required|numeric|min:0.01',
@@ -87,6 +89,7 @@ class PaymentController extends Controller
             'or_number' => 'required|string|unique:payments,or_number',
         ]);
 
+        $this->fillMissingCoverageDate($validated);
         $validated['encoded_by'] = Auth::id() ?? 1;
         $payment = Payment::create($validated);
 
@@ -98,6 +101,8 @@ class PaymentController extends Controller
 
     public function update(Request $request, Payment $payment)
     {
+        $this->normalizePaymentMonth($request);
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -107,6 +112,7 @@ class PaymentController extends Controller
             'or_number' => 'required|string|unique:payments,or_number,' . $payment->id,
         ]);
 
+        $this->fillMissingCoverageDate($validated);
         $payment->update($validated);
 
         return redirect()->back()->with('success', 'Payment record successfully updated!');
@@ -194,5 +200,50 @@ class PaymentController extends Controller
         ];
 
         return Inertia::render('Payments/Print', ['record' => $record]);
+    }
+
+    private function normalizePaymentMonth(Request $request): void
+    {
+        if (!$request->filled('month') || is_numeric($request->input('month'))) {
+            return;
+        }
+
+        $months = [
+            'JAN' => 1,
+            'JANUARY' => 1,
+            'FEB' => 2,
+            'FEBRUARY' => 2,
+            'MAR' => 3,
+            'MARCH' => 3,
+            'APR' => 4,
+            'APRIL' => 4,
+            'MAY' => 5,
+            'JUN' => 6,
+            'JUNE' => 6,
+            'JUL' => 7,
+            'JULY' => 7,
+            'AUG' => 8,
+            'AUGUST' => 8,
+            'SEP' => 9,
+            'SEPTEMBER' => 9,
+            'OCT' => 10,
+            'OCTOBER' => 10,
+            'NOV' => 11,
+            'NOVEMBER' => 11,
+            'DEC' => 12,
+            'DECEMBER' => 12,
+        ];
+
+        $month = strtoupper(trim((string) $request->input('month')));
+        if (isset($months[$month])) {
+            $request->merge(['month' => $months[$month]]);
+        }
+    }
+
+    private function fillMissingCoverageDate(array &$validated): void
+    {
+        $paymentDate = Carbon::parse($validated['payment_date']);
+        $validated['month'] = $validated['month'] ?? $paymentDate->month;
+        $validated['year'] = $validated['year'] ?? $paymentDate->year;
     }
 }
